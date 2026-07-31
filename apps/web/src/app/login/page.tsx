@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { PageShell } from "@/components/PageShell";
 
 export default function LoginPage() {
   const { signIn, signUp, user } = useAuth();
@@ -24,9 +25,7 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     const err =
-      mode === "in"
-        ? await signIn(email, password)
-        : await signUp(email, password, fullName);
+      mode === "in" ? await signIn(email, password) : await signUp(email, password, fullName);
     setBusy(false);
     if (err) {
       setError(err);
@@ -36,68 +35,64 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-6">
-      <div>
-        <p className="text-sm uppercase tracking-[0.18em] text-savr-clay">Account</p>
-        <h1 className="mt-2 font-display text-4xl">
-          {mode === "in" ? "Sign in" : "Create account"}
-        </h1>
-        <p className="mt-2 text-sm text-savr-ink/70">
-          Needed to save basket choices and credit savings cashback.
-        </p>
-      </div>
+    <PageShell narrow>
+      <div className="animate-rise space-y-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-savr-forest">Account</p>
+          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight">
+            {mode === "in" ? "Welcome back" : "Join Savr"}
+          </h1>
+          <p className="mt-2 text-sm text-savr-ink/65">
+            Unlock wallet cashback when you pick the smarter deal.
+          </p>
+        </div>
 
-      <form onSubmit={onSubmit} className="space-y-3">
-        {mode === "up" && (
+        <form onSubmit={onSubmit} className="space-y-3">
+          {mode === "up" && (
+            <input
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Full name"
+              className="w-full border border-savr-ink/10 bg-white/70 px-4 py-3 outline-none focus:border-savr-forest"
+            />
+          )}
           <input
             required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Full name"
-            className="w-full border border-savr-ink/15 bg-white/70 px-3 py-2"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="w-full border border-savr-ink/10 bg-white/70 px-4 py-3 outline-none focus:border-savr-forest"
           />
-        )}
-        <input
-          required
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          className="w-full border border-savr-ink/15 bg-white/70 px-3 py-2"
-        />
-        <input
-          required
-          type="password"
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          className="w-full border border-savr-ink/15 bg-white/70 px-3 py-2"
-        />
+          <input
+            required
+            type="password"
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="w-full border border-savr-ink/10 bg-white/70 px-4 py-3 outline-none focus:border-savr-forest"
+          />
+          <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60">
+            {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}
+          </button>
+        </form>
+
+        {error && <p className="text-sm font-medium text-red-700">{error}</p>}
+
         <button
-          type="submit"
-          disabled={busy}
-          className="w-full bg-savr-forest px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          type="button"
+          className="text-sm font-semibold text-savr-forest"
+          onClick={() => setMode(mode === "in" ? "up" : "in")}
         >
-          {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Sign up"}
+          {mode === "in" ? "New here? Create an account" : "Already saving? Sign in"}
         </button>
-      </form>
 
-      {error && <p className="text-sm text-savr-clay">{error}</p>}
-
-      <button
-        type="button"
-        className="text-sm text-savr-forest"
-        onClick={() => setMode(mode === "in" ? "up" : "in")}
-      >
-        {mode === "in" ? "Need an account? Sign up" : "Have an account? Sign in"}
-      </button>
-
-      <p className="text-sm">
-        <Link href="/basket" className="text-savr-ink/60 hover:text-savr-forest">
-          Continue comparing without signing in
+        <Link href="/basket" className="block text-sm text-savr-ink/50 hover:text-savr-forest">
+          Skip — just compare for now
         </Link>
-      </p>
-    </div>
+      </div>
+    </PageShell>
   );
 }

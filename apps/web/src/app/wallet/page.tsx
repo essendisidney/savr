@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { loadWallet } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
+import { PageShell } from "@/components/PageShell";
 
 export default function WalletPage() {
   const { user, loading: authLoading } = useAuth();
@@ -31,54 +32,75 @@ export default function WalletPage() {
   }, [user, authLoading]);
 
   if (loading || authLoading) {
-    return <p className="text-savr-ink/60">Loading wallet…</p>;
+    return (
+      <PageShell>
+        <p className="animate-pulse text-savr-ink/50">Opening wallet…</p>
+      </PageShell>
+    );
   }
 
   if (error === "signed_out" || !user) {
     return (
-      <div className="space-y-4">
-        <h1 className="font-display text-4xl">Wallet</h1>
-        <p className="text-savr-ink/70">Sign in to see savings cashback.</p>
-        <Link href="/login" className="inline-block bg-savr-forest px-4 py-2 text-sm font-semibold text-white">
-          Sign in
-        </Link>
-      </div>
+      <PageShell>
+        <div className="animate-rise space-y-5">
+          <h1 className="font-display text-4xl font-extrabold">Your savings stash</h1>
+          <p className="text-savr-ink/65">Sign in to see cashback from smarter choices.</p>
+          <Link href="/login" className="btn-primary">
+            Sign in to wallet
+          </Link>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-sm uppercase tracking-[0.18em] text-savr-clay">Savr Wallet</p>
-        <h1 className="mt-2 font-display text-4xl">Savings cashback</h1>
-        <p className="mt-2 text-savr-ink/70">Live ledger from your account.</p>
-      </div>
-
-      <div className="border border-savr-forest/30 bg-savr-mint/40 px-6 py-8">
-        <p className="text-sm uppercase tracking-wide text-savr-forest">Available</p>
-        <p className="mt-2 font-display text-5xl">{formatKes(balanceCents)}</p>
-      </div>
-
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-savr-ink/60">Ledger</h2>
-        {ledger.length === 0 ? (
-          <p className="mt-3 text-sm text-savr-ink/60">
-            No earnings yet. Compare a basket and choose the recommendation.
+    <PageShell>
+      <div className="space-y-8">
+        <div className="animate-rise">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-savr-forest">
+            Savr Wallet
           </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-savr-ink/10 border-y border-savr-ink/10">
-            {ledger.map((e, i) => (
-              <li key={`${e.when}-${i}`} className="flex items-center justify-between py-3 text-sm">
-                <div>
-                  <p className="font-medium">{e.note ?? "Cashback"}</p>
-                  <p className="text-savr-ink/50">{e.when}</p>
-                </div>
-                <p className="font-semibold text-savr-forest">+{formatKes(e.amountCents)}</p>
-              </li>
-            ))}
-          </ul>
-        )}
+          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
+            Money you earned by choosing well
+          </h1>
+        </div>
+
+        <div className="animate-countPop border-2 border-savr-leaf bg-white/70 px-6 py-8">
+          <p className="text-xs font-bold uppercase tracking-wide text-savr-forest">Available</p>
+          <p className="mt-2 font-display text-5xl font-extrabold md:text-6xl">
+            {formatKes(balanceCents)}
+          </p>
+        </div>
+
+        <div className="animate-rise-delay">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-savr-ink/45">
+            Activity
+          </h2>
+          {ledger.length === 0 ? (
+            <p className="mt-4 text-sm text-savr-ink/60">
+              Empty for now —{" "}
+              <Link href="/basket" className="font-semibold text-savr-forest hover:underline">
+                compare a basket
+              </Link>{" "}
+              and choose the winner.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-savr-ink/10 border-y border-savr-ink/10 bg-white/50">
+              {ledger.map((e, i) => (
+                <li key={`${e.when}-${i}`} className="flex items-center justify-between px-3 py-3.5 text-sm">
+                  <div>
+                    <p className="font-medium">{e.note ?? "Cashback"}</p>
+                    <p className="text-savr-ink/45">{e.when}</p>
+                  </div>
+                  <p className="font-display text-lg font-bold text-savr-forest">
+                    +{formatKes(e.amountCents)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

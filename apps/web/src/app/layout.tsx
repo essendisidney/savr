@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { DM_Sans, Syne } from "next/font/google";
 import { AppNav } from "@/components/AppNav";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
-const display = Fraunces({
+const display = Syne({
   subsets: ["latin"],
   variable: "--font-display",
+  weight: ["600", "700", "800"],
 });
 
 const sans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "Savr — Before you spend",
-  description: "The Consumer Savings Operating System. Compare baskets, rides, and fuel in Nairobi.",
+  description: "Nairobi’s spending OS. Compare baskets, rides, and fuel — then earn savings cashback.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="grain-bg min-h-screen">
             <AppNav />
-            <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+            <main>{children}</main>
           </div>
         </Providers>
       </body>

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageShell } from "@/components/PageShell";
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { formatKes } from "@/lib/compare";
@@ -68,39 +69,45 @@ export default function MerchantPage() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-sm uppercase tracking-[0.18em] text-savr-clay">Merchant portal</p>
-        <h1 className="mt-2 font-display text-4xl">Compete on value</h1>
-        <p className="mt-2 max-w-xl text-savr-ink/70">
-          Live merchant network · source: {source}. Upload CRUD comes next for merchant_admins.
-        </p>
-      </div>
+    <PageShell>
+      <div className="animate-rise space-y-8">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-savr-forest">
+            Merchant portal
+          </p>
+          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight">
+            Compete on value
+          </h1>
+          <p className="mt-2 max-w-xl text-savr-ink/65">
+            Live merchant network · {source}. Price uploads for merchant admins next.
+          </p>
+        </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[32rem] text-left text-sm">
-          <thead className="border-b border-savr-ink/20 text-savr-ink/60">
-            <tr>
-              <th className="py-2 font-medium">Merchant</th>
-              <th className="py-2 font-medium">Status</th>
-              <th className="py-2 font-medium">SKUs priced</th>
-              <th className="py-2 font-medium">Cashback rule</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-savr-ink/10">
-            {rows.map((m) => (
-              <tr key={m.name}>
-                <td className="py-3 font-display text-lg">{m.name}</td>
-                <td className="py-3">{m.verified ? "Verified" : "Pending"}</td>
-                <td className="py-3">{m.skus}</td>
-                <td className="py-3 text-savr-forest">
-                  {m.cashbackCents ? formatKes(m.cashbackCents) : "—"}
-                </td>
+        <div className="overflow-x-auto bg-white/50">
+          <table className="w-full min-w-[32rem] text-left text-sm">
+            <thead className="border-b border-savr-ink/15 text-savr-ink/45">
+              <tr>
+                <th className="px-3 py-3 font-semibold">Merchant</th>
+                <th className="px-3 py-3 font-semibold">Status</th>
+                <th className="px-3 py-3 font-semibold">SKUs priced</th>
+                <th className="px-3 py-3 font-semibold">Cashback rule</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-savr-ink/10">
+              {rows.map((m) => (
+                <tr key={m.name}>
+                  <td className="px-3 py-3.5 font-display text-lg font-bold">{m.name}</td>
+                  <td className="px-3 py-3.5">{m.verified ? "Verified" : "Pending"}</td>
+                  <td className="px-3 py-3.5">{m.skus}</td>
+                  <td className="px-3 py-3.5 font-semibold text-savr-forest">
+                    {m.cashbackCents ? formatKes(m.cashbackCents) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
