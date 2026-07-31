@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useAuth } from "@/lib/auth";
 
 const links = [
   { href: "/", label: "Home" },
@@ -10,6 +13,8 @@ const links = [
 ];
 
 export function AppNav() {
+  const { user, signOut, loading } = useAuth();
+
   return (
     <header className="border-b border-savr-ink/10 bg-savr-sand/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
@@ -22,6 +27,20 @@ export function AppNav() {
               {l.label}
             </Link>
           ))}
+          {!loading &&
+            (user ? (
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="text-savr-forest transition hover:text-savr-leaf"
+              >
+                Sign out
+              </button>
+            ) : (
+              <Link href="/login" className="font-semibold text-savr-forest">
+                Sign in
+              </Link>
+            ))}
         </nav>
       </div>
     </header>

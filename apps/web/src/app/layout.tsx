@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 import { AppNav } from "@/components/AppNav";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const display = Fraunces({
@@ -22,10 +23,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-KE">
       <body className={`${display.variable} ${sans.variable} min-h-screen font-sans text-savr-ink antialiased`}>
-        <div className="grain-bg min-h-screen">
-          <AppNav />
-          <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-        </div>
+        <Providers>
+          <div className="grain-bg min-h-screen">
+            <AppNav />
+            <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+          </div>
+        </Providers>
       </body>
     </html>
   );

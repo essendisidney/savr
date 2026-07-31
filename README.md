@@ -8,7 +8,8 @@ Monorepo for Phase 1 (Nairobi): groceries basket compare (wedge), ride quotes, f
 
 | Doc | Purpose |
 |-----|---------|
-| [docs/VISION.md](docs/VISION.md) | Mission, positioning, phases |
+| [docs/VISION.md](docs/VISION.md) | Mission, positioning, 10-year ambition |
+| [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) | 12 platforms — Spending OS / Google of Spending |
 | [docs/WEDGE.md](docs/WEDGE.md) | Why groceries wins Phase 1 |
 | [docs/MVP_PRD.md](docs/MVP_PRD.md) | MVP requirements |
 | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Postgres / Supabase model |
@@ -21,6 +22,14 @@ apps/mobile  Flutter shell — install Flutter, then `flutter create .` to gener
 supabase/    Migrations + config
 docs/        Product spine
 ```
+
+## Live stack
+
+| Service | Status |
+|---------|--------|
+| GitHub | https://github.com/essendisidney/savr |
+| Supabase | Project `savr` (`thmxbhpuomggphgdzllk`) — schema + Nairobi seed applied |
+| Vercel | https://savr-teal.vercel.app (Root Directory: `apps/web`) |
 
 ## Quick start (web)
 

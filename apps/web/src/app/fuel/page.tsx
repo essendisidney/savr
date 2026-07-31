@@ -1,20 +1,36 @@
 "use client";
 
-import { formatKes, nearbyFuel } from "@/lib/compare";
+import { useEffect, useState } from "react";
+import { loadFuelStations } from "@/lib/catalog";
+import { formatKes } from "@/lib/compare";
+import type { FuelStation } from "@/lib/types";
 
 export default function FuelPage() {
-  const stations = nearbyFuel();
+  const [stations, setStations] = useState<FuelStation[]>([]);
+  const [source, setSource] = useState("…");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadFuelStations().then((r) => {
+      setStations(r.stations);
+      setSource(r.source);
+      setLoading(false);
+    });
+  }, []);
+
   const best = stations[0];
   const worst = stations[stations.length - 1];
   const savedPerLitre =
     worst && best ? worst.priceCentsPerLitre - best.priceCentsPerLitre : 0;
+
+  if (loading) return <p className="text-savr-ink/60">Loading fuel prices…</p>;
 
   return (
     <div className="space-y-8">
       <div>
         <p className="text-sm uppercase tracking-[0.18em] text-savr-clay">Fuel · Nearby</p>
         <h1 className="mt-2 font-display text-4xl">Fill smart</h1>
-        <p className="mt-2 text-savr-ink/70">Petrol prices per litre around you (seed data).</p>
+        <p className="mt-2 text-savr-ink/70">Petrol prices · source: {source}</p>
       </div>
 
       <div className="space-y-3">
@@ -29,15 +45,13 @@ export default function FuelPage() {
               <div>
                 <p className="font-display text-2xl">{s.brand}</p>
                 <p className="text-sm text-savr-ink/60">
-                  {s.name} · {s.distanceKm} km
+                  {s.name}
+                  {s.distanceKm != null ? ` · ${s.distanceKm} km` : ""}
                   {i === 0 ? " · Recommended" : ""}
                 </p>
               </div>
               <p className="font-semibold">{formatKes(s.priceCentsPerLitre)}/L</p>
             </div>
-            <p className="mt-2 text-sm text-savr-ink/70">
-              Cashback {formatKes(s.cashbackCents)} on fill-up (partner rule demo)
-            </p>
           </div>
         ))}
       </div>

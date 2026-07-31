@@ -1,25 +1,69 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  compareBasket,
-  defaultList,
-  formatKes,
-  type ListItem,
-} from "@/lib/compare";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { confirmBasketChoice } from "@/lib/actions";
+import { useAuth } from "@/lib/auth";
+import { loadCatalog } from "@/lib/catalog";
+import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
+import type { Catalog, ListItem } from "@/lib/types";
 
 export default function BasketPage() {
-  const [items, setItems] = useState<ListItem[]>(defaultList);
-  const [confirmed, setConfirmed] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [items, setItems] = useState<ListItem[]>([]);
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const results = useMemo(() => compareBasket(items), [items]);
+  useEffect(() => {
+    loadCatalog().then((c) => {
+      setCatalog(c);
+      setItems(defaultListFromCatalog(c));
+      setLoading(false);
+    });
+  }, []);
+
+  const results = useMemo(
+    () => (catalog ? compareBasket(catalog, items) : []),
+    [catalog, items],
+  );
   const recommended = results.find((r) => r.isRecommended);
   const worst = results[results.length - 1];
   const saved = recommended && worst ? worst.totalCents - recommended.totalCents : 0;
 
   function removeItem(productId: string) {
     setItems((prev) => prev.filter((i) => i.productId !== productId));
-    setConfirmed(null);
+    setStatus(null);
+  }
+
+  async function choose(merchantId: string) {
+    if (!recommended || !catalog) return;
+    if (!user) {
+      setStatus("Sign in to lock the choice and earn cashback.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    const chosen = results.find((r) => r.merchantId === merchantId) ?? recommended;
+    const outcome = await confirmBasketChoice({
+      items,
+      results,
+      chosenMerchantId: merchantId,
+      recommendedMerchantId: recommended.merchantId,
+      savingsCents: saved,
+      cashbackCents: chosen.cashbackCents,
+    });
+    setBusy(false);
+    if ("error" in outcome) {
+      setStatus(outcome.error);
+      return;
+    }
+    setStatus(`Saved. Cashback credited · compare ${outcome.compareId.slice(0, 8)}…`);
+  }
+
+  if (loading || !catalog) {
+    return <p className="text-savr-ink/60">Loading Nairobi catalog…</p>;
   }
 
   return (
@@ -28,7 +72,7 @@ export default function BasketPage() {
         <p className="text-sm uppercase tracking-[0.18em] text-savr-clay">Groceries · Nairobi</p>
         <h1 className="mt-2 font-display text-4xl text-savr-ink">Basket compare</h1>
         <p className="mt-2 max-w-xl text-savr-ink/70">
-          One list. Every merchant. Lowest net cost after savings cashback.
+          Live catalog from Savr · source: {catalog.source}. Lowest net cost after savings cashback.
         </p>
       </div>
 
@@ -51,9 +95,6 @@ export default function BasketPage() {
               </li>
             ))}
           </ul>
-          {items.length === 0 && (
-            <p className="text-sm text-savr-ink/60">Add staples back by refreshing the page.</p>
-          )}
         </div>
 
         <div className="space-y-4">
@@ -81,15 +122,17 @@ export default function BasketPage() {
                 <p className="text-right font-semibold">{formatKes(r.totalCents)}</p>
               </div>
               <p className="mt-2 text-sm text-savr-ink/70">
-                Cashback {formatKes(r.cashbackCents)} · Net {formatKes(r.netCents)}
+                Cashback {formatKes(r.cashbackCents)} · Net {formatKes(r.netCents)} ·{" "}
+                {Math.round(r.coverage * 100)}% coverage
               </p>
               {r.isRecommended && (
                 <button
                   type="button"
-                  onClick={() => setConfirmed(r.merchantId)}
-                  className="mt-4 bg-savr-forest px-4 py-2 text-sm font-semibold text-white hover:bg-savr-leaf"
+                  disabled={busy}
+                  onClick={() => choose(r.merchantId)}
+                  className="mt-4 bg-savr-forest px-4 py-2 text-sm font-semibold text-white hover:bg-savr-leaf disabled:opacity-60"
                 >
-                  Choose {r.merchantName}
+                  {busy ? "Saving…" : `Choose ${r.merchantName}`}
                 </button>
               )}
             </div>
@@ -98,10 +141,19 @@ export default function BasketPage() {
           {recommended && (
             <div className="border-l-4 border-savr-clay bg-white/50 px-4 py-3 text-sm">
               Save <strong>{formatKes(saved)}</strong> vs highest basket · Earn{" "}
-              <strong>{formatKes(recommended.cashbackCents)}</strong> savings cashback
-              {confirmed ? " · Choice saved locally (wire to Supabase wallet next)." : "."}
+              <strong>{formatKes(recommended.cashbackCents)}</strong> savings cashback.
+              {!user && (
+                <>
+                  {" "}
+                  <Link href="/login" className="text-savr-forest underline-offset-2 hover:underline">
+                    Sign in
+                  </Link>{" "}
+                  to credit your wallet.
+                </>
+              )}
             </div>
           )}
+          {status && <p className="text-sm text-savr-forest">{status}</p>}
         </div>
       </div>
     </div>

@@ -1,16 +1,25 @@
 # Savr
 
-**The Consumer Savings Operating System**
+**The Consumer Savings Operating System**  
+**The Spending OS for Africa**
 
 One app. Every purchase. Lowest price. Smart rewards.
 
 > Before you spend, Savr it.
+
+Stop thinking like an app developer. Think like building the **Google of Spending**: not necessarily the seller — the first place people go to decide. The app is the entry point; the company is the **data and decision infrastructure** behind it.
+
+Full platform map: [ECOSYSTEM.md](./ECOSYSTEM.md).
 
 ---
 
 ## Mission
 
 Help every person make the smartest financial decision **before** they spend money.
+
+## 10-year ambition
+
+Build the infrastructure that powers **how Africa spends money** — expanding one category and one country at a time, destination intact.
 
 ## Positioning
 
@@ -21,6 +30,14 @@ It is the **trusted decision layer above spend** — the place consumers check f
 Today people ask: Where is it cheaper? Is there a discount? Which taxi? Which supermarket?
 
 Tomorrow they ask one thing: **Check Savr.**
+
+## What the company actually is
+
+| User sees | Company builds |
+|-----------|----------------|
+| One Spending OS (Compare · Save · Earn · Pay · Invest) | Consumer, Merchant, Business, API, AI, Wallet, Rewards, Intelligence, Ads, Finance, Protect, Community |
+
+Consumers and businesses share the same decision graph. Developers embed it via API. Merchants compete by offering better **value**, not only louder ads.
 
 ## The problem
 
@@ -78,11 +95,13 @@ More usage → better recommendations → more users and merchants. That is the 
 
 ## Long-term north star
 
-Ask: “I need to renovate my kitchen.”
+Ask: “What’s the cheapest way to furnish a two-bedroom apartment in Nairobi?”
 
-Savr compares tiles, paint, cement, contractors, transport, financing, insurance — and recommends the most cost-effective plan.
+Savr builds the plan — furniture, delivery, assembly, financing, cashback, warranty — then states total cost and savings vs market average.
 
 That is when Savr becomes an **AI-powered decision engine for spending**, not a shopping search tool.
+
+Same pattern for kitchen renovations, school runs, SME procurement — any multi-step spend.
 
 ## Revenue (long-term)
 
