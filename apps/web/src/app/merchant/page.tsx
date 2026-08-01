@@ -11,10 +11,12 @@ import {
   fetchMyMerchantIds,
   listMerchants,
   loadCashbackRule,
+  loadMerchantAnalytics,
   loadMerchantPrices,
   saveCashbackRule,
   updateMerchantPrice,
   type ManagedPrice,
+  type MerchantAnalytics,
   type MerchantCashbackRule,
   type MerchantSummary,
 } from "@/lib/merchant";
@@ -27,6 +29,7 @@ export default function MerchantPage() {
   const [prices, setPrices] = useState<ManagedPrice[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [cashback, setCashback] = useState<MerchantCashbackRule | null>(null);
+  const [analytics, setAnalytics] = useState<MerchantAnalytics | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,19 +51,24 @@ export default function MerchantPage() {
       setPrices([]);
       setDrafts({});
       setCashback(null);
+      setAnalytics(null);
       return;
     }
-    Promise.all([loadMerchantPrices(selectedId), loadCashbackRule(selectedId)]).then(
-      ([rows, rule]) => {
-        setPrices(rows);
-        const next: Record<string, string> = {};
-        for (const row of rows) {
-          next[row.id] = (row.priceCents / 100).toFixed(2);
-        }
-        setDrafts(next);
-        setCashback(rule);
-      },
-    );
+    Promise.all([
+      loadMerchantPrices(selectedId),
+      loadCashbackRule(selectedId),
+      loadMerchantAnalytics(selectedId),
+    ]).then(([rows, rule, stats]) => {
+      setPrices(rows);
+      const next: Record<string, string> = {};
+      for (const row of rows) {
+        next[row.id] = (row.priceCents / 100).toFixed(2);
+      }
+      setDrafts(next);
+      setCashback(rule);
+      if ("error" in stats) setAnalytics(null);
+      else setAnalytics(stats);
+    });
   }, [selectedId, myIds]);
 
   const selected = useMemo(
@@ -140,7 +148,7 @@ export default function MerchantPage() {
       <PageHero
         theme="basket"
         title="Compete on value"
-        subtitle="Claim a store, tune prices and cashback, and win the basket ranking."
+        subtitle="Claim a store, tune prices and cashback, and see which SKUs shoppers put on lists."
       />
 
       <div className="page-band">
@@ -212,6 +220,103 @@ export default function MerchantPage() {
 
             {selected && myIds.includes(selected.id) && cashback && (
               <section className="space-y-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                    Demand signal
+                  </p>
+                  <h2 className="mt-1 font-display text-2xl font-bold tracking-tightish">
+                    Analytics · {selected.name}
+                  </h2>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    Privacy-safe totals from locked-in basket compares — no shopper identities.
+                  </p>
+                </div>
+
+                {analytics ? (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        { label: "Impressions", value: String(analytics.impressions) },
+                        { label: "Recommended", value: String(analytics.recommended) },
+                        { label: "Chosen", value: String(analytics.chosen) },
+                        { label: "Win rate", value: `${analytics.winRate}%` },
+                      ].map((stat, i) => (
+                        <div
+                          key={stat.label}
+                          className="animate-rise border border-savr-ink/[0.08] bg-white px-4 py-4"
+                          style={{ animationDelay: `${i * 0.05}s` }}
+                        >
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                            {stat.label}
+                          </p>
+                          <p className="mt-2 font-display text-3xl font-bold tracking-tightish tabular-nums text-savr-ink">
+                            {stat.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="border border-savr-ink/[0.08] bg-white px-4 py-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                          List inclusions
+                        </p>
+                        <p className="mt-2 font-display text-3xl font-bold tabular-nums text-savr-forest">
+                          {analytics.listInclusions}
+                        </p>
+                        <p className="mt-1 text-xs text-savr-mute">
+                          Times your priced SKUs appeared on shopping lists
+                        </p>
+                      </div>
+                      <div className="border border-savr-ink/[0.08] bg-white px-4 py-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                          Avg basket shown
+                        </p>
+                        <p className="mt-2 font-display text-3xl font-bold tabular-nums text-savr-ink">
+                          {analytics.avgBasketCents
+                            ? formatKes(analytics.avgBasketCents)
+                            : "—"}
+                        </p>
+                        <p className="mt-1 text-xs text-savr-mute">
+                          Mean total when shoppers saw your store in a rank
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                        Top list SKUs
+                      </p>
+                      {analytics.topProducts.length === 0 ? (
+                        <p className="mt-2 text-sm text-savr-mute">
+                          No list activity yet — keep prices fresh so shoppers can add your SKUs.
+                        </p>
+                      ) : (
+                        <ol className="mt-2 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                          {analytics.topProducts.map((p, i) => (
+                            <li
+                              key={`${p.productName}-${i}`}
+                              className="flex items-center justify-between gap-3 px-4 py-3"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">{p.productName}</p>
+                                <p className="text-xs text-savr-mute">{p.brand ?? "Unbranded"}</p>
+                              </div>
+                              <p className="font-display text-lg font-bold tabular-nums text-savr-forest">
+                                {p.inclusions}
+                              </p>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="border border-dashed border-savr-forest/35 bg-white px-4 py-6 text-sm text-savr-mute">
+                    Analytics unlock after shoppers lock in basket compares that include your store.
+                  </p>
+                )}
+
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
                     Win the ranking

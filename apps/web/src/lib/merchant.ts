@@ -205,3 +205,42 @@ export async function saveCashbackRule(
 
   return {};
 }
+
+export type MerchantAnalytics = {
+  impressions: number;
+  recommended: number;
+  chosen: number;
+  listInclusions: number;
+  avgBasketCents: number;
+  winRate: number;
+  topProducts: { productName: string; brand: string | null; inclusions: number }[];
+};
+
+export async function loadMerchantAnalytics(
+  merchantId: string,
+): Promise<MerchantAnalytics | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const { data, error } = await supabase.rpc("merchant_analytics", {
+    p_merchant_id: merchantId,
+  });
+  if (error) return { error: error.message };
+
+  const row = (data ?? {}) as Record<string, unknown>;
+  const topRaw = (row.top_products as Record<string, unknown>[] | null) ?? [];
+
+  return {
+    impressions: Number(row.impressions) || 0,
+    recommended: Number(row.recommended) || 0,
+    chosen: Number(row.chosen) || 0,
+    listInclusions: Number(row.list_inclusions) || 0,
+    avgBasketCents: Number(row.avg_basket_cents) || 0,
+    winRate: Number(row.win_rate) || 0,
+    topProducts: topRaw.map((t) => ({
+      productName: String(t.product_name ?? "Product"),
+      brand: (t.brand as string | null) ?? null,
+      inclusions: Number(t.inclusions) || 0,
+    })),
+  };
+}
