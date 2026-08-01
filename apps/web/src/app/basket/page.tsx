@@ -219,7 +219,7 @@ export default function BasketPage() {
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Add milk, yoghurt, spaghetti…"
+                    placeholder="Add milk, bananas, detergent…"
                     className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
                     aria-label="Search products to add"
                   />

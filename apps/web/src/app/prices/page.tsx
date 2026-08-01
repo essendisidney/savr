@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { loadCatalog } from "@/lib/catalog";
-import { compareProduct, formatKes, searchProducts } from "@/lib/compare";
+import { compareProduct, formatKes } from "@/lib/compare";
 import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -15,6 +15,7 @@ function PricesInner() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("id"));
+  const [category, setCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,11 +34,28 @@ function PricesInner() {
     return catalog.products.find((p) => p.id === selectedId) ?? null;
   }, [catalog, selectedId]);
 
+  const categories = useMemo(() => {
+    if (!catalog) return [] as string[];
+    return Array.from(new Set(catalog.products.map((p) => p.category))).sort();
+  }, [catalog]);
+
   const suggestions = useMemo(() => {
     if (!catalog) return [];
-    if (query.trim()) return searchProducts(catalog, query, [], 10);
-    return catalog.products.slice(0, 8);
-  }, [catalog, query]);
+    const pool =
+      category === "all"
+        ? catalog.products
+        : catalog.products.filter((p) => p.category === category);
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      return pool
+        .filter((p) => {
+          const hay = `${p.name} ${p.brand ?? ""} ${p.category}`.toLowerCase();
+          return hay.includes(q);
+        })
+        .slice(0, 12);
+    }
+    return pool.slice(0, 12);
+  }, [catalog, query, category]);
 
   const results = useMemo(
     () => (catalog && selectedId ? compareProduct(catalog, selectedId) : []),
@@ -66,7 +84,7 @@ function PricesInner() {
       <PageHero
         theme="prices"
         title="Where is it cheaper?"
-        subtitle={`Search one staple · live prices across Nairobi · ${catalog?.source ?? "…"}`}
+        subtitle={`Search ${catalog?.products.length ?? "…"} staples · live Nairobi prices · ${catalog?.source ?? "…"}`}
         action={{ href: "/basket", label: "Full basket compare" }}
       />
 
@@ -74,6 +92,33 @@ function PricesInner() {
         <PageShell>
           <div className="space-y-8">
             <div>
+              <div className="mb-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCategory("all")}
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                    category === "all"
+                      ? "bg-savr-night text-white"
+                      : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCategory(c)}
+                    className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                      category === c
+                        ? "bg-savr-night text-white"
+                        : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                    }`}
+                  >
+                    {c.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
               <label htmlFor="price-search" className="sr-only">
                 Search product
               </label>
