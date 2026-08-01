@@ -125,3 +125,83 @@ export async function updateMerchantPrice(
   });
   return error ? { error: error.message } : {};
 }
+
+export type MerchantCashbackRule = {
+  id: string | null;
+  title: string;
+  flatCents: number;
+  minBasketCents: number;
+  isActive: boolean;
+};
+
+export async function loadCashbackRule(merchantId: string): Promise<MerchantCashbackRule> {
+  const empty: MerchantCashbackRule = {
+    id: null,
+    title: "Basket cashback",
+    flatCents: 0,
+    minBasketCents: 200000,
+    isActive: true,
+  };
+  const supabase = getSupabase();
+  if (!supabase) return empty;
+
+  const { data } = await supabase
+    .from("cashback_rules")
+    .select("id, title, flat_cents, min_basket_cents, is_active")
+    .eq("merchant_id", merchantId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return empty;
+  return {
+    id: data.id,
+    title: data.title,
+    flatCents: data.flat_cents ?? 0,
+    minBasketCents: data.min_basket_cents ?? 0,
+    isActive: data.is_active,
+  };
+}
+
+export async function saveCashbackRule(
+  merchantId: string,
+  rule: MerchantCashbackRule,
+): Promise<{ error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+  if (rule.flatCents < 0 || rule.minBasketCents < 0) {
+    return { error: "Cashback amounts must be zero or positive." };
+  }
+
+  const payload = {
+    merchant_id: merchantId,
+    title: rule.title.trim() || "Basket cashback",
+    flat_cents: rule.flatCents,
+    min_basket_cents: rule.minBasketCents,
+    percent: null,
+    is_active: rule.isActive,
+  };
+
+  if (rule.id) {
+    const { error } = await supabase.from("cashback_rules").update(payload).eq("id", rule.id);
+    if (error) return { error: error.message };
+  } else {
+    const { data, error } = await supabase
+      .from("cashback_rules")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) return { error: error.message };
+    rule.id = data.id;
+  }
+
+  if (rule.isActive && rule.id) {
+    await supabase
+      .from("cashback_rules")
+      .update({ is_active: false })
+      .eq("merchant_id", merchantId)
+      .neq("id", rule.id);
+  }
+
+  return {};
+}

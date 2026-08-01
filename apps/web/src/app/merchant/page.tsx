@@ -10,9 +10,12 @@ import {
   claimMerchant,
   fetchMyMerchantIds,
   listMerchants,
+  loadCashbackRule,
   loadMerchantPrices,
+  saveCashbackRule,
   updateMerchantPrice,
   type ManagedPrice,
+  type MerchantCashbackRule,
   type MerchantSummary,
 } from "@/lib/merchant";
 
@@ -23,6 +26,7 @@ export default function MerchantPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prices, setPrices] = useState<ManagedPrice[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [cashback, setCashback] = useState<MerchantCashbackRule | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,16 +47,20 @@ export default function MerchantPage() {
     if (!selectedId || !myIds.includes(selectedId)) {
       setPrices([]);
       setDrafts({});
+      setCashback(null);
       return;
     }
-    loadMerchantPrices(selectedId).then((rows) => {
-      setPrices(rows);
-      const next: Record<string, string> = {};
-      for (const row of rows) {
-        next[row.id] = (row.priceCents / 100).toFixed(2);
-      }
-      setDrafts(next);
-    });
+    Promise.all([loadMerchantPrices(selectedId), loadCashbackRule(selectedId)]).then(
+      ([rows, rule]) => {
+        setPrices(rows);
+        const next: Record<string, string> = {};
+        for (const row of rows) {
+          next[row.id] = (row.priceCents / 100).toFixed(2);
+        }
+        setDrafts(next);
+        setCashback(rule);
+      },
+    );
   }, [selectedId, myIds]);
 
   const selected = useMemo(
@@ -74,7 +82,7 @@ export default function MerchantPage() {
       return;
     }
     setSelectedId(id);
-    setStatus("Store claimed — you can update prices now.");
+    setStatus("Store claimed — set prices and cashback to win shoppers.");
     await refresh();
   }
 
@@ -100,6 +108,22 @@ export default function MerchantPage() {
     }
   }
 
+  async function onSaveCashback() {
+    if (!selectedId || !cashback) return;
+    setBusy(true);
+    setStatus(null);
+    const res = await saveCashbackRule(selectedId, cashback);
+    setBusy(false);
+    if (res.error) {
+      setStatus(res.error);
+      return;
+    }
+    const refreshed = await loadCashbackRule(selectedId);
+    setCashback(refreshed);
+    setStatus("Cashback offer live — basket rankings will use it.");
+    await refresh();
+  }
+
   if (loading || authLoading) {
     return (
       <PageFrame>
@@ -116,7 +140,7 @@ export default function MerchantPage() {
       <PageHero
         theme="basket"
         title="Compete on value"
-        subtitle="Claim a store, update prices, and win shoppers on Savr — not louder ads."
+        subtitle="Claim a store, tune prices and cashback, and win the basket ranking."
       />
 
       <div className="page-band">
@@ -127,7 +151,7 @@ export default function MerchantPage() {
                 <Link href="/login" className="font-semibold text-savr-ink underline-offset-2 hover:underline">
                   Sign in
                 </Link>{" "}
-                to claim a grocery merchant and edit live prices.
+                to claim a grocery merchant and edit live offers.
               </p>
             )}
 
@@ -165,7 +189,7 @@ export default function MerchantPage() {
                                 onClick={() => setSelectedId(m.id)}
                                 className="text-sm font-semibold text-savr-forest hover:underline"
                               >
-                                Manage prices
+                                Manage store
                               </button>
                             ) : (
                               <button
@@ -186,15 +210,96 @@ export default function MerchantPage() {
               </div>
             </section>
 
-            {selected && myIds.includes(selected.id) && (
+            {selected && myIds.includes(selected.id) && cashback && (
               <section className="space-y-4">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-                    Price desk
+                    Win the ranking
                   </p>
                   <h2 className="mt-1 font-display text-2xl font-bold tracking-tightish">
-                    {selected.name}
+                    Basket cashback · {selected.name}
                   </h2>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    Flat reward when a shopper’s basket clears your minimum — used in net total value.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 border border-savr-ink/[0.08] bg-white p-4 sm:grid-cols-2 sm:p-5">
+                  <label className="block sm:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Offer title
+                    </span>
+                    <input
+                      value={cashback.title}
+                      onChange={(e) => setCashback({ ...cashback, title: e.target.value })}
+                      className="field mt-1.5"
+                      placeholder="Weekend basket bonus"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Cashback (KES)
+                    </span>
+                    <input
+                      value={(cashback.flatCents / 100).toFixed(0)}
+                      onChange={(e) => {
+                        const kes = Number(e.target.value);
+                        setCashback({
+                          ...cashback,
+                          flatCents: Number.isFinite(kes) ? Math.round(kes * 100) : 0,
+                        });
+                      }}
+                      className="field mt-1.5"
+                      inputMode="numeric"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Min basket (KES)
+                    </span>
+                    <input
+                      value={(cashback.minBasketCents / 100).toFixed(0)}
+                      onChange={(e) => {
+                        const kes = Number(e.target.value);
+                        setCashback({
+                          ...cashback,
+                          minBasketCents: Number.isFinite(kes) ? Math.round(kes * 100) : 0,
+                        });
+                      }}
+                      className="field mt-1.5"
+                      inputMode="numeric"
+                    />
+                  </label>
+                  <label className="flex items-center gap-3 sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={cashback.isActive}
+                      onChange={(e) => setCashback({ ...cashback, isActive: e.target.checked })}
+                      className="h-4 w-4 accent-savr-forest"
+                    />
+                    <span className="text-sm font-medium">Offer is active on Savr</span>
+                  </label>
+                  <div className="sm:col-span-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={onSaveCashback}
+                      className="btn-primary disabled:opacity-50"
+                    >
+                      {busy ? "Saving…" : "Publish cashback"}
+                    </button>
+                    <p className="mt-2 text-xs text-savr-mute">
+                      Preview: {formatKes(cashback.flatCents)} back when basket ≥{" "}
+                      {formatKes(cashback.minBasketCents)}
+                      {!cashback.isActive ? " · currently off" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                    Price desk
+                  </p>
                   <p className="mt-1 text-sm text-savr-mute">
                     Edits go live on basket compare immediately.
                   </p>
