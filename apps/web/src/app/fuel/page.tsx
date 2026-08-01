@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import type { FuelStation } from "@/lib/types";
-import { PageShell } from "@/components/PageShell";
+import { PageFrame, PageShell } from "@/components/PageShell";
+import { PageHero } from "@/components/PageHero";
+import { SavingsMoment } from "@/components/SavingsMoment";
 
 export default function FuelPage() {
   const [stations, setStations] = useState<FuelStation[]>([]);
@@ -27,83 +29,89 @@ export default function FuelPage() {
 
   if (loading) {
     return (
-      <PageShell>
-        <div className="space-y-4 animate-pulse">
-          <div className="h-8 w-40 bg-savr-fog" />
-          <div className="h-12 w-64 bg-savr-fog" />
-          <div className="h-28 w-full bg-savr-fog" />
-        </div>
-      </PageShell>
+      <PageFrame>
+        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <PageShell>
+          <div className="h-28 animate-pulse bg-savr-fog" />
+        </PageShell>
+      </PageFrame>
     );
   }
 
   return (
-    <PageShell>
-      <div className="space-y-8">
-        <header className="animate-rise">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-savr-forest">
-            Fuel · Nearby
-          </p>
-          <h1 className="mt-2 font-display text-[2.15rem] font-extrabold leading-[1.05] tracking-tightish md:text-5xl">
-            Fill up smarter
-          </h1>
-          <p className="mt-3 text-[15px] text-savr-mute">Petrol prices · {source}</p>
-        </header>
+    <PageFrame>
+      <PageHero
+        theme="fuel"
+        title="Fill up smarter"
+        subtitle={`Nearby petrol prices · ${source}. Cheapest litre wins.`}
+      />
 
-        {best && (
-          <div className="animate-rise-delay surface border border-savr-leaf/40 px-5 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-              Go to {best.brand}
-            </p>
-            <p className="mt-1 font-display text-3xl font-extrabold tracking-tightish tabular-nums">
-              Save {formatKes(savedPerLitre)}/L
-            </p>
-          </div>
-        )}
+      <div className="page-band">
+        <PageShell>
+          <div className="space-y-8">
+            {best && (
+              <SavingsMoment
+                amountLabel={`Go to ${best.brand}`}
+                amountCents={savedPerLitre}
+                detail="Saved per litre vs the highest nearby station"
+              />
+            )}
 
-        <ol className="animate-rise-delay-2 space-y-3">
-          {stations.map((s, i) => (
-            <li
-              key={s.name}
-              className={`surface border px-4 py-4 ${
-                i === 0 ? "border-savr-leaf ring-1 ring-savr-leaf/30" : "border-savr-ink/[0.07]"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex gap-3">
-                  <span
-                    className={`mt-0.5 flex h-7 w-7 items-center justify-center font-display text-sm font-bold ${
-                      i === 0 ? "bg-savr-forest text-white" : "bg-savr-fog text-savr-mute"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="font-display text-xl font-bold tracking-tightish">{s.brand}</p>
-                    <p className="text-sm text-savr-mute">
-                      {s.name}
-                      {s.distanceKm != null ? ` · ${s.distanceKm} km` : ""}
-                    </p>
+            <ol className="space-y-4">
+              {stations.map((s, i) => (
+                <li
+                  key={s.name}
+                  className={`animate-rise relative overflow-hidden border ${
+                    i === 0
+                      ? "border-transparent bg-savr-night text-white shadow-[0_18px_40px_-24px_rgba(4,36,25,0.65)]"
+                      : "border-savr-ink/[0.08] bg-white"
+                  }`}
+                  style={{ animationDelay: `${i * 0.07}s` }}
+                >
+                  {i === 0 && <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-signal" />}
+                  <div className="px-4 py-5 sm:px-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex gap-3">
+                        <span
+                          className={`mt-0.5 flex h-8 w-8 items-center justify-center font-display text-sm font-bold ${
+                            i === 0 ? "bg-savr-signal text-savr-ink" : "bg-savr-fog text-savr-mute"
+                          }`}
+                        >
+                          {i + 1}
+                        </span>
+                        <div>
+                          <p className="font-display text-2xl font-bold tracking-tightish">{s.brand}</p>
+                          <p className={`text-sm ${i === 0 ? "text-white/65" : "text-savr-mute"}`}>
+                            {s.name}
+                            {s.distanceKm != null ? ` · ${s.distanceKm} km` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="font-display text-2xl font-bold tabular-nums">
+                        {formatKes(s.priceCentsPerLitre)}
+                        <span className={`text-sm font-semibold ${i === 0 ? "text-white/60" : "text-savr-mute"}`}>
+                          /L
+                        </span>
+                      </p>
+                    </div>
+                    <div className={`mt-4 h-2 overflow-hidden ${i === 0 ? "bg-white/15" : "bg-savr-fog"}`}>
+                      <div
+                        className={`rank-bar h-full animate-barGrow ${
+                          i === 0 ? "bg-savr-signal" : "bg-savr-forest/70"
+                        }`}
+                        style={{
+                          width: `${(s.priceCentsPerLitre / maxPrice) * 100}%`,
+                          animationDelay: `${0.1 + i * 0.08}s`,
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <p className="font-display text-xl font-bold tabular-nums">
-                  {formatKes(s.priceCentsPerLitre)}
-                  <span className="text-sm font-semibold text-savr-mute">/L</span>
-                </p>
-              </div>
-              <div className="mt-3 h-1.5 overflow-hidden bg-savr-fog">
-                <div
-                  className={`rank-bar h-full animate-barGrow ${i === 0 ? "bg-savr-forest" : "bg-savr-ink/20"}`}
-                  style={{
-                    width: `${(s.priceCentsPerLitre / maxPrice) * 100}%`,
-                    animationDelay: `${0.1 + i * 0.08}s`,
-                  }}
-                />
-              </div>
-            </li>
-          ))}
-        </ol>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </PageShell>
       </div>
-    </PageShell>
+    </PageFrame>
   );
 }

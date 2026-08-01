@@ -70,6 +70,16 @@ body {
   transform-origin: left center;
 }
 
+.savings-moment {
+  background: linear-gradient(125deg, #12a56a 0%, #0a7a52 42%, #f5c518 125%);
+}
+
+.page-band {
+  background:
+    radial-gradient(600px 220px at 100% 0%, rgba(245, 197, 24, 0.18), transparent 60%),
+    radial-gradient(500px 200px at 0% 100%, rgba(14, 159, 95, 0.14), transparent 55%);
+}
+
 @media (max-width: 767px) {
   main {
     padding-bottom: var(--page-pad-bottom);

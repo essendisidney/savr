@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { compareRides, formatKes } from "@/lib/compare";
-import { PageShell } from "@/components/PageShell";
+import { PageFrame, PageShell } from "@/components/PageShell";
+import { PageHero } from "@/components/PageHero";
+import { SavingsMoment } from "@/components/SavingsMoment";
 
 export default function RidesPage() {
   const [destination, setDestination] = useState("Airport");
@@ -13,90 +15,98 @@ export default function RidesPage() {
   const maxPrice = Math.max(...quotes.map((q) => q.priceCents), 1);
 
   return (
-    <PageShell>
-      <div className="space-y-8">
-        <header className="animate-rise">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-savr-forest">
-            Transport
-          </p>
-          <h1 className="mt-2 font-display text-[2.15rem] font-extrabold leading-[1.05] tracking-tightish md:text-5xl">
-            Who gets you there for less?
-          </h1>
-          <p className="mt-3 text-[15px] text-savr-mute">Demo quotes — live partner APIs next.</p>
-        </header>
+    <PageFrame>
+      <PageHero
+        theme="rides"
+        title="Who gets you there for less?"
+        subtitle="Bolt, Uber, Little — ranked before you request."
+      />
 
-        <label className="animate-rise-delay block max-w-md space-y-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-            Destination
-          </span>
-          <input
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            className="field"
-          />
-        </label>
+      <div className="page-band">
+        <PageShell>
+          <div className="space-y-8">
+            <label className="animate-rise block max-w-md space-y-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                Destination
+              </span>
+              <input
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
+              />
+            </label>
 
-        {best && (
-          <div className="animate-rise-delay surface border border-savr-leaf/40 px-5 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-              Take {best.partner}
-            </p>
-            <p className="mt-1 font-display text-3xl font-extrabold tracking-tightish tabular-nums">
-              Save {formatKes(saved)}
-            </p>
-            <p className="text-sm text-savr-mute">plus {formatKes(best.cashbackCents)} cashback</p>
-          </div>
-        )}
+            {best && (
+              <SavingsMoment
+                amountLabel={`Take ${best.partner}`}
+                amountCents={saved}
+                detail={`Save on this trip · plus ${formatKes(best.cashbackCents)} cashback`}
+              />
+            )}
 
-        <ol className="animate-rise-delay-2 space-y-3">
-          {quotes.map((q, i) => (
-            <li
-              key={q.partner}
-              className={`surface border px-4 py-4 ${
-                i === 0 ? "border-savr-leaf ring-1 ring-savr-leaf/30" : "border-savr-ink/[0.07]"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex gap-3">
-                  <span
-                    className={`mt-0.5 flex h-7 w-7 items-center justify-center font-display text-sm font-bold ${
-                      i === 0 ? "bg-savr-forest text-white" : "bg-savr-fog text-savr-mute"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="font-display text-xl font-bold tracking-tightish">{q.partner}</p>
-                    <p className="text-sm text-savr-mute">
-                      ETA {q.etaMin} min · Cashback {formatKes(q.cashbackCents)}
-                    </p>
+            <ol className="space-y-4">
+              {quotes.map((q, i) => (
+                <li
+                  key={q.partner}
+                  className={`animate-rise relative overflow-hidden border ${
+                    i === 0
+                      ? "border-transparent bg-savr-night text-white shadow-[0_18px_40px_-24px_rgba(4,36,25,0.65)]"
+                      : "border-savr-ink/[0.08] bg-white"
+                  }`}
+                  style={{ animationDelay: `${i * 0.07}s` }}
+                >
+                  {i === 0 && <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-signal" />}
+                  <div className="px-4 py-5 sm:px-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex gap-3">
+                        <span
+                          className={`mt-0.5 flex h-8 w-8 items-center justify-center font-display text-sm font-bold ${
+                            i === 0 ? "bg-savr-signal text-savr-ink" : "bg-savr-fog text-savr-mute"
+                          }`}
+                        >
+                          {i + 1}
+                        </span>
+                        <div>
+                          <p className="font-display text-2xl font-bold tracking-tightish">{q.partner}</p>
+                          <p className={`text-sm ${i === 0 ? "text-white/65" : "text-savr-mute"}`}>
+                            ETA {q.etaMin} min · Cashback {formatKes(q.cashbackCents)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-display text-2xl font-bold tabular-nums">
+                          {formatKes(q.priceCents)}
+                        </p>
+                        <a
+                          href={q.deepLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`text-sm font-semibold ${
+                            i === 0 ? "text-savr-signal" : "text-savr-forest"
+                          } hover:underline`}
+                        >
+                          Open app →
+                        </a>
+                      </div>
+                    </div>
+                    <div className={`mt-4 h-2 overflow-hidden ${i === 0 ? "bg-white/15" : "bg-savr-fog"}`}>
+                      <div
+                        className={`rank-bar h-full animate-barGrow ${
+                          i === 0 ? "bg-savr-signal" : "bg-savr-forest/70"
+                        }`}
+                        style={{
+                          width: `${(q.priceCents / maxPrice) * 100}%`,
+                          animationDelay: `${0.1 + i * 0.08}s`,
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-display text-xl font-bold tabular-nums">{formatKes(q.priceCents)}</p>
-                  <a
-                    href={q.deepLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-semibold text-savr-forest hover:underline"
-                  >
-                    Open app →
-                  </a>
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 overflow-hidden bg-savr-fog">
-                <div
-                  className={`rank-bar h-full animate-barGrow ${i === 0 ? "bg-savr-forest" : "bg-savr-ink/20"}`}
-                  style={{
-                    width: `${(q.priceCents / maxPrice) * 100}%`,
-                    animationDelay: `${0.1 + i * 0.08}s`,
-                  }}
-                />
-              </div>
-            </li>
-          ))}
-        </ol>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </PageShell>
       </div>
-    </PageShell>
+    </PageFrame>
   );
 }

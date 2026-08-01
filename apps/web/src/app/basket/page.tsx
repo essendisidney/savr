@@ -7,8 +7,10 @@ import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
 import type { Catalog, ListItem } from "@/lib/types";
-import { PageShell } from "@/components/PageShell";
+import { PageFrame, PageShell } from "@/components/PageShell";
+import { PageHero } from "@/components/PageHero";
 import { RankList } from "@/components/RankList";
+import { SavingsMoment } from "@/components/SavingsMoment";
 
 export default function BasketPage() {
   const { user } = useAuth();
@@ -72,132 +74,115 @@ export default function BasketPage() {
 
   if (loading || !catalog) {
     return (
-      <PageShell>
-        <div className="space-y-4 animate-pulse">
-          <div className="h-8 w-48 bg-savr-fog" />
-          <div className="h-12 w-72 bg-savr-fog" />
-          <div className="h-24 w-full bg-savr-fog" />
-          <div className="h-40 w-full bg-savr-fog" />
-        </div>
-      </PageShell>
+      <PageFrame>
+        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <PageShell>
+          <div className="space-y-4 animate-pulse">
+            <div className="h-28 w-full bg-savr-fog" />
+            <div className="h-40 w-full bg-savr-fog" />
+          </div>
+        </PageShell>
+      </PageFrame>
     );
   }
 
   return (
-    <PageShell>
-      <div className="space-y-8 pb-8">
-        <header className="animate-rise">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-savr-forest">
-            Groceries · Nairobi
-          </p>
-          <h1 className="mt-2 font-display text-[2.15rem] font-extrabold leading-[1.05] tracking-tightish md:text-5xl">
-            Beat the weekly shop
-          </h1>
-          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-savr-mute">
-            We rank the full list by net cost after cashback — so the winner is obvious.
-          </p>
-        </header>
+    <PageFrame>
+      <PageHero
+        theme="basket"
+        title="Beat the weekly shop"
+        subtitle="One list. Every supermarket. The lowest net cost after cashback wins."
+      />
 
-        {recommended && (
-          <div className="animate-rise-delay surface border border-savr-leaf/40 px-5 py-5">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-                  You could keep
-                </p>
-                <p className="mt-1 font-display text-4xl font-extrabold tracking-tightish tabular-nums md:text-5xl">
-                  {formatKes(saved)}
-                </p>
-              </div>
-              <p className="max-w-[14rem] text-right text-sm leading-snug text-savr-mute">
-                vs highest basket · earn {formatKes(recommended.cashbackCents)} at{" "}
-                <span className="font-semibold text-savr-ink">{recommended.merchantName}</span>
-              </p>
+      <div className="page-band">
+        <PageShell>
+          <div className="space-y-9">
+            {recommended && (
+              <SavingsMoment
+                amountLabel="You could keep"
+                amountCents={saved}
+                detail={`vs the priciest basket · earn ${formatKes(recommended.cashbackCents)} at ${recommended.merchantName}`}
+              />
+            )}
+
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-12">
+              <section className="animate-rise-delay space-y-3">
+                <div className="flex items-baseline justify-between">
+                  <h2 className="font-display text-lg font-bold tracking-tightish">Your list</h2>
+                  <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
+                    {items.length} items
+                  </span>
+                </div>
+                <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
+                  {items.map((item) => (
+                    <li
+                      key={item.productId}
+                      className="flex items-center justify-between gap-3 px-4 py-3.5"
+                    >
+                      <span className="text-[15px] font-medium leading-snug">{item.freeText}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label="Decrease"
+                          onClick={() => setQty(item.productId, item.quantity - 1)}
+                          className="flex h-9 w-9 items-center justify-center bg-savr-fog text-lg font-semibold text-savr-ink transition hover:bg-savr-signal"
+                        >
+                          −
+                        </button>
+                        <span className="w-8 text-center text-sm font-bold tabular-nums">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Increase"
+                          onClick={() => setQty(item.productId, item.quantity + 1)}
+                          className="flex h-9 w-9 items-center justify-center bg-savr-fog text-lg font-semibold text-savr-ink transition hover:bg-savr-signal"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                  {items.length === 0 && (
+                    <li className="px-4 py-8 text-center text-sm text-savr-mute">
+                      List empty — refresh to restore staples.
+                    </li>
+                  )}
+                </ul>
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="font-display text-lg font-bold tracking-tightish">Live ranking</h2>
+                <RankList
+                  results={results}
+                  busy={busy}
+                  onChoose={choose}
+                  chooseLabel={(name) => `Choose ${name} & earn`}
+                />
+
+                {!user && (
+                  <p className="text-sm text-savr-mute">
+                    <Link href="/login" className="font-semibold text-savr-forest hover:underline">
+                      Sign in
+                    </Link>{" "}
+                    to send cashback to your wallet.
+                  </p>
+                )}
+                {status && (
+                  <p className="text-sm font-semibold text-savr-forest">
+                    {status}{" "}
+                    {status.includes("Sign in") && (
+                      <Link href="/login" className="underline-offset-2 hover:underline">
+                        Go to sign in
+                      </Link>
+                    )}
+                  </p>
+                )}
+              </section>
             </div>
           </div>
-        )}
-
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:gap-12">
-          <section className="animate-rise-delay space-y-3">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
-                Your list
-              </h2>
-              <span className="text-xs text-savr-mute">{items.length} items</span>
-            </div>
-            <ul className="surface divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.07]">
-              {items.map((item) => (
-                <li key={item.productId} className="flex items-center justify-between gap-3 px-3.5 py-3">
-                  <span className="text-[15px] font-medium leading-snug">{item.freeText}</span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      aria-label="Decrease"
-                      onClick={() => setQty(item.productId, item.quantity - 1)}
-                      className="flex h-8 w-8 items-center justify-center border border-savr-ink/10 text-lg text-savr-mute transition hover:border-savr-forest hover:text-savr-forest"
-                    >
-                      −
-                    </button>
-                    <span className="w-7 text-center text-sm font-semibold tabular-nums">
-                      {item.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Increase"
-                      onClick={() => setQty(item.productId, item.quantity + 1)}
-                      className="flex h-8 w-8 items-center justify-center border border-savr-ink/10 text-lg text-savr-mute transition hover:border-savr-forest hover:text-savr-forest"
-                    >
-                      +
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {items.length === 0 && (
-                <li className="px-3.5 py-6 text-sm text-savr-mute">
-                  List is empty — refresh to restore staples.
-                </li>
-              )}
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
-              Ranked results
-            </h2>
-            <RankList
-              results={results}
-              busy={busy}
-              onChoose={choose}
-              chooseLabel={(name) => `Choose ${name} & earn`}
-            />
-
-            {!user && (
-              <p className="text-sm text-savr-mute">
-                <Link href="/login" className="font-semibold text-savr-forest hover:underline">
-                  Sign in
-                </Link>{" "}
-                to send cashback to your wallet.
-              </p>
-            )}
-            {status && (
-              <p
-                className={`text-sm font-semibold ${
-                  status.includes("Done") || status.includes("wallet")
-                    ? "text-savr-forest"
-                    : "text-savr-ink"
-                }`}
-              >
-                {status}{" "}
-                {status.includes("Sign in") && (
-                  <Link href="/login" className="text-savr-forest underline-offset-2 hover:underline">
-                    Go to sign in
-                  </Link>
-                )}
-              </p>
-            )}
-          </section>
-        </div>
+        </PageShell>
       </div>
-    </PageShell>
+    </PageFrame>
   );
 }
