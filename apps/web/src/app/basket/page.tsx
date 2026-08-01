@@ -5,7 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { confirmBasketChoice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
-import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
+import {
+  compareBasket,
+  defaultListFromCatalog,
+  formatKes,
+  lineItemsForMerchant,
+  searchProducts,
+} from "@/lib/compare";
 import type { Catalog, ListItem } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -16,6 +22,7 @@ export default function BasketPage() {
   const { user } = useAuth();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
+  const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -36,6 +43,15 @@ export default function BasketPage() {
   const worst = results[results.length - 1];
   const saved = recommended && worst ? worst.totalCents - recommended.totalCents : 0;
 
+  const suggestions = useMemo(() => {
+    if (!catalog || !query.trim()) return [];
+    return searchProducts(
+      catalog,
+      query,
+      items.map((i) => i.productId),
+    );
+  }, [catalog, query, items]);
+
   function setQty(productId: string, next: number) {
     setStatus(null);
     if (next <= 0) {
@@ -45,6 +61,19 @@ export default function BasketPage() {
     setItems((prev) =>
       prev.map((i) => (i.productId === productId ? { ...i, quantity: next } : i)),
     );
+  }
+
+  function addProduct(productId: string, name: string) {
+    setItems((prev) => {
+      if (prev.some((i) => i.productId === productId)) {
+        return prev.map((i) =>
+          i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i,
+        );
+      }
+      return [...prev, { productId, freeText: name, quantity: 1 }];
+    });
+    setQuery("");
+    setStatus(null);
   }
 
   async function choose(merchantId: string) {
@@ -91,13 +120,13 @@ export default function BasketPage() {
       <PageHero
         theme="basket"
         title="Beat the weekly shop"
-        subtitle="One list. Every supermarket. The lowest net cost after cashback wins."
+        subtitle="Search the catalog, build your list, and see who wins on total value."
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-9">
-            {recommended && (
+            {recommended && items.length > 0 && (
               <SavingsMoment
                 amountLabel="You could keep"
                 amountCents={saved}
@@ -113,6 +142,43 @@ export default function BasketPage() {
                     {items.length} items
                   </span>
                 </div>
+
+                <div className="relative">
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Add milk, rice, soap…"
+                    className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
+                    aria-label="Search products to add"
+                  />
+                  {suggestions.length > 0 && (
+                    <ul className="absolute z-20 mt-1 w-full border border-savr-ink/10 bg-white shadow-[0_16px_40px_-20px_rgba(4,36,25,0.55)]">
+                      {suggestions.map((p) => (
+                        <li key={p.id}>
+                          <button
+                            type="button"
+                            onClick={() => addProduct(p.id, p.name)}
+                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition hover:bg-savr-mist"
+                          >
+                            <span>
+                              <span className="font-medium">{p.name}</span>
+                              {p.brand && (
+                                <span className="ml-2 text-savr-mute">{p.brand}</span>
+                              )}
+                            </span>
+                            <span className="shrink-0 font-semibold text-savr-forest">Add +</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {query.trim() && suggestions.length === 0 && (
+                    <p className="mt-2 text-xs text-savr-mute">
+                      No matches in catalog — try “milk”, “tea”, or “oil”.
+                    </p>
+                  )}
+                </div>
+
                 <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
                   {items.map((item) => (
                     <li
@@ -145,22 +211,37 @@ export default function BasketPage() {
                   ))}
                   {items.length === 0 && (
                     <li className="px-4 py-8 text-center text-sm text-savr-mute">
-                      List empty — refresh to restore staples.
+                      Search above to build your list.
                     </li>
                   )}
                 </ul>
+
+                <p className="text-xs text-savr-mute">
+                  Catalog source: <span className="font-semibold text-savr-ink">{catalog.source}</span>
+                  {" · "}
+                  {catalog.products.length} products priced
+                </p>
               </section>
 
               <section className="space-y-3">
                 <h2 className="font-display text-lg font-bold tracking-tightish">Live ranking</h2>
-                <RankList
-                  results={results}
-                  busy={busy}
-                  onChoose={choose}
-                  chooseLabel={(name) => `Choose ${name} & earn`}
-                />
+                {items.length === 0 ? (
+                  <p className="border border-dashed border-savr-forest/35 bg-white px-4 py-8 text-center text-sm text-savr-mute">
+                    Add items to see who is cheapest.
+                  </p>
+                ) : (
+                  <RankList
+                    results={results}
+                    busy={busy}
+                    onChoose={choose}
+                    chooseLabel={(name) => `Choose ${name} & earn`}
+                    getLineItems={(merchantId) =>
+                      lineItemsForMerchant(catalog, items, merchantId)
+                    }
+                  />
+                )}
 
-                {!user && (
+                {!user && items.length > 0 && (
                   <p className="text-sm text-savr-mute">
                     <Link href="/login" className="font-semibold text-savr-forest hover:underline">
                       Sign in

@@ -1,23 +1,34 @@
+"use client";
+
+import { useState } from "react";
 import { formatKes } from "@/lib/compare";
-import type { BasketResult } from "@/lib/types";
+import type { BasketResult, LineItemPrice } from "@/lib/types";
 
 export function RankList({
   results,
   onChoose,
   busy,
   chooseLabel,
+  getLineItems,
 }: {
   results: BasketResult[];
   onChoose?: (merchantId: string) => void;
   busy?: boolean;
   chooseLabel?: (name: string) => string;
+  getLineItems?: (merchantId: string) => LineItemPrice[];
 }) {
+  const [openId, setOpenId] = useState<string | null>(
+    results.find((r) => r.isRecommended)?.merchantId ?? null,
+  );
   const maxTotal = Math.max(...results.map((r) => r.totalCents), 1);
 
   return (
     <ol className="space-y-4">
       {results.map((r, i) => {
         const width = Math.max(14, (r.totalCents / maxTotal) * 100);
+        const open = openId === r.merchantId;
+        const lines = open && getLineItems ? getLineItems(r.merchantId) : [];
+
         return (
           <li
             key={r.merchantId}
@@ -93,10 +104,63 @@ export function RankList({
                 Cashback {formatKes(r.cashbackCents)}
                 <span className="mx-1.5 opacity-40">·</span>
                 Net{" "}
-                <span className={r.isRecommended ? "font-semibold text-white" : "font-semibold text-savr-ink"}>
+                <span
+                  className={
+                    r.isRecommended ? "font-semibold text-white" : "font-semibold text-savr-ink"
+                  }
+                >
                   {formatKes(r.netCents)}
                 </span>
               </p>
+
+              {getLineItems && (
+                <button
+                  type="button"
+                  onClick={() => setOpenId(open ? null : r.merchantId)}
+                  className={`mt-3 text-sm font-semibold ${
+                    r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                  }`}
+                >
+                  {open ? "Hide items ▲" : "See item prices ▼"}
+                </button>
+              )}
+
+              {open && lines.length > 0 && (
+                <ul
+                  className={`mt-3 divide-y border ${
+                    r.isRecommended
+                      ? "divide-white/10 border-white/15 bg-white/5"
+                      : "divide-savr-ink/[0.06] border-savr-ink/[0.08] bg-savr-mist/60"
+                  }`}
+                >
+                  {lines.map((line) => (
+                    <li
+                      key={line.productId}
+                      className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
+                    >
+                      <span className={r.isRecommended ? "text-white/85" : "text-savr-ink"}>
+                        {line.name}
+                        {line.quantity > 1 ? (
+                          <span className="opacity-60"> ×{line.quantity}</span>
+                        ) : null}
+                      </span>
+                      <span
+                        className={`shrink-0 font-semibold tabular-nums ${
+                          line.lineCents == null
+                            ? r.isRecommended
+                              ? "text-white/45"
+                              : "text-savr-mute"
+                            : r.isRecommended
+                              ? "text-white"
+                              : "text-savr-ink"
+                        }`}
+                      >
+                        {line.lineCents == null ? "No price" : formatKes(line.lineCents)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {r.isRecommended && onChoose && (
                 <button

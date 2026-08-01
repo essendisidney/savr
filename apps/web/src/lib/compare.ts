@@ -1,4 +1,4 @@
-import type { BasketResult, Catalog, ListItem, RideQuote } from "./types";
+import type { BasketResult, Catalog, LineItemPrice, ListItem, RideQuote } from "./types";
 
 export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
   const staples = catalog.products.slice(0, 6);
@@ -9,11 +9,42 @@ export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
   }));
 }
 
+export function searchProducts(catalog: Catalog, query: string, excludeIds: string[]) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return catalog.products
+    .filter((p) => !excludeIds.includes(p.id))
+    .filter((p) => {
+      const hay = `${p.name} ${p.brand ?? ""} ${p.category}`.toLowerCase();
+      return hay.includes(q);
+    })
+    .slice(0, 8);
+}
+
 function cashbackForBasket(catalog: Catalog, merchantId: string, totalCents: number): number {
   const rule = catalog.cashbackRules.find((r) => r.merchantId === merchantId);
   if (!rule) return 0;
   if (totalCents < rule.minBasketCents) return 0;
   return rule.flatCents;
+}
+
+export function lineItemsForMerchant(
+  catalog: Catalog,
+  items: ListItem[],
+  merchantId: string,
+): LineItemPrice[] {
+  return items.map((item) => {
+    const price = catalog.prices.find(
+      (p) => p.merchantId === merchantId && p.productId === item.productId,
+    );
+    return {
+      productId: item.productId,
+      name: item.freeText,
+      quantity: item.quantity,
+      unitCents: price?.priceCents ?? null,
+      lineCents: price ? price.priceCents * item.quantity : null,
+    };
+  });
 }
 
 export function compareBasket(catalog: Catalog, items: ListItem[]): BasketResult[] {
@@ -61,4 +92,11 @@ export function compareRides(destination: string): RideQuote[] {
 }
 
 export { formatKes } from "./types";
-export type { ListItem, BasketResult, RideQuote, FuelStation, Catalog } from "./types";
+export type {
+  ListItem,
+  BasketResult,
+  RideQuote,
+  FuelStation,
+  Catalog,
+  LineItemPrice,
+} from "./types";

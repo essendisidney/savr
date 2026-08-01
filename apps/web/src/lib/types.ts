@@ -55,6 +55,14 @@ export type BasketResult = {
   isRecommended: boolean;
 };
 
+export type LineItemPrice = {
+  productId: string;
+  name: string;
+  quantity: number;
+  unitCents: number | null;
+  lineCents: number | null;
+};
+
 export type RideQuote = {
   partner: string;
   priceCents: number;
