@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
+import { buildLifetimeShare, sharePayload } from "@/lib/share";
 
 export default function WalletPage() {
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +20,7 @@ export default function WalletPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -79,16 +81,38 @@ export default function WalletPage() {
           <div className="space-y-8">
             <div className="savings-moment animate-rise relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,197,24,0.55),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(14,159,95,0.4),transparent_50%)]" />
-              <div className="relative px-6 py-8 md:px-8 md:py-10">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-savr-ink/70">
-                  Lifetime price savings
-                </p>
-                <p className="mt-2 font-display text-6xl font-extrabold tracking-tightish tabular-nums text-savr-ink md:text-7xl">
-                  {formatKes(lifetimeSavingsCents)}
-                </p>
-                <p className="mt-3 max-w-sm text-[15px] font-medium text-savr-ink/75">
-                  What you kept vs the priciest basket each time you locked in a choice.
-                </p>
+              <div className="relative space-y-4 px-6 py-8 md:px-8 md:py-10">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-savr-ink/70">
+                    Lifetime price savings
+                  </p>
+                  <p className="mt-2 font-display text-6xl font-extrabold tracking-tightish tabular-nums text-savr-ink md:text-7xl">
+                    {formatKes(lifetimeSavingsCents)}
+                  </p>
+                  <p className="mt-3 max-w-sm text-[15px] font-medium text-savr-ink/75">
+                    What you kept vs the priciest basket each time you locked in a choice.
+                  </p>
+                </div>
+                {lifetimeSavingsCents > 0 && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      className="btn-dark px-4 py-2.5 text-sm"
+                      onClick={async () => {
+                        const result = await sharePayload(
+                          buildLifetimeShare(lifetimeSavingsCents),
+                        );
+                        if (result === "shared") setShareStatus("Shared");
+                        else if (result === "copied") setShareStatus("Link copied");
+                      }}
+                    >
+                      Share my streak
+                    </button>
+                    {shareStatus && (
+                      <span className="text-sm font-semibold text-savr-ink/70">{shareStatus}</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

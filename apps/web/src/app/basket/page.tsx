@@ -24,6 +24,7 @@ import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { RankList } from "@/components/RankList";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { buildBasketShare } from "@/lib/share";
 
 export default function BasketPage() {
   const { user } = useAuth();
@@ -76,6 +77,14 @@ export default function BasketPage() {
   const recommended = results.find((r) => r.isRecommended);
   const worst = results[results.length - 1];
   const saved = recommended && worst ? worst.totalCents - recommended.totalCents : 0;
+  const share = useMemo(() => {
+    if (!recommended || saved <= 0) return undefined;
+    return buildBasketShare({
+      savingsCents: saved,
+      merchantName: recommended.merchantName,
+      cashbackCents: recommended.cashbackCents,
+    });
+  }, [recommended, saved]);
 
   const suggestions = useMemo(() => {
     if (!catalog || !query.trim()) return [];
@@ -159,7 +168,7 @@ export default function BasketPage() {
       setStatus(outcome.error);
       return;
     }
-    setStatus("Locked in — see Saved with Savr in your wallet.");
+    setStatus("Locked in — share your save or see it in Savings.");
     refreshLists();
   }
 
@@ -193,6 +202,7 @@ export default function BasketPage() {
                 amountLabel="You could keep"
                 amountCents={saved}
                 detail={`vs the priciest basket · earn ${formatKes(recommended.cashbackCents)} at ${recommended.merchantName}`}
+                share={share}
               />
             )}
 
