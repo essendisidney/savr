@@ -78,3 +78,12 @@ export type FuelStation = {
   cashbackCents: number;
   distanceKm: number | null;
 };
+
+export type ProductPriceResult = {
+  merchantId: string;
+  merchantName: string;
+  priceCents: number;
+  deltaCents: number;
+  isCheapest: boolean;
+  mapsUrl: string;
+};

@@ -18,8 +18,8 @@ export default function HomePage() {
             <Link href="/basket" className="btn-primary">
               Compare my basket
             </Link>
-            <Link href="/rides" className="btn-ghost">
-              Check a ride
+            <Link href="/prices" className="btn-ghost">
+              Check one price
             </Link>
           </div>
         </div>
@@ -40,6 +40,12 @@ export default function HomePage() {
               body: "Rank your full shopping list across Nairobi supermarkets — not one product at a time.",
               href: "/basket",
               meta: "Groceries",
+            },
+            {
+              title: "Prices",
+              body: "Search one staple and see who is cheapest — with directions to the store.",
+              href: "/prices",
+              meta: "Single item",
             },
             {
               title: "Rides",

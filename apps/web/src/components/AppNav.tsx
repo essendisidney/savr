@@ -31,6 +31,7 @@ export function AppNav() {
           <nav className="hidden items-center gap-1 text-[13px] font-medium md:flex">
             {[
               { href: "/basket", label: "Basket" },
+              { href: "/prices", label: "Prices" },
               { href: "/rides", label: "Rides" },
               { href: "/fuel", label: "Fuel" },
               { href: "/wallet", label: "Wallet" },

@@ -1,4 +1,11 @@
-import type { BasketResult, Catalog, LineItemPrice, ListItem, RideQuote } from "./types";
+import type {
+  BasketResult,
+  Catalog,
+  LineItemPrice,
+  ListItem,
+  ProductPriceResult,
+  RideQuote,
+} from "./types";
 
 export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
   const staples = catalog.products.slice(0, 6);
@@ -9,7 +16,12 @@ export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
   }));
 }
 
-export function searchProducts(catalog: Catalog, query: string, excludeIds: string[]) {
+export function searchProducts(
+  catalog: Catalog,
+  query: string,
+  excludeIds: string[] = [],
+  limit = 8,
+) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   return catalog.products
@@ -18,7 +30,39 @@ export function searchProducts(catalog: Catalog, query: string, excludeIds: stri
       const hay = `${p.name} ${p.brand ?? ""} ${p.category}`.toLowerCase();
       return hay.includes(q);
     })
-    .slice(0, 8);
+    .slice(0, limit);
+}
+
+export function compareProduct(catalog: Catalog, productId: string): ProductPriceResult[] {
+  const grocery = catalog.merchants.filter((m) => m.category === "grocery");
+  const priced = grocery
+    .map((merchant) => {
+      const price = catalog.prices.find(
+        (p) => p.merchantId === merchant.id && p.productId === productId,
+      );
+      if (!price) return null;
+      return {
+        merchantId: merchant.id,
+        merchantName: merchant.name,
+        priceCents: price.priceCents,
+      };
+    })
+    .filter((row): row is { merchantId: string; merchantName: string; priceCents: number } =>
+      row !== null,
+    )
+    .sort((a, b) => a.priceCents - b.priceCents);
+
+  if (!priced.length) return [];
+  const best = priced[0].priceCents;
+
+  return priced.map((row) => ({
+    ...row,
+    deltaCents: row.priceCents - best,
+    isCheapest: row.priceCents === best,
+    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      `${row.merchantName} supermarket Nairobi`,
+    )}`,
+  }));
 }
 
 function cashbackForBasket(catalog: Catalog, merchantId: string, totalCents: number): number {
@@ -99,4 +143,5 @@ export type {
   FuelStation,
   Catalog,
   LineItemPrice,
+  ProductPriceResult,
 } from "./types";

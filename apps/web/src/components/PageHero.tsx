@@ -21,6 +21,11 @@ const themes = {
     image:
       "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=1800&q=80",
   },
+  prices: {
+    label: "Price check · Nairobi",
+    image:
+      "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1800&q=80",
+  },
   login: {
     label: "Account",
     image:

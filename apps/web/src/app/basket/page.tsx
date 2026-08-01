@@ -230,8 +230,18 @@ export default function BasketPage() {
                       key={item.productId}
                       className="flex items-center justify-between gap-3 px-4 py-3.5"
                     >
-                      <span className="text-[15px] font-medium leading-snug">{item.freeText}</span>
-                      <div className="flex items-center gap-1">
+                      <div className="min-w-0">
+                        <span className="block text-[15px] font-medium leading-snug">
+                          {item.freeText}
+                        </span>
+                        <Link
+                          href={`/prices?id=${item.productId}`}
+                          className="text-xs font-semibold text-savr-forest hover:underline"
+                        >
+                          Price alone →
+                        </Link>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
                           aria-label="Decrease"

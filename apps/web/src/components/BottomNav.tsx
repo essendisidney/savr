@@ -39,6 +39,26 @@ const tabs = [
     ),
   },
   {
+    href: "/prices",
+    label: "Prices",
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M4 7h16M4 12h10M4 17h7"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinecap="round"
+        />
+        <path
+          d="M17 14v6M14 17h6"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/rides",
     label: "Rides",
     icon: (active: boolean) => (
@@ -50,22 +70,6 @@ const tabs = [
           strokeLinejoin="round"
         />
         <path d="M5 17h.01M19 17h.01M3 13v3a2 2 0 0 0 2 2h1m12 0h1a2 2 0 0 0 2-2v-3" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    href: "/fuel",
-    label: "Fuel",
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M4 20V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v13"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
-        />
-        <path d="M14 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 1 0 4 0v-5.5L20 9" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M4 20h10" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" />
       </svg>
     ),
   },
