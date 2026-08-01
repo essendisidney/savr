@@ -86,14 +86,14 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-5xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="font-display text-2xl font-bold tracking-tightish md:text-3xl">
-              Rewarded for the smarter choice
+              Saved with Savr
             </p>
             <p className="mt-2 max-w-md text-[15px] text-white/65">
-              Savings cashback lands in your wallet when you pick the better deal — not any deal.
+              Lifetime price savings and cashback from every smarter basket — not any purchase.
             </p>
           </div>
           <Link href="/wallet" className="btn-primary shrink-0">
-            View wallet
+            See my savings
           </Link>
         </div>
       </section>

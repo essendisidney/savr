@@ -76,37 +76,106 @@ export async function confirmBasketChoice(params: {
   return { compareId: compare.id };
 }
 
+export type CompareHistoryItem = {
+  id: string;
+  when: string;
+  savingsCents: number;
+  cashbackCents: number;
+  chosenMerchant: string;
+  recommendedMerchant: string;
+  followedAdvice: boolean;
+};
+
 export async function loadWallet(): Promise<{
   balanceCents: number;
+  lifetimeSavingsCents: number;
+  compareCount: number;
+  history: CompareHistoryItem[];
   ledger: { note: string | null; amountCents: number; when: string }[];
   error?: string;
 }> {
   const supabase = getSupabase();
-  if (!supabase) return { balanceCents: 0, ledger: [], error: "Supabase is not configured." };
+  if (!supabase) {
+    return {
+      balanceCents: 0,
+      lifetimeSavingsCents: 0,
+      compareCount: 0,
+      history: [],
+      ledger: [],
+      error: "Supabase is not configured.",
+    };
+  }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { balanceCents: 0, ledger: [], error: "signed_out" };
+  if (!user) {
+    return {
+      balanceCents: 0,
+      lifetimeSavingsCents: 0,
+      compareCount: 0,
+      history: [],
+      ledger: [],
+      error: "signed_out",
+    };
+  }
 
-  const { data: account } = await supabase
-    .from("wallet_accounts")
-    .select("id, cashback_cents")
-    .eq("profile_id", user.id)
-    .maybeSingle();
+  const [accountRes, comparesRes] = await Promise.all([
+    supabase
+      .from("wallet_accounts")
+      .select("id, cashback_cents")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("basket_compares")
+      .select(
+        "id, savings_cents, cashback_cents, created_at, chosen_merchant_id, recommended_merchant_id, chosen:merchants!chosen_merchant_id(name), recommended:merchants!recommended_merchant_id(name)",
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(30),
+  ]);
 
-  if (!account) return { balanceCents: 0, ledger: [] };
+  const account = accountRes.data;
+  const compares = comparesRes.data ?? [];
 
-  const { data: entries } = await supabase
-    .from("wallet_ledger")
-    .select("amount_cents, note, created_at")
-    .eq("account_id", account.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
+  const lifetimeSavingsCents = compares.reduce(
+    (sum, row) => sum + (row.savings_cents ?? 0),
+    0,
+  );
 
-  return {
-    balanceCents: account.cashback_cents,
-    ledger: (entries ?? []).map((e) => ({
+  const history: CompareHistoryItem[] = compares.map((row) => {
+    const chosen = row.chosen as { name: string } | { name: string }[] | null;
+    const recommended = row.recommended as { name: string } | { name: string }[] | null;
+    const chosenName = Array.isArray(chosen) ? chosen[0]?.name : chosen?.name;
+    const recommendedName = Array.isArray(recommended)
+      ? recommended[0]?.name
+      : recommended?.name;
+    return {
+      id: row.id,
+      when: new Date(row.created_at).toLocaleDateString("en-KE", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }),
+      savingsCents: row.savings_cents ?? 0,
+      cashbackCents: row.cashback_cents ?? 0,
+      chosenMerchant: chosenName ?? "Store",
+      recommendedMerchant: recommendedName ?? "Store",
+      followedAdvice: row.chosen_merchant_id === row.recommended_merchant_id,
+    };
+  });
+
+  let ledger: { note: string | null; amountCents: number; when: string }[] = [];
+  if (account) {
+    const { data: entries } = await supabase
+      .from("wallet_ledger")
+      .select("amount_cents, note, created_at")
+      .eq("account_id", account.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    ledger = (entries ?? []).map((e) => ({
       note: e.note,
       amountCents: e.amount_cents,
       when: new Date(e.created_at).toLocaleDateString("en-KE", {
@@ -114,7 +183,15 @@ export async function loadWallet(): Promise<{
         month: "short",
         day: "numeric",
       }),
-    })),
+    }));
+  }
+
+  return {
+    balanceCents: account?.cashback_cents ?? 0,
+    lifetimeSavingsCents,
+    compareCount: compares.length,
+    history,
+    ledger,
   };
 }
 
@@ -176,6 +253,7 @@ export async function fetchSavedLists(): Promise<{
     .from("shopping_lists")
     .select("id, name, updated_at, list_items(count)")
     .eq("owner_id", user.id)
+    .neq("name", "Basket compare")
     .order("updated_at", { ascending: false })
     .limit(12);
 

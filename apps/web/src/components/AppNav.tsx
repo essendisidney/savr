@@ -34,7 +34,7 @@ export function AppNav() {
               { href: "/prices", label: "Prices" },
               { href: "/rides", label: "Rides" },
               { href: "/fuel", label: "Fuel" },
-              { href: "/wallet", label: "Wallet" },
+              { href: "/wallet", label: "Savings" },
               { href: "/merchant", label: "Merchants" },
             ].map((l) => {
               const active = pathname === l.href;

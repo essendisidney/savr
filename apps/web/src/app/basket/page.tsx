@@ -147,7 +147,7 @@ export default function BasketPage() {
       setStatus(outcome.error);
       return;
     }
-    setStatus("Done — cashback is in your wallet.");
+    setStatus("Locked in — see Saved with Savr in your wallet.");
     refreshLists();
   }
 

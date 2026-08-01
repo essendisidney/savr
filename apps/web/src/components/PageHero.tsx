@@ -17,7 +17,7 @@ const themes = {
       "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?auto=format&fit=crop&w=1800&q=80",
   },
   wallet: {
-    label: "Savr Wallet",
+    label: "Saved with Savr",
     image:
       "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=1800&q=80",
   },
