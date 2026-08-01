@@ -117,3 +117,119 @@ export async function loadWallet(): Promise<{
     })),
   };
 }
+
+export type SavedListSummary = {
+  id: string;
+  name: string;
+  updatedAt: string;
+  itemCount: number;
+};
+
+export async function saveShoppingList(params: {
+  name: string;
+  items: ListItem[];
+}): Promise<{ listId: string } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+  if (!params.items.length) return { error: "Add items before saving." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to save lists." };
+
+  const { data: list, error: listError } = await supabase
+    .from("shopping_lists")
+    .insert({
+      owner_id: user.id,
+      name: params.name.trim() || "My list",
+    })
+    .select("id")
+    .single();
+  if (listError || !list) return { error: listError?.message ?? "Could not save list." };
+
+  const rows = params.items.map((item) => ({
+    list_id: list.id,
+    product_id: item.productId,
+    free_text: item.freeText,
+    quantity: item.quantity,
+  }));
+  const { error: itemsError } = await supabase.from("list_items").insert(rows);
+  if (itemsError) return { error: itemsError.message };
+
+  return { listId: list.id };
+}
+
+export async function fetchSavedLists(): Promise<{
+  lists: SavedListSummary[];
+  error?: string;
+}> {
+  const supabase = getSupabase();
+  if (!supabase) return { lists: [], error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { lists: [], error: "signed_out" };
+
+  const { data, error } = await supabase
+    .from("shopping_lists")
+    .select("id, name, updated_at, list_items(count)")
+    .eq("owner_id", user.id)
+    .order("updated_at", { ascending: false })
+    .limit(12);
+
+  if (error) return { lists: [], error: error.message };
+
+  const lists: SavedListSummary[] = (data ?? []).map((row) => {
+    const countRaw = row.list_items as { count: number }[] | null;
+    return {
+      id: row.id,
+      name: row.name,
+      updatedAt: new Date(row.updated_at).toLocaleDateString("en-KE", {
+        month: "short",
+        day: "numeric",
+      }),
+      itemCount: countRaw?.[0]?.count ?? 0,
+    };
+  });
+
+  return { lists };
+}
+
+export async function loadSavedList(
+  listId: string,
+): Promise<{ items: ListItem[]; name: string } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to load lists." };
+
+  const { data: list, error: listError } = await supabase
+    .from("shopping_lists")
+    .select("id, name")
+    .eq("id", listId)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  if (listError || !list) return { error: listError?.message ?? "List not found." };
+
+  const { data: rows, error: itemsError } = await supabase
+    .from("list_items")
+    .select("product_id, free_text, quantity")
+    .eq("list_id", listId);
+  if (itemsError) return { error: itemsError.message };
+
+  return {
+    name: list.name,
+    items: (rows ?? [])
+      .filter((r) => r.product_id)
+      .map((r) => ({
+        productId: r.product_id as string,
+        freeText: r.free_text,
+        quantity: Number(r.quantity) || 1,
+      })),
+  };
+}

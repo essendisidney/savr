@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { confirmBasketChoice } from "@/lib/actions";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  confirmBasketChoice,
+  fetchSavedLists,
+  loadSavedList,
+  saveShoppingList,
+  type SavedListSummary,
+} from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import {
@@ -23,9 +29,21 @@ export default function BasketPage() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
   const [query, setQuery] = useState("");
+  const [listName, setListName] = useState("Weekly shop");
+  const [savedLists, setSavedLists] = useState<SavedListSummary[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const refreshLists = useCallback(async () => {
+    if (!user) {
+      setSavedLists([]);
+      return;
+    }
+    const res = await fetchSavedLists();
+    if (!res.error) setSavedLists(res.lists);
+  }, [user]);
 
   useEffect(() => {
     loadCatalog().then((c) => {
@@ -34,6 +52,10 @@ export default function BasketPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    refreshLists();
+  }, [refreshLists]);
 
   const results = useMemo(
     () => (catalog ? compareBasket(catalog, items) : []),
@@ -76,6 +98,33 @@ export default function BasketPage() {
     setStatus(null);
   }
 
+  async function onSaveList() {
+    if (!user) {
+      setStatus("Sign in to save this list.");
+      return;
+    }
+    setSaving(true);
+    const outcome = await saveShoppingList({ name: listName, items });
+    setSaving(false);
+    if ("error" in outcome) {
+      setStatus(outcome.error);
+      return;
+    }
+    setStatus("List saved to your account.");
+    refreshLists();
+  }
+
+  async function onLoadList(id: string) {
+    const outcome = await loadSavedList(id);
+    if ("error" in outcome) {
+      setStatus(outcome.error);
+      return;
+    }
+    setItems(outcome.items);
+    setListName(outcome.name);
+    setStatus(`Loaded “${outcome.name}”.`);
+  }
+
   async function choose(merchantId: string) {
     if (!recommended || !catalog) return;
     if (!user) {
@@ -99,6 +148,7 @@ export default function BasketPage() {
       return;
     }
     setStatus("Done — cashback is in your wallet.");
+    refreshLists();
   }
 
   if (loading || !catalog) {
@@ -120,7 +170,7 @@ export default function BasketPage() {
       <PageHero
         theme="basket"
         title="Beat the weekly shop"
-        subtitle="Search the catalog, build your list, and see who wins on total value."
+        subtitle="Search, save your list, and reopen it next week — ranked by total value."
       />
 
       <div className="page-band">
@@ -147,7 +197,7 @@ export default function BasketPage() {
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Add milk, rice, soap…"
+                    placeholder="Add milk, yoghurt, spaghetti…"
                     className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
                     aria-label="Search products to add"
                   />
@@ -171,11 +221,6 @@ export default function BasketPage() {
                         </li>
                       ))}
                     </ul>
-                  )}
-                  {query.trim() && suggestions.length === 0 && (
-                    <p className="mt-2 text-xs text-savr-mute">
-                      No matches in catalog — try “milk”, “tea”, or “oil”.
-                    </p>
                   )}
                 </div>
 
@@ -216,10 +261,62 @@ export default function BasketPage() {
                   )}
                 </ul>
 
+                <div className="flex flex-col gap-2 border border-savr-ink/[0.08] bg-white p-3 sm:flex-row sm:items-center">
+                  <input
+                    value={listName}
+                    onChange={(e) => setListName(e.target.value)}
+                    className="field py-2.5"
+                    placeholder="List name"
+                    aria-label="List name"
+                  />
+                  <button
+                    type="button"
+                    disabled={saving || items.length === 0}
+                    onClick={onSaveList}
+                    className="btn-dark shrink-0 disabled:opacity-50"
+                  >
+                    {saving ? "Saving…" : "Save list"}
+                  </button>
+                </div>
+
+                {user && savedLists.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                      Saved lists
+                    </p>
+                    <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                      {savedLists.map((list) => (
+                        <li key={list.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                          <div>
+                            <p className="text-sm font-medium">{list.name}</p>
+                            <p className="text-xs text-savr-mute">
+                              {list.itemCount} items · {list.updatedAt}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onLoadList(list.id)}
+                            className="text-sm font-semibold text-savr-forest hover:underline"
+                          >
+                            Load
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {!user && (
+                  <p className="text-xs text-savr-mute">
+                    <Link href="/login" className="font-semibold text-savr-forest hover:underline">
+                      Sign in
+                    </Link>{" "}
+                    to save lists for next week.
+                  </p>
+                )}
+
                 <p className="text-xs text-savr-mute">
-                  Catalog source: <span className="font-semibold text-savr-ink">{catalog.source}</span>
-                  {" · "}
-                  {catalog.products.length} products priced
+                  Catalog · {catalog.products.length} products · {catalog.source}
                 </p>
               </section>
 
@@ -246,19 +343,10 @@ export default function BasketPage() {
                     <Link href="/login" className="font-semibold text-savr-forest hover:underline">
                       Sign in
                     </Link>{" "}
-                    to send cashback to your wallet.
+                    to earn wallet cashback.
                   </p>
                 )}
-                {status && (
-                  <p className="text-sm font-semibold text-savr-forest">
-                    {status}{" "}
-                    {status.includes("Sign in") && (
-                      <Link href="/login" className="underline-offset-2 hover:underline">
-                        Go to sign in
-                      </Link>
-                    )}
-                  </p>
-                )}
+                {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
               </section>
             </div>
           </div>
