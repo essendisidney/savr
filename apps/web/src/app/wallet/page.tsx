@@ -34,7 +34,10 @@ export default function WalletPage() {
   if (loading || authLoading) {
     return (
       <PageShell>
-        <p className="animate-pulse text-savr-ink/50">Opening wallet…</p>
+        <div className="space-y-4 animate-pulse">
+          <div className="h-8 w-48 bg-savr-fog" />
+          <div className="h-28 w-full bg-savr-fog" />
+        </div>
       </PageShell>
     );
   }
@@ -43,10 +46,12 @@ export default function WalletPage() {
     return (
       <PageShell>
         <div className="animate-rise space-y-5">
-          <h1 className="font-display text-4xl font-extrabold">Your savings stash</h1>
-          <p className="text-savr-ink/65">Sign in to see cashback from smarter choices.</p>
-          <Link href="/login" className="btn-primary">
-            Sign in to wallet
+          <h1 className="font-display text-4xl font-extrabold tracking-tightish">Your wallet</h1>
+          <p className="text-[15px] text-savr-mute">
+            Sign in to see cashback from smarter choices.
+          </p>
+          <Link href="/login" className="btn-primary inline-flex">
+            Sign in
           </Link>
         </div>
       </PageShell>
@@ -56,50 +61,55 @@ export default function WalletPage() {
   return (
     <PageShell>
       <div className="space-y-8">
-        <div className="animate-rise">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-savr-forest">
+        <header className="animate-rise">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-savr-forest">
             Savr Wallet
           </p>
-          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Money you earned by choosing well
+          <h1 className="mt-2 font-display text-[2.15rem] font-extrabold leading-[1.05] tracking-tightish md:text-5xl">
+            Earned by choosing well
           </h1>
-        </div>
+        </header>
 
-        <div className="animate-countPop border-2 border-savr-leaf bg-white/70 px-6 py-8">
-          <p className="text-xs font-bold uppercase tracking-wide text-savr-forest">Available</p>
-          <p className="mt-2 font-display text-5xl font-extrabold md:text-6xl">
+        <div className="animate-rise-delay border border-savr-leaf/40 bg-savr-night px-6 py-8 text-white">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-signal">
+            Available
+          </p>
+          <p className="mt-2 font-display text-5xl font-extrabold tracking-tightish tabular-nums md:text-6xl">
             {formatKes(balanceCents)}
           </p>
         </div>
 
-        <div className="animate-rise-delay">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-savr-ink/45">
+        <section className="animate-rise-delay-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
             Activity
           </h2>
           {ledger.length === 0 ? (
-            <p className="mt-4 text-sm text-savr-ink/60">
-              Empty for now —{" "}
+            <p className="mt-4 text-[15px] text-savr-mute">
+              Nothing yet —{" "}
               <Link href="/basket" className="font-semibold text-savr-forest hover:underline">
                 compare a basket
               </Link>{" "}
-              and choose the winner.
+              and pick the winner.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-savr-ink/10 border-y border-savr-ink/10 bg-white/50">
+            <ul className="surface mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.07]">
               {ledger.map((e, i) => (
-                <li key={`${e.when}-${i}`} className="flex items-center justify-between px-3 py-3.5 text-sm">
+                <li
+                  key={`${e.when}-${i}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3.5"
+                >
                   <div>
-                    <p className="font-medium">{e.note ?? "Cashback"}</p>
-                    <p className="text-savr-ink/45">{e.when}</p>
+                    <p className="text-[15px] font-medium">{e.note ?? "Cashback"}</p>
+                    <p className="text-xs text-savr-mute">{e.when}</p>
                   </div>
-                  <p className="font-display text-lg font-bold text-savr-forest">
+                  <p className="font-display text-lg font-bold text-savr-forest tabular-nums">
                     +{formatKes(e.amountCents)}
                   </p>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </section>
       </div>
     </PageShell>
   );

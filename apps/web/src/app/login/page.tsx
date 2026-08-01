@@ -36,13 +36,15 @@ export default function LoginPage() {
 
   return (
     <PageShell narrow>
-      <div className="animate-rise space-y-6">
+      <div className="animate-rise space-y-7">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-savr-forest">Account</p>
-          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-savr-forest">
+            Account
+          </p>
+          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tightish">
             {mode === "in" ? "Welcome back" : "Join Savr"}
           </h1>
-          <p className="mt-2 text-sm text-savr-ink/65">
+          <p className="mt-2 text-[15px] text-savr-mute">
             Unlock wallet cashback when you pick the smarter deal.
           </p>
         </div>
@@ -54,7 +56,7 @@ export default function LoginPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Full name"
-              className="w-full border border-savr-ink/10 bg-white/70 px-4 py-3 outline-none focus:border-savr-forest"
+              className="field"
             />
           )}
           <input
@@ -63,7 +65,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
-            className="w-full border border-savr-ink/10 bg-white/70 px-4 py-3 outline-none focus:border-savr-forest"
+            className="field"
           />
           <input
             required
@@ -72,9 +74,9 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full border border-savr-ink/10 bg-white/70 px-4 py-3 outline-none focus:border-savr-forest"
+            className="field"
           />
-          <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60">
+          <button type="submit" disabled={busy} className="btn-primary w-full">
             {busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}
           </button>
         </form>
@@ -89,8 +91,8 @@ export default function LoginPage() {
           {mode === "in" ? "New here? Create an account" : "Already saving? Sign in"}
         </button>
 
-        <Link href="/basket" className="block text-sm text-savr-ink/50 hover:text-savr-forest">
-          Skip — just compare for now
+        <Link href="/basket" className="block text-sm text-savr-mute hover:text-savr-forest">
+          Skip for now
         </Link>
       </div>
     </PageShell>

@@ -8,6 +8,7 @@ import { loadCatalog } from "@/lib/catalog";
 import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
 import type { Catalog, ListItem } from "@/lib/types";
 import { PageShell } from "@/components/PageShell";
+import { RankList } from "@/components/RankList";
 
 export default function BasketPage() {
   const { user } = useAuth();
@@ -33,15 +34,21 @@ export default function BasketPage() {
   const worst = results[results.length - 1];
   const saved = recommended && worst ? worst.totalCents - recommended.totalCents : 0;
 
-  function removeItem(productId: string) {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  function setQty(productId: string, next: number) {
     setStatus(null);
+    if (next <= 0) {
+      setItems((prev) => prev.filter((i) => i.productId !== productId));
+      return;
+    }
+    setItems((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, quantity: next } : i)),
+    );
   }
 
   async function choose(merchantId: string) {
     if (!recommended || !catalog) return;
     if (!user) {
-      setStatus("Sign in to lock the choice and earn cashback.");
+      setStatus("Sign in to lock this in and earn cashback.");
       return;
     }
     setBusy(true);
@@ -60,114 +67,135 @@ export default function BasketPage() {
       setStatus(outcome.error);
       return;
     }
-    setStatus(`Locked in. Cashback headed to your wallet.`);
+    setStatus("Done — cashback is in your wallet.");
   }
 
   if (loading || !catalog) {
     return (
       <PageShell>
-        <p className="animate-pulse text-savr-ink/50">Loading Nairobi prices…</p>
+        <div className="space-y-4 animate-pulse">
+          <div className="h-8 w-48 bg-savr-fog" />
+          <div className="h-12 w-72 bg-savr-fog" />
+          <div className="h-24 w-full bg-savr-fog" />
+          <div className="h-40 w-full bg-savr-fog" />
+        </div>
       </PageShell>
     );
   }
 
   return (
     <PageShell>
-      <div className="space-y-10">
-        <div className="animate-rise">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-savr-forest">
+      <div className="space-y-8 pb-8">
+        <header className="animate-rise">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-savr-forest">
             Groceries · Nairobi
           </p>
-          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
+          <h1 className="mt-2 font-display text-[2.15rem] font-extrabold leading-[1.05] tracking-tightish md:text-5xl">
             Beat the weekly shop
           </h1>
-          <p className="mt-3 max-w-xl text-savr-ink/65">
-            One list. Every supermarket. Lowest net cost after savings cashback.
+          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-savr-mute">
+            We rank the full list by net cost after cashback — so the winner is obvious.
           </p>
-        </div>
+        </header>
 
         {recommended && (
-          <div className="animate-countPop save-strip animate-shimmer px-5 py-4 text-savr-ink">
-            <p className="text-xs font-bold uppercase tracking-wide">You could keep</p>
-            <p className="font-display text-3xl font-extrabold md:text-4xl">{formatKes(saved)}</p>
-            <p className="text-sm">
-              vs the most expensive basket · plus {formatKes(recommended.cashbackCents)} cashback at{" "}
-              {recommended.merchantName}
-            </p>
+          <div className="animate-rise-delay surface border border-savr-leaf/40 px-5 py-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                  You could keep
+                </p>
+                <p className="mt-1 font-display text-4xl font-extrabold tracking-tightish tabular-nums md:text-5xl">
+                  {formatKes(saved)}
+                </p>
+              </div>
+              <p className="max-w-[14rem] text-right text-sm leading-snug text-savr-mute">
+                vs highest basket · earn {formatKes(recommended.cashbackCents)} at{" "}
+                <span className="font-semibold text-savr-ink">{recommended.merchantName}</span>
+              </p>
+            </div>
           </div>
         )}
 
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.2fr]">
-          <div className="animate-rise-delay space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-savr-ink/45">
-              Your list · {items.length} items
-            </h2>
-            <ul className="divide-y divide-savr-ink/10 border-y border-savr-ink/10 bg-white/50">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:gap-12">
+          <section className="animate-rise-delay space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
+                Your list
+              </h2>
+              <span className="text-xs text-savr-mute">{items.length} items</span>
+            </div>
+            <ul className="surface divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.07]">
               {items.map((item) => (
-                <li key={item.productId} className="flex items-center justify-between gap-3 px-3 py-3.5">
-                  <span className="font-medium">{item.freeText}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.productId)}
-                    className="text-xs font-semibold text-savr-ink/40 hover:text-savr-forest"
-                  >
-                    Remove
-                  </button>
+                <li key={item.productId} className="flex items-center justify-between gap-3 px-3.5 py-3">
+                  <span className="text-[15px] font-medium leading-snug">{item.freeText}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Decrease"
+                      onClick={() => setQty(item.productId, item.quantity - 1)}
+                      className="flex h-8 w-8 items-center justify-center border border-savr-ink/10 text-lg text-savr-mute transition hover:border-savr-forest hover:text-savr-forest"
+                    >
+                      −
+                    </button>
+                    <span className="w-7 text-center text-sm font-semibold tabular-nums">
+                      {item.quantity}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Increase"
+                      onClick={() => setQty(item.productId, item.quantity + 1)}
+                      className="flex h-8 w-8 items-center justify-center border border-savr-ink/10 text-lg text-savr-mute transition hover:border-savr-forest hover:text-savr-forest"
+                    >
+                      +
+                    </button>
+                  </div>
                 </li>
               ))}
+              {items.length === 0 && (
+                <li className="px-3.5 py-6 text-sm text-savr-mute">
+                  List is empty — refresh to restore staples.
+                </li>
+              )}
             </ul>
-          </div>
+          </section>
 
-          <div className="animate-rise-delay-2 space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-savr-ink/45">
-              Ranked by net value
+          <section className="space-y-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
+              Ranked results
             </h2>
-            {results.map((r, i) => (
-              <div
-                key={r.merchantId}
-                className={`px-4 py-4 transition ${
-                  r.isRecommended ? "result-win" : "border border-savr-ink/10 bg-white/40"
-                }`}
-                style={{ animationDelay: `${0.08 * i}s` }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-display text-2xl font-bold">{r.merchantName}</p>
-                    {r.isRecommended && (
-                      <p className="mt-1 text-xs font-bold uppercase tracking-wide text-savr-forest">
-                        Best total value
-                      </p>
-                    )}
-                  </div>
-                  <p className="font-display text-xl font-bold">{formatKes(r.totalCents)}</p>
-                </div>
-                <p className="mt-2 text-sm text-savr-ink/60">
-                  Cashback {formatKes(r.cashbackCents)} · Net{" "}
-                  <span className="font-semibold text-savr-ink">{formatKes(r.netCents)}</span>
-                </p>
-                {r.isRecommended && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => choose(r.merchantId)}
-                    className="btn-primary mt-4 disabled:opacity-60"
-                  >
-                    {busy ? "Locking in…" : `Choose ${r.merchantName} & earn`}
-                  </button>
-                )}
-              </div>
-            ))}
+            <RankList
+              results={results}
+              busy={busy}
+              onChoose={choose}
+              chooseLabel={(name) => `Choose ${name} & earn`}
+            />
 
             {!user && (
-              <p className="text-sm text-savr-ink/60">
-                <Link href="/login" className="font-semibold text-savr-forest underline-offset-2 hover:underline">
+              <p className="text-sm text-savr-mute">
+                <Link href="/login" className="font-semibold text-savr-forest hover:underline">
                   Sign in
                 </Link>{" "}
-                to credit cashback to your wallet.
+                to send cashback to your wallet.
               </p>
             )}
-            {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
-          </div>
+            {status && (
+              <p
+                className={`text-sm font-semibold ${
+                  status.includes("Done") || status.includes("wallet")
+                    ? "text-savr-forest"
+                    : "text-savr-ink"
+                }`}
+              >
+                {status}{" "}
+                {status.includes("Sign in") && (
+                  <Link href="/login" className="text-savr-forest underline-offset-2 hover:underline">
+                    Go to sign in
+                  </Link>
+                )}
+              </p>
+            )}
+          </section>
         </div>
       </div>
     </PageShell>

@@ -5,44 +5,44 @@ module.exports = {
     extend: {
       colors: {
         savr: {
-          ink: "#042419",
-          forest: "#0A7A52",
-          leaf: "#12A56A",
-          mist: "#EEF8F3",
-          signal: "#FFE14D",
-          night: "#02150F",
-          fog: "#D7EDE3",
+          ink: "#031A12",
+          forest: "#067A4A",
+          leaf: "#0E9F5F",
+          mist: "#F3FAF6",
+          signal: "#F5C518",
+          night: "#01140E",
+          fog: "#DCEFE5",
+          mute: "#5C7368",
         },
       },
       fontFamily: {
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+      },
+      letterSpacing: {
+        brand: "-0.04em",
+        tightish: "-0.02em",
       },
       keyframes: {
         rise: {
-          "0%": { opacity: "0", transform: "translateY(18px)" },
+          "0%": { opacity: "0", transform: "translateY(14px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        pulseSoft: {
-          "0%, 100%": { transform: "scale(1)" },
-          "50%": { transform: "scale(1.03)" },
+        barGrow: {
+          "0%": { transform: "scaleX(0)" },
+          "100%": { transform: "scaleX(1)" },
         },
-        shimmer: {
-          "0%": { backgroundPosition: "200% 0" },
-          "100%": { backgroundPosition: "-200% 0" },
-        },
-        countPop: {
-          "0%": { transform: "scale(0.92)", opacity: "0.4" },
-          "100%": { transform: "scale(1)", opacity: "1" },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
       },
       animation: {
-        rise: "rise 0.7s ease-out both",
-        "rise-delay": "rise 0.7s ease-out 0.12s both",
-        "rise-delay-2": "rise 0.7s ease-out 0.24s both",
-        pulseSoft: "pulseSoft 2.4s ease-in-out infinite",
-        shimmer: "shimmer 2.8s linear infinite",
-        countPop: "countPop 0.45s ease-out both",
+        rise: "rise 0.55s cubic-bezier(0.22,1,0.36,1) both",
+        "rise-delay": "rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.1s both",
+        "rise-delay-2": "rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.2s both",
+        barGrow: "barGrow 0.7s cubic-bezier(0.22,1,0.36,1) both",
+        fadeIn: "fadeIn 0.4s ease both",
       },
     },
   },
