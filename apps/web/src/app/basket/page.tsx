@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   confirmBasketChoice,
   fetchSavedLists,
+  loadProfile,
   loadSavedList,
   saveShoppingList,
   type SavedListSummary,
@@ -35,6 +36,7 @@ export default function BasketPage() {
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [preferredMerchantIds, setPreferredMerchantIds] = useState<string[]>([]);
 
   const refreshLists = useCallback(async () => {
     if (!user) {
@@ -56,6 +58,16 @@ export default function BasketPage() {
   useEffect(() => {
     refreshLists();
   }, [refreshLists]);
+
+  useEffect(() => {
+    if (!user) {
+      setPreferredMerchantIds([]);
+      return;
+    }
+    loadProfile().then((p) => {
+      if (!("error" in p)) setPreferredMerchantIds(p.preferredMerchantIds);
+    });
+  }, [user]);
 
   const results = useMemo(
     () => (catalog ? compareBasket(catalog, items) : []),
@@ -325,6 +337,16 @@ export default function BasketPage() {
                   </p>
                 )}
 
+                {user && (
+                  <p className="text-xs text-savr-mute">
+                    Prefer certain stores?{" "}
+                    <Link href="/account" className="font-semibold text-savr-forest hover:underline">
+                      Set them in Account
+                    </Link>
+                    .
+                  </p>
+                )}
+
                 <p className="text-xs text-savr-mute">
                   Catalog · {catalog.products.length} products · {catalog.source}
                 </p>
@@ -342,6 +364,7 @@ export default function BasketPage() {
                     busy={busy}
                     onChoose={choose}
                     chooseLabel={(name) => `Choose ${name} & earn`}
+                    preferredMerchantIds={preferredMerchantIds}
                     getLineItems={(merchantId) =>
                       lineItemsForMerchant(catalog, items, merchantId)
                     }

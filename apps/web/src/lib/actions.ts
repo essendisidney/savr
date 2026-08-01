@@ -311,3 +311,58 @@ export async function loadSavedList(
       })),
   };
 }
+
+export type UserProfile = {
+  fullName: string;
+  phone: string;
+  city: string;
+  preferredMerchantIds: string[];
+};
+
+export async function loadProfile(): Promise<UserProfile | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "signed_out" };
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("full_name, phone, city, preferred_merchant_ids")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+
+  return {
+    fullName: data?.full_name ?? user.user_metadata?.full_name ?? "",
+    phone: data?.phone ?? "",
+    city: data?.city ?? "Nairobi",
+    preferredMerchantIds: data?.preferred_merchant_ids ?? [],
+  };
+}
+
+export async function saveProfile(profile: UserProfile): Promise<{ error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to update your profile." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      full_name: profile.fullName.trim() || null,
+      phone: profile.phone.trim() || null,
+      city: profile.city.trim() || "Nairobi",
+      preferred_merchant_ids: profile.preferredMerchantIds,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  return error ? { error: error.message } : {};
+}

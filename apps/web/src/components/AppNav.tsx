@@ -60,15 +60,25 @@ export function AppNav() {
 
           {!loading &&
             (user ? (
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className={`text-[13px] font-semibold ${
-                  onHero ? "text-white/90 hover:text-white" : "text-savr-mute hover:text-savr-ink"
-                }`}
-              >
-                Sign out
-              </button>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/account"
+                  className={`text-[13px] font-semibold ${
+                    onHero ? "text-white/90 hover:text-white" : "text-savr-forest"
+                  }`}
+                >
+                  Account
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className={`text-[13px] font-semibold ${
+                    onHero ? "text-white/70 hover:text-white" : "text-savr-mute hover:text-savr-ink"
+                  }`}
+                >
+                  Sign out
+                </button>
+              </div>
             ) : (
               <Link
                 href="/login"

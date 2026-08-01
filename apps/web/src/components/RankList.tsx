@@ -10,12 +10,14 @@ export function RankList({
   busy,
   chooseLabel,
   getLineItems,
+  preferredMerchantIds = [],
 }: {
   results: BasketResult[];
   onChoose?: (merchantId: string) => void;
   busy?: boolean;
   chooseLabel?: (name: string) => string;
   getLineItems?: (merchantId: string) => LineItemPrice[];
+  preferredMerchantIds?: string[];
 }) {
   const [openId, setOpenId] = useState<string | null>(
     results.find((r) => r.isRecommended)?.merchantId ?? null,
@@ -28,6 +30,7 @@ export function RankList({
         const width = Math.max(14, (r.totalCents / maxTotal) * 100);
         const open = openId === r.merchantId;
         const lines = open && getLineItems ? getLineItems(r.merchantId) : [];
+        const preferred = preferredMerchantIds.includes(r.merchantId);
 
         return (
           <li
@@ -71,6 +74,7 @@ export function RankList({
                       {r.isRecommended
                         ? "Winner · best total value"
                         : `${Math.round(r.coverage * 100)}% list coverage`}
+                      {preferred ? (r.isRecommended ? " · Your store" : " · Your preferred") : ""}
                     </p>
                   </div>
                 </div>
