@@ -607,17 +607,25 @@ export type WatchItem = {
   merchantName: string | null;
   /** Positive when current cheapest is below the watch baseline. */
   dropCents: number;
+  /** Last drop amount the user acknowledged in Alerts. */
+  seenDropCents: number;
+  /** High-value unread: real drop below baseline not yet seen. */
+  unread: boolean;
   weekTrendLabel: string | null;
   href: string;
   createdAt: string;
 };
 
+/** Minimum drop (KES 5) before we treat it as an alert — avoid mute-training noise. */
+const ALERT_MIN_DROP_CENTS = 500;
+
 export async function loadWatchlist(): Promise<{
   items: WatchItem[];
   drops: WatchItem[];
+  unreadCount: number;
   error?: string;
 }> {
-  const empty = { items: [] as WatchItem[], drops: [] as WatchItem[] };
+  const empty = { items: [] as WatchItem[], drops: [] as WatchItem[], unreadCount: 0 };
   const supabase = getSupabase();
   if (!supabase) return { ...empty, error: "Supabase is not configured." };
 
@@ -628,7 +636,7 @@ export async function loadWatchlist(): Promise<{
 
   const { data: rows, error } = await supabase
     .from("product_watches")
-    .select("id, product_id, baseline_cents, created_at")
+    .select("id, product_id, baseline_cents, seen_drop_cents, created_at")
     .eq("profile_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -647,6 +655,8 @@ export async function loadWatchlist(): Promise<{
     const current = best?.priceCents ?? null;
     const dropCents =
       baseline != null && current != null && current < baseline ? baseline - current : 0;
+    const seenDropCents = Number(row.seen_drop_cents) || 0;
+    const unread = dropCents >= ALERT_MIN_DROP_CENTS && dropCents > seenDropCents;
 
     let weekTrendLabel: string | null = null;
     if (best) {
@@ -663,6 +673,8 @@ export async function loadWatchlist(): Promise<{
       currentCents: current,
       merchantName: best?.merchantName ?? null,
       dropCents,
+      seenDropCents,
+      unread,
       weekTrendLabel,
       href: `/prices?id=${row.product_id}&q=${encodeURIComponent(product?.name ?? "")}`,
       createdAt: new Date(row.created_at as string).toLocaleDateString("en-KE", {
@@ -673,10 +685,48 @@ export async function loadWatchlist(): Promise<{
   });
 
   const drops = items
-    .filter((i) => i.dropCents > 0 || i.weekTrendLabel)
-    .sort((a, b) => b.dropCents - a.dropCents);
+    .filter((i) => i.dropCents >= ALERT_MIN_DROP_CENTS)
+    .sort((a, b) => {
+      if (a.unread !== b.unread) return a.unread ? -1 : 1;
+      return b.dropCents - a.dropCents;
+    });
 
-  return { items, drops };
+  const unreadCount = items.filter((i) => i.unread).length;
+
+  return { items, drops, unreadCount };
+}
+
+export async function markWatchDropSeen(
+  productId: string,
+  dropCents: number,
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to update alerts." };
+
+  const { error } = await supabase
+    .from("product_watches")
+    .update({ seen_drop_cents: Math.max(0, Math.round(dropCents)) })
+    .eq("profile_id", user.id)
+    .eq("product_id", productId);
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function markAllWatchDropsSeen(
+  drops: { productId: string; dropCents: number }[],
+): Promise<{ ok: true } | { error: string }> {
+  if (!drops.length) return { ok: true };
+  for (const d of drops) {
+    const res = await markWatchDropSeen(d.productId, d.dropCents);
+    if ("error" in res) return res;
+  }
+  return { ok: true };
 }
 
 export async function watchProduct(params: {

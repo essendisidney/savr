@@ -76,6 +76,7 @@ export function HomeDecision() {
   const [tip, setTip] = useState<{ savingsCents: number; merchantName: string } | null>(null);
   const [drop, setDrop] = useState<DropSignal | null>(null);
   const [fuel, setFuel] = useState<FuelSignal | null>(null);
+  const [alertCount, setAlertCount] = useState(0);
   const [ready, setReady] = useState(false);
 
   const hour = useMemo(() => new Date().getHours(), []);
@@ -144,6 +145,7 @@ export function HomeDecision() {
         setYesterdayCents(0);
         setLifetimeCents(0);
         setTip(null);
+        setAlertCount(0);
         setReady(true);
         return;
       }
@@ -160,8 +162,10 @@ export function HomeDecision() {
       setYesterdayCents(wallet.yesterdaySavingsCents ?? 0);
       setLifetimeCents(wallet.lifetimeSavingsCents ?? 0);
       setTip(wallet.lastTip ?? null);
+      setAlertCount(watchRes.unreadCount ?? 0);
 
-      const personal = watchRes.drops?.[0];
+      const personal =
+        watchRes.drops?.find((d) => d.unread) ?? watchRes.drops?.[0] ?? null;
       if (personal) {
         setDrop({
           productName: personal.productName,
@@ -170,7 +174,7 @@ export function HomeDecision() {
             personal.dropCents > 0
               ? `↓ ${formatKes(personal.dropCents)} since you watched`
               : personal.weekTrendLabel ?? "Price moved",
-          href: personal.href,
+          href: personal.unread ? "/alerts" : personal.href,
         });
       }
 
@@ -194,18 +198,30 @@ export function HomeDecision() {
         : 0;
 
   const liveCards = [
-    drop
+    alertCount > 0
       ? {
-          key: "drop",
-          eyebrow: drop.href.includes("prices") && drop.label.includes("watched")
-            ? "On your watchlist"
-            : "Price move",
-          title: `${drop.productName} is cheaper`,
-          body: `${drop.label} at ${drop.merchantName}`,
-          href: drop.href,
+          key: "alerts",
+          eyebrow: "Alerts",
+          title:
+            alertCount === 1
+              ? "1 watchlist drop worth opening"
+              : `${alertCount} watchlist drops worth opening`,
+          body: "KES 5+ below your start price — tap to review, then buy or dismiss.",
+          href: "/alerts",
           tone: "forest" as const,
         }
-      : null,
+      : drop
+        ? {
+            key: "drop",
+            eyebrow: drop.href.includes("alerts") || drop.label.includes("watched")
+              ? "On your watchlist"
+              : "Price move",
+            title: `${drop.productName} is cheaper`,
+            body: `${drop.label} at ${drop.merchantName}`,
+            href: drop.href,
+            tone: "forest" as const,
+          }
+        : null,
     fuel
       ? {
           key: "fuel",
@@ -347,21 +363,21 @@ export function HomeDecision() {
         )}
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <Link
-            href="/map"
-            className="card p-5 hover:border-savr-forest/25"
-          >
+          <Link href="/alerts" className="card p-5 hover:border-savr-forest/25">
+            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Alerts</p>
+            <p className="mt-1 font-display text-lg font-bold text-savr-ink">
+              {alertCount > 0 ? `${alertCount} waiting` : "Quiet inbox"}
+            </p>
+            <p className="mt-1 text-xs text-savr-mute">
+              {alertCount > 0
+                ? "Watchlist drops of KES 5+ only"
+                : "High-value watch drops land here"}
+            </p>
+          </Link>
+          <Link href="/map" className="card p-5 hover:border-savr-forest/25">
             <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Value map</p>
             <p className="mt-1 font-display text-lg font-bold text-savr-ink">Where value is</p>
             <p className="mt-1 text-xs text-savr-mute">Green best · yellow mid · red expensive</p>
-          </Link>
-          <Link
-            href="/ask"
-            className="card p-5 hover:border-savr-forest/25"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Decide</p>
-            <p className="mt-1 font-display text-lg font-bold text-savr-ink">Open Ask Savr</p>
-            <p className="mt-1 text-xs text-savr-mute">All compares live here</p>
           </Link>
         </div>
       </div>

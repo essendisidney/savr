@@ -163,8 +163,8 @@ export default function SavedPage() {
         <section className="mt-10 space-y-3">
           <div className="flex items-end justify-between gap-3">
             <h2 className="font-display text-lg font-bold text-savr-ink">Watching for drops</h2>
-            <Link href="/prices" className="text-sm font-semibold text-savr-forest hover:underline">
-              Find staples →
+            <Link href="/alerts" className="text-sm font-semibold text-savr-forest hover:underline">
+              Alerts →
             </Link>
           </div>
           {watches.length === 0 ? (
@@ -181,8 +181,13 @@ export default function SavedPage() {
             <ul className="space-y-2">
               {watches.map((w) => (
                 <li key={w.id} className="card flex items-center justify-between gap-3 px-4 py-3.5">
-                  <Link href={w.href} className="min-w-0 flex-1 hover:opacity-90">
-                    <span className="block font-semibold text-savr-ink">{w.productName}</span>
+                  <Link href={w.unread ? "/alerts" : w.href} className="min-w-0 flex-1 hover:opacity-90">
+                    <span className="flex items-center gap-2">
+                      {w.unread && (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-savr-forest" aria-hidden />
+                      )}
+                      <span className="block font-semibold text-savr-ink">{w.productName}</span>
+                    </span>
                     <span className="text-xs text-savr-mute">
                       {w.currentCents != null
                         ? `${formatKes(w.currentCents)}${w.merchantName ? ` · ${w.merchantName}` : ""}`
