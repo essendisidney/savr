@@ -103,10 +103,13 @@ export type RideQuote = {
   isEstimated: boolean;
 };
 
+export type FuelType = "petrol" | "diesel";
+
 export type FuelStation = {
   id: string;
   name: string;
   brand: string;
+  fuelType: FuelType;
   priceCentsPerLitre: number;
   cashbackCents: number;
   distanceKm: number | null;

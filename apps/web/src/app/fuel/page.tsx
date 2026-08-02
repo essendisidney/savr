@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
-import type { FuelStation } from "@/lib/types";
+import type { FuelStation, FuelType } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
@@ -19,6 +19,7 @@ export default function FuelPage() {
   const [stations, setStations] = useState<FuelStation[]>([]);
   const [source, setSource] = useState("…");
   const [loading, setLoading] = useState(true);
+  const [fuelType, setFuelType] = useState<FuelType>("petrol");
   const [sort, setSort] = useState<SortMode>("value");
   const [tipStationId, setTipStationId] = useState("");
   const [tipPrice, setTipPrice] = useState("");
@@ -28,14 +29,21 @@ export default function FuelPage() {
     useShopperOrigin();
 
   useEffect(() => {
-    loadFuelStations().then((r) => {
+    let cancelled = false;
+    setLoading(true);
+    loadFuelStations(fuelType).then((r) => {
+      if (cancelled) return;
       setStations(r.stations);
       setSource(r.source);
       setLoading(false);
       const live = r.stations.find((s) => !s.id.startsWith("fallback-"));
-      if (live) setTipStationId((prev) => prev || live.id);
+      if (live) setTipStationId(live.id);
+      setTipStatus(null);
     });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [fuelType]);
 
   const tippableStations = useMemo(
     () => stations.filter((s) => !s.id.startsWith("fallback-")),
@@ -43,10 +51,11 @@ export default function FuelPage() {
   );
 
   async function reloadStations() {
-    const r = await loadFuelStations();
+    const r = await loadFuelStations(fuelType);
     setStations(r.stations);
     setSource(r.source);
   }
+
   const ranked = useMemo(() => {
     const withDist = stations.map((s) => {
       let distanceKm = s.distanceKm;
@@ -77,6 +86,7 @@ export default function FuelPage() {
   const savedPerLitre =
     worst && best ? worst.priceCentsPerLitre - best.priceCentsPerLitre : 0;
   const maxPrice = Math.max(...ranked.map((s) => s.priceCentsPerLitre), 1);
+  const fuelLabel = fuelType === "diesel" ? "diesel" : "petrol";
 
   if (loading) {
     return (
@@ -94,7 +104,7 @@ export default function FuelPage() {
       <PageHero
         theme="fuel"
         title="Fill up smarter"
-        subtitle={`Nearby petrol prices · ${source}. Rank by price, distance, or total value.`}
+        subtitle={`Nearby ${fuelLabel} prices · ${source}. Rank by price, distance, or total value.`}
       />
 
       <div className="page-band">
@@ -104,9 +114,31 @@ export default function FuelPage() {
               <SavingsMoment
                 amountLabel={`Go to ${best.brand}`}
                 amountCents={savedPerLitre}
-                detail={`Saved per litre vs the highest station · ${formatDistanceKm(best.distanceKm) ?? "nearby"}`}
+                detail={`Saved per litre vs the highest ${fuelLabel} station · ${formatDistanceKm(best.distanceKm) ?? "nearby"}`}
               />
             )}
+
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["petrol", "Petrol"],
+                  ["diesel", "Diesel"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setFuelType(id)}
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                    fuelType === id
+                      ? "bg-savr-forest text-white"
+                      : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-2">
@@ -156,7 +188,7 @@ export default function FuelPage() {
                 const dist = formatDistanceKm(s.distanceKm);
                 return (
                   <li
-                    key={s.id}
+                    key={`${s.id}-${fuelType}`}
                     className={`animate-rise relative overflow-hidden border ${
                       i === 0
                         ? "border-transparent bg-savr-night text-white shadow-[0_18px_40px_-24px_rgba(4,36,25,0.65)]"
@@ -240,7 +272,7 @@ export default function FuelPage() {
                 Saw a different pump price?
               </h3>
               <p className="mt-1 text-sm text-savr-mute">
-                Tip the petrol KES/L you just paid — keeps nearby ranks fresh.
+                Tip the {fuelLabel} KES/L you just paid — keeps nearby ranks fresh.
               </p>
               {!user ? (
                 <p className="mt-4 text-sm text-savr-mute">
@@ -264,7 +296,7 @@ export default function FuelPage() {
                     const res = await submitCrowdsourceFuelPrice({
                       stationId: tipStationId,
                       priceKesPerLitre: Number(tipPrice),
-                      fuelType: "petrol",
+                      fuelType,
                     });
                     setTipBusy(false);
                     if ("error" in res) {
@@ -301,7 +333,7 @@ export default function FuelPage() {
                       inputMode="decimal"
                       value={tipPrice}
                       onChange={(e) => setTipPrice(e.target.value)}
-                      placeholder="e.g. 189"
+                      placeholder={fuelType === "diesel" ? "e.g. 168" : "e.g. 189"}
                       className="field w-full sm:w-28"
                     />
                   </label>

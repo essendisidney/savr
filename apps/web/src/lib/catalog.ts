@@ -3,6 +3,7 @@ import type {
   CashbackRule,
   Catalog,
   FuelStation,
+  FuelType,
   Merchant,
   MerchantPrice,
   Product,
@@ -152,10 +153,12 @@ export async function loadCatalog(): Promise<Catalog> {
   return { merchants, products, prices, cashbackRules, source: "supabase" };
 }
 
-export async function loadFuelStations(): Promise<{ stations: FuelStation[]; source: string }> {
+export async function loadFuelStations(
+  fuelType: FuelType = "petrol",
+): Promise<{ stations: FuelStation[]; source: string }> {
   const supabase = getSupabase();
   if (!supabase) {
-    return loadFuelStationsFallback();
+    return loadFuelStationsFallback(fuelType);
   }
 
   const { data, error } = await supabase
@@ -164,7 +167,7 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
     .eq("is_active", true);
 
   if (error || !data?.length) {
-    return loadFuelStationsFallback();
+    return loadFuelStationsFallback(fuelType);
   }
 
   const stations = data
@@ -173,16 +176,19 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
         ((s.fuel_prices as { price_cents_per_litre: number; fuel_type: string; observed_at?: string }[] | null) ?? [])
           .slice()
           .sort((a, b) => String(b.observed_at ?? "").localeCompare(String(a.observed_at ?? "")));
-      const petrol = prices.find((p) => p.fuel_type === "petrol") ?? prices[0];
-      if (!petrol) return null;
+      const match =
+        prices.find((p) => p.fuel_type === fuelType) ??
+        (fuelType === "petrol" ? prices.find((p) => p.fuel_type === "petrol") : null);
+      if (!match) return null;
       const lat = typeof s.lat === "number" ? s.lat : null;
       const lng = typeof s.lng === "number" ? s.lng : null;
       const station: FuelStation = {
         id: s.id,
         name: s.name,
         brand: s.brand ?? s.name,
-        priceCentsPerLitre: petrol.price_cents_per_litre,
-        cashbackCents: 1500,
+        fuelType,
+        priceCentsPerLitre: match.price_cents_per_litre,
+        cashbackCents: fuelType === "diesel" ? 1200 : 1500,
         distanceKm: null,
         lat,
         lng,
@@ -198,15 +204,20 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
     .filter((s): s is FuelStation => s !== null)
     .sort((a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre);
 
+  if (!stations.length) {
+    return loadFuelStationsFallback(fuelType);
+  }
+
   return { stations, source: "supabase" };
 }
 
-function loadFuelStationsFallback() {
-  const stations: FuelStation[] = [
+function loadFuelStationsFallback(fuelType: FuelType = "petrol") {
+  const petrol: FuelStation[] = [
     {
       id: "fallback-total",
       name: "Total Kilimani",
       brand: "TotalEnergies",
+      fuelType: "petrol",
       priceCentsPerLitre: 17900,
       cashbackCents: 1500,
       distanceKm: null,
@@ -218,6 +229,7 @@ function loadFuelStationsFallback() {
       id: "fallback-rubis",
       name: "Rubis Westlands",
       brand: "Rubis",
+      fuelType: "petrol",
       priceCentsPerLitre: 18000,
       cashbackCents: 1000,
       distanceKm: null,
@@ -229,6 +241,7 @@ function loadFuelStationsFallback() {
       id: "fallback-shell",
       name: "Shell Junction",
       brand: "Shell",
+      fuelType: "petrol",
       priceCentsPerLitre: 18300,
       cashbackCents: 1200,
       distanceKm: null,
@@ -237,5 +250,30 @@ function loadFuelStationsFallback() {
       mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.3,36.78",
     },
   ];
-  return { source: "fallback" as const, stations };
+
+  if (fuelType === "petrol") {
+    return { source: "fallback" as const, stations: petrol };
+  }
+
+  const diesel: FuelStation[] = [
+    {
+      ...petrol[0],
+      fuelType: "diesel",
+      priceCentsPerLitre: 16650,
+      cashbackCents: 1200,
+    },
+    {
+      ...petrol[1],
+      fuelType: "diesel",
+      priceCentsPerLitre: 16800,
+      cashbackCents: 1000,
+    },
+    {
+      ...petrol[2],
+      fuelType: "diesel",
+      priceCentsPerLitre: 17100,
+      cashbackCents: 1100,
+    },
+  ];
+  return { source: "fallback" as const, stations: diesel };
 }
