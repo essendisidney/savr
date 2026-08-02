@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { submitCrowdsourceFuelPrice } from "@/lib/actions";
+import { useAuth } from "@/lib/auth";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
@@ -12,10 +15,15 @@ import { SavingsMoment } from "@/components/SavingsMoment";
 type SortMode = "price" | "distance" | "value";
 
 export default function FuelPage() {
+  const { user } = useAuth();
   const [stations, setStations] = useState<FuelStation[]>([]);
   const [source, setSource] = useState("…");
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortMode>("value");
+  const [tipStationId, setTipStationId] = useState("");
+  const [tipPrice, setTipPrice] = useState("");
+  const [tipBusy, setTipBusy] = useState(false);
+  const [tipStatus, setTipStatus] = useState<string | null>(null);
   const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
     useShopperOrigin();
 
@@ -24,9 +32,21 @@ export default function FuelPage() {
       setStations(r.stations);
       setSource(r.source);
       setLoading(false);
+      const live = r.stations.find((s) => !s.id.startsWith("fallback-"));
+      if (live) setTipStationId((prev) => prev || live.id);
     });
   }, []);
 
+  const tippableStations = useMemo(
+    () => stations.filter((s) => !s.id.startsWith("fallback-")),
+    [stations],
+  );
+
+  async function reloadStations() {
+    const r = await loadFuelStations();
+    setStations(r.stations);
+    setSource(r.source);
+  }
   const ranked = useMemo(() => {
     const withDist = stations.map((s) => {
       let distanceKm = s.distanceKm;
@@ -136,7 +156,7 @@ export default function FuelPage() {
                 const dist = formatDistanceKm(s.distanceKm);
                 return (
                   <li
-                    key={s.name}
+                    key={s.id}
                     className={`animate-rise relative overflow-hidden border ${
                       i === 0
                         ? "border-transparent bg-savr-night text-white shadow-[0_18px_40px_-24px_rgba(4,36,25,0.65)]"
@@ -214,6 +234,92 @@ export default function FuelPage() {
                 );
               })}
             </ol>
+
+            <section className="border border-savr-ink/[0.08] bg-white px-4 py-5 sm:px-5">
+              <h3 className="font-display text-lg font-bold tracking-tightish">
+                Saw a different pump price?
+              </h3>
+              <p className="mt-1 text-sm text-savr-mute">
+                Tip the petrol KES/L you just paid — keeps nearby ranks fresh.
+              </p>
+              {!user ? (
+                <p className="mt-4 text-sm text-savr-mute">
+                  <Link href="/login" className="font-semibold text-savr-forest hover:underline">
+                    Sign in
+                  </Link>{" "}
+                  to submit a tip.
+                </p>
+              ) : tippableStations.length === 0 ? (
+                <p className="mt-4 text-sm text-savr-mute">
+                  Live stations unavailable — tips open when the catalog is online.
+                </p>
+              ) : (
+                <form
+                  className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+                  onSubmit={async (e: FormEvent) => {
+                    e.preventDefault();
+                    if (!tipStationId) return;
+                    setTipBusy(true);
+                    setTipStatus(null);
+                    const res = await submitCrowdsourceFuelPrice({
+                      stationId: tipStationId,
+                      priceKesPerLitre: Number(tipPrice),
+                      fuelType: "petrol",
+                    });
+                    setTipBusy(false);
+                    if ("error" in res) {
+                      setTipStatus(res.error);
+                      return;
+                    }
+                    setTipStatus("Thanks — pump tip saved. Ranks refresh below.");
+                    setTipPrice("");
+                    await reloadStations();
+                  }}
+                >
+                  <label className="block space-y-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Station
+                    </span>
+                    <select
+                      value={tipStationId}
+                      onChange={(e) => setTipStationId(e.target.value)}
+                      className="field"
+                    >
+                      {tippableStations.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.brand} · {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      KES / L
+                    </span>
+                    <input
+                      required
+                      inputMode="decimal"
+                      value={tipPrice}
+                      onChange={(e) => setTipPrice(e.target.value)}
+                      placeholder="e.g. 189"
+                      className="field w-full sm:w-28"
+                    />
+                  </label>
+                  <button type="submit" disabled={tipBusy} className="btn-primary h-[46px]">
+                    {tipBusy ? "Saving…" : "Tip price"}
+                  </button>
+                </form>
+              )}
+              {tipStatus && (
+                <p
+                  className={`mt-3 text-sm font-medium ${
+                    tipStatus.startsWith("Thanks") ? "text-savr-forest" : "text-red-700"
+                  }`}
+                >
+                  {tipStatus}
+                </p>
+              )}
+            </section>
           </div>
         </PageShell>
       </div>

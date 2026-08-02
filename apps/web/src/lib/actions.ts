@@ -480,3 +480,35 @@ export async function submitCrowdsourcePrice(params: {
   if (error) return { error: error.message };
   return { ok: true };
 }
+
+export async function submitCrowdsourceFuelPrice(params: {
+  stationId: string;
+  priceKesPerLitre: number;
+  fuelType?: "petrol" | "diesel" | "kerosene";
+}): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to tip a pump price." };
+
+  if (params.stationId.startsWith("fallback-")) {
+    return { error: "Live stations unavailable — try again when catalog is online." };
+  }
+
+  const kes = Number(params.priceKesPerLitre);
+  if (!Number.isFinite(kes) || kes < 50 || kes > 500) {
+    return { error: "Enter a valid KES/L price." };
+  }
+
+  const { error } = await supabase.rpc("submit_crowdsource_fuel_price", {
+    p_station_id: params.stationId,
+    p_price_cents_per_litre: Math.round(kes * 100),
+    p_fuel_type: params.fuelType ?? "petrol",
+  });
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}

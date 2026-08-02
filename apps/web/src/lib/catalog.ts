@@ -160,7 +160,7 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
 
   const { data, error } = await supabase
     .from("fuel_stations")
-    .select("name, brand, lat, lng, address, fuel_prices(price_cents_per_litre, fuel_type, observed_at)")
+    .select("id, name, brand, lat, lng, address, fuel_prices(price_cents_per_litre, fuel_type, observed_at)")
     .eq("is_active", true);
 
   if (error || !data?.length) {
@@ -169,12 +169,16 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
 
   const stations = data
     .map((s) => {
-      const prices = (s.fuel_prices as { price_cents_per_litre: number; fuel_type: string }[] | null) ?? [];
+      const prices =
+        ((s.fuel_prices as { price_cents_per_litre: number; fuel_type: string; observed_at?: string }[] | null) ?? [])
+          .slice()
+          .sort((a, b) => String(b.observed_at ?? "").localeCompare(String(a.observed_at ?? "")));
       const petrol = prices.find((p) => p.fuel_type === "petrol") ?? prices[0];
       if (!petrol) return null;
       const lat = typeof s.lat === "number" ? s.lat : null;
       const lng = typeof s.lng === "number" ? s.lng : null;
       const station: FuelStation = {
+        id: s.id,
         name: s.name,
         brand: s.brand ?? s.name,
         priceCentsPerLitre: petrol.price_cents_per_litre,
@@ -200,6 +204,7 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
 function loadFuelStationsFallback() {
   const stations: FuelStation[] = [
     {
+      id: "fallback-total",
       name: "Total Kilimani",
       brand: "TotalEnergies",
       priceCentsPerLitre: 17900,
@@ -210,6 +215,7 @@ function loadFuelStationsFallback() {
       mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.29,36.788",
     },
     {
+      id: "fallback-rubis",
       name: "Rubis Westlands",
       brand: "Rubis",
       priceCentsPerLitre: 18000,
@@ -220,6 +226,7 @@ function loadFuelStationsFallback() {
       mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.265,36.804",
     },
     {
+      id: "fallback-shell",
       name: "Shell Junction",
       brand: "Shell",
       priceCentsPerLitre: 18300,

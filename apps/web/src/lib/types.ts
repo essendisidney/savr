@@ -104,6 +104,7 @@ export type RideQuote = {
 };
 
 export type FuelStation = {
+  id: string;
   name: string;
   brand: string;
   priceCentsPerLitre: number;
