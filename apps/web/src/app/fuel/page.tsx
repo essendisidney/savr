@@ -6,6 +6,7 @@ import { submitCrowdsourceFuelPrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
+import { loadFuelPrefsDraft, saveFuelPrefsDraft } from "@/lib/fuel-draft";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
 import type { FuelStation, FuelType } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -19,6 +20,7 @@ export default function FuelPage() {
   const [stations, setStations] = useState<FuelStation[]>([]);
   const [source, setSource] = useState("…");
   const [loading, setLoading] = useState(true);
+  const [prefsReady, setPrefsReady] = useState(false);
   const [fuelType, setFuelType] = useState<FuelType>("petrol");
   const [sort, setSort] = useState<SortMode>("value");
   const [tipStationId, setTipStationId] = useState("");
@@ -29,6 +31,21 @@ export default function FuelPage() {
     useShopperOrigin();
 
   useEffect(() => {
+    const draft = loadFuelPrefsDraft();
+    if (draft) {
+      setFuelType(draft.fuelType);
+      setSort(draft.sort);
+    }
+    setPrefsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!prefsReady) return;
+    saveFuelPrefsDraft(fuelType, sort);
+  }, [prefsReady, fuelType, sort]);
+
+  useEffect(() => {
+    if (!prefsReady) return;
     let cancelled = false;
     setLoading(true);
     loadFuelStations(fuelType).then((r) => {
@@ -43,8 +60,7 @@ export default function FuelPage() {
     return () => {
       cancelled = true;
     };
-  }, [fuelType]);
-
+  }, [prefsReady, fuelType]);
   const tippableStations = useMemo(
     () => stations.filter((s) => !s.id.startsWith("fallback-")),
     [stations],
@@ -104,7 +120,7 @@ export default function FuelPage() {
       <PageHero
         theme="fuel"
         title="Fill up smarter"
-        subtitle={`Nearby ${fuelLabel} prices · ${source}. Rank by price, distance, or total value.`}
+        subtitle={`Nearby ${fuelLabel} prices · ${source}. Your fuel type and sort stay on this phone.`}
       />
 
       <div className="page-band">
