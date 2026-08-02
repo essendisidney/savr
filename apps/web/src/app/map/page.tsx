@@ -6,8 +6,10 @@ import dynamic from "next/dynamic";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
+import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
+import { haversineKm, useShopperOrigin } from "@/lib/geo";
 import type { MapPoint, ValueTier } from "@/components/NairobiMap";
 
 const NairobiMap = dynamic(() => import("@/components/NairobiMap").then((m) => m.NairobiMap), {
@@ -34,14 +36,25 @@ export default function MapPage() {
   const [selected, setSelected] = useState<MapPoint | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "grocery" | "fuel">("all");
+  const {
+    origin,
+    source: geoSource,
+    label: geoLabel,
+    busy: geoBusy,
+    error: geoError,
+    useMyLocation,
+    setEstate,
+  } = useShopperOrigin();
 
   const onSelect = useCallback((p: MapPoint) => setSelected(p), []);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       const [catalog, fuel] = await Promise.all([loadCatalog(), loadFuelStations("petrol")]);
+      if (cancelled) return;
       const staples = defaultListFromCatalog(catalog);
-      const basketRanks = staples.length ? compareBasket(catalog, staples) : [];
+      const basketRanks = staples.length ? compareBasket(catalog, staples, origin) : [];
       const byBranch = new Map(
         basketRanks.map((r) => [`${r.merchantId}:${r.locationId ?? "none"}`, r]),
       );
@@ -69,6 +82,7 @@ export default function MapPage() {
               : rank
                 ? `Basket ${formatKes(rank.netCents)}`
                 : null;
+          const dest = `${m.location!.lat},${m.location!.lng}`;
           return {
             id: `m-${branchKey}`,
             kind: "grocery" as const,
@@ -77,21 +91,28 @@ export default function MapPage() {
               m.location?.name ?? m.location?.address ?? "Grocery",
               rank ? `Weekly staples net ${formatKes(rank.netCents)}` : null,
               rank?.cashbackCents ? `Cashback ${formatKes(rank.cashbackCents)}` : null,
+              rank?.distanceKm != null ? `${rank.distanceKm.toFixed(1)} km` : null,
             ]
               .filter(Boolean)
               .join(" · "),
             lat: m.location!.lat!,
             lng: m.location!.lng!,
-            mapsUrl: `https://www.google.com/maps/dir/?api=1&destination=${m.location!.lat},${m.location!.lng}`,
+            mapsUrl: `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${dest}`,
             valueTier: tier,
             valueLabel,
             metricCents: rank?.netCents ?? null,
           };
         });
 
-      const fuelSorted = [...fuel.stations]
+      const fuelWithDist = fuel.stations
         .filter((s) => s.lat != null && s.lng != null)
-        .sort((a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre);
+        .map((s) => ({
+          ...s,
+          distanceKm: haversineKm(origin, { lat: s.lat!, lng: s.lng! }),
+        }));
+      const fuelSorted = [...fuelWithDist].sort(
+        (a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre,
+      );
       const dearest = fuelSorted.length
         ? fuelSorted[fuelSorted.length - 1].priceCentsPerLitre
         : 0;
@@ -99,14 +120,15 @@ export default function MapPage() {
       const stations: MapPoint[] = fuelSorted.map((s, index) => {
         const saveCents = Math.max(0, dearest - s.priceCentsPerLitre);
         const tier = tierFromRank(index, fuelSorted.length);
+        const dest = `${s.lat},${s.lng}`;
         return {
           id: `f-${s.id}`,
           kind: "fuel" as const,
           name: s.name,
-          subtitle: `${s.brand} · petrol ${formatKes(s.priceCentsPerLitre)}/L`,
+          subtitle: `${s.brand} · petrol ${formatKes(s.priceCentsPerLitre)}/L · ${s.distanceKm.toFixed(1)} km`,
           lat: s.lat!,
           lng: s.lng!,
-          mapsUrl: s.mapsUrl,
+          mapsUrl: `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${dest}`,
           valueTier: tier,
           valueLabel:
             saveCents > 0
@@ -121,10 +143,19 @@ export default function MapPage() {
         return (order[a.valueTier ?? "neutral"] ?? 3) - (order[b.valueTier ?? "neutral"] ?? 3);
       });
       setPoints(all);
-      setSelected(all.find((p) => p.valueTier === "good") ?? all[0] ?? null);
+      setSelected((prev) => {
+        if (prev) {
+          const still = all.find((p) => p.id === prev.id);
+          if (still) return still;
+        }
+        return all.find((p) => p.valueTier === "good") ?? all[0] ?? null;
+      });
       setLoading(false);
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [origin]);
 
   const visible = points.filter((p) => (filter === "all" ? true : p.kind === filter));
 
@@ -156,6 +187,15 @@ export default function MapPage() {
             />
           ) : (
             <div className="space-y-4">
+              <ShopperOriginBar
+                label={geoLabel}
+                source={geoSource}
+                busy={geoBusy}
+                error={geoError}
+                useMyLocation={useMyLocation}
+                setEstate={setEstate}
+              />
+
               <div className="flex flex-wrap items-center gap-2">
                 {(
                   [
@@ -190,7 +230,7 @@ export default function MapPage() {
                 </span>
               </div>
 
-              <NairobiMap points={visible} onSelect={onSelect} />
+              <NairobiMap points={visible} onSelect={onSelect} center={origin} youLabel={geoLabel} />
 
               {selected && (
                 <div

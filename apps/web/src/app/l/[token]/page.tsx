@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { RankList } from "@/components/RankList";
+import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 
 export default function SharedListPage() {
   const params = useParams<{ token: string }>();
@@ -30,8 +31,15 @@ export default function SharedListPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<string | null>(null);
-  const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
-    useShopperOrigin();
+  const {
+    origin,
+    source: geoSource,
+    label: geoLabel,
+    busy: geoBusy,
+    error: geoError,
+    useMyLocation,
+    setEstate,
+  } = useShopperOrigin();
 
   useEffect(() => {
     if (!token) return;
@@ -170,29 +178,17 @@ export default function SharedListPage() {
 
             {ranks.length > 0 && (
               <section className="space-y-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-lg font-bold tracking-tightish">
-                    Where to shop
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={useMyLocation}
-                    disabled={geoBusy}
-                    className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-60"
-                  >
-                    {geoBusy
-                      ? "Locating…"
-                      : geoSource === "device"
-                        ? "Using your location"
-                        : "Use my location"}
-                  </button>
-                </div>
-                {geoSource === "default" && (
-                  <p className="text-xs text-savr-mute">
-                    Distances from Westlands · share location for your trip.
-                  </p>
-                )}
-                {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
+                <h2 className="font-display text-lg font-bold tracking-tightish">
+                  Where to shop
+                </h2>
+                <ShopperOriginBar
+                  label={geoLabel}
+                  source={geoSource}
+                  busy={geoBusy}
+                  error={geoError}
+                  useMyLocation={useMyLocation}
+                  setEstate={setEstate}
+                />
                 <RankList results={ranks.slice(0, 4)} />
               </section>
             )}

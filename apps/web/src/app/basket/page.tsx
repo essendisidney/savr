@@ -37,6 +37,7 @@ import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { RankList } from "@/components/RankList";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { buildBasketShare, buildListShare, sharePayload, whatsAppShareUrl } from "@/lib/share";
@@ -79,8 +80,15 @@ function BasketInner() {
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [sharingDraft, setSharingDraft] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
-  const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
-    useShopperOrigin();
+  const {
+    origin,
+    source: geoSource,
+    label: geoLabel,
+    busy: geoBusy,
+    error: geoError,
+    useMyLocation,
+    setEstate,
+  } = useShopperOrigin();
 
   const refreshLists = useCallback(async () => {
     if (!user) {
@@ -714,21 +722,15 @@ function BasketInner() {
               </section>
 
               <section className="space-y-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-lg font-bold tracking-tightish">Live ranking</h2>
-                  <button
-                    type="button"
-                    onClick={useMyLocation}
-                    disabled={geoBusy}
-                    className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-60"
-                  >
-                    {geoBusy
-                      ? "Locating…"
-                      : geoSource === "device"
-                        ? "Using your location"
-                        : "Use my location"}
-                  </button>
-                </div>
+                <h2 className="font-display text-lg font-bold tracking-tightish">Live ranking</h2>
+                <ShopperOriginBar
+                  label={geoLabel}
+                  source={geoSource}
+                  busy={geoBusy}
+                  error={geoError}
+                  useMyLocation={useMyLocation}
+                  setEstate={setEstate}
+                />
                 {preferredMerchantIds.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -760,12 +762,6 @@ function BasketInner() {
                     Ranking among your preferred stores — best total value still wins.
                   </p>
                 )}
-                {geoSource === "default" && (
-                  <p className="text-xs text-savr-mute">
-                    Distances from Westlands · share location for your trip.
-                  </p>
-                )}
-                {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
                 {items.length === 0 ? (
                   <EmptyState
                     title="Add items to rank stores"

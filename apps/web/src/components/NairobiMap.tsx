@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
+import type { GeoPoint } from "@/lib/geo";
 
 export type ValueTier = "good" | "mid" | "poor" | "neutral";
 
@@ -23,6 +24,8 @@ export type MapPoint = {
 type Props = {
   points: MapPoint[];
   onSelect: (p: MapPoint) => void;
+  center?: GeoPoint | null;
+  youLabel?: string;
 };
 
 const TIER_COLOR: Record<ValueTier, string> = {
@@ -38,7 +41,11 @@ function pinIconHtml(tier: ValueTier, kind: "grocery" | "fuel"): string {
   return `<span style="display:block;width:14px;height:14px;border-radius:999px;background:${color};border:${ring};box-shadow:0 2px 8px rgba(11,18,32,.35)"></span>`;
 }
 
-export function NairobiMap({ points, onSelect }: Props) {
+function youIconHtml(): string {
+  return `<span style="display:block;width:16px;height:16px;border-radius:999px;background:#0B1F1A;border:3px solid #fff;box-shadow:0 2px 10px rgba(11,18,32,.45)"></span>`;
+}
+
+export function NairobiMap({ points, onSelect, center, youLabel }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
 
@@ -59,8 +66,9 @@ export function NairobiMap({ points, onSelect }: Props) {
 
       if (cancelled || !containerRef.current) return;
 
+      const start = center ?? { lat: -1.2864, lng: 36.8172 };
       const map = L.map(containerRef.current, {
-        center: [-1.2864, 36.8172],
+        center: [start.lat, start.lng],
         zoom: 12,
         scrollWheelZoom: true,
       });
@@ -77,11 +85,13 @@ export function NairobiMap({ points, onSelect }: Props) {
       mapRef.current?.remove();
       mapRef.current = null;
     };
+    // center only seeds first paint; points effect recenters with you marker
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !points.length) return;
+    if (!map) return;
 
     let cancelled = false;
     const markers: import("leaflet").Marker[] = [];
@@ -95,6 +105,22 @@ export function NairobiMap({ points, onSelect }: Props) {
       });
 
       const bounds = L.latLngBounds([]);
+      if (center) {
+        const you = L.marker([center.lat, center.lng], {
+          icon: L.divIcon({
+            className: "",
+            html: youIconHtml(),
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          }),
+          zIndexOffset: 500,
+        })
+          .addTo(map)
+          .bindTooltip(youLabel?.trim() || "You");
+        markers.push(you);
+        bounds.extend([center.lat, center.lng]);
+      }
+
       for (const p of points) {
         const tier = p.valueTier ?? "neutral";
         const icon = L.divIcon({
@@ -109,14 +135,22 @@ export function NairobiMap({ points, onSelect }: Props) {
         markers.push(m);
         bounds.extend([p.lat, p.lng]);
       }
-      if (bounds.isValid()) map.fitBounds(bounds.pad(0.12));
+      if (bounds.isValid()) {
+        if (center && points.length) {
+          map.fitBounds(bounds.pad(0.18), { maxZoom: 13 });
+        } else if (center) {
+          map.setView([center.lat, center.lng], 12);
+        } else {
+          map.fitBounds(bounds.pad(0.12));
+        }
+      }
     })();
 
     return () => {
       cancelled = true;
       for (const m of markers) m.remove();
     };
-  }, [points, onSelect]);
+  }, [points, onSelect, center, youLabel]);
 
   return (
     <div

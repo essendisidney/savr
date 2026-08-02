@@ -19,6 +19,7 @@ import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 
@@ -36,8 +37,15 @@ function PricesInner() {
   const [tipStatus, setTipStatus] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
-  const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
-    useShopperOrigin();
+  const {
+    origin,
+    source: geoSource,
+    label: geoLabel,
+    busy: geoBusy,
+    error: geoError,
+    useMyLocation,
+    setEstate,
+  } = useShopperOrigin();
 
   useEffect(() => {
     loadCatalog().then((c) => {
@@ -311,26 +319,14 @@ function PricesInner() {
                   />
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-savr-mute">
-                    {geoSource === "device"
-                      ? "Distances from your location"
-                      : "Distances from Westlands"}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={useMyLocation}
-                    disabled={geoBusy}
-                    className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-60"
-                  >
-                    {geoBusy
-                      ? "Locating…"
-                      : geoSource === "device"
-                        ? "Refresh location"
-                        : "Use my location"}
-                  </button>
-                </div>
-                {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
+                <ShopperOriginBar
+                  label={geoLabel}
+                  source={geoSource}
+                  busy={geoBusy}
+                  error={geoError}
+                  useMyLocation={useMyLocation}
+                  setEstate={setEstate}
+                />
 
                 <ol className="space-y-4">
                   {results.map((r, i) => {

@@ -14,6 +14,7 @@ import type { FuelStation, FuelType } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 
@@ -31,8 +32,15 @@ export default function FuelPage() {
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
-  const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
-    useShopperOrigin();
+  const {
+    origin,
+    source: geoSource,
+    label: geoLabel,
+    busy: geoBusy,
+    error: geoError,
+    useMyLocation,
+    setEstate,
+  } = useShopperOrigin();
 
   useEffect(() => {
     const draft = loadFuelPrefsDraft();
@@ -160,48 +168,36 @@ export default function FuelPage() {
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    ["value", "Best value"],
-                    ["price", "Cheapest /L"],
-                    ["distance", "Nearest"],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setSort(id)}
-                    className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                      sort === id
-                        ? "chip-active"
-                        : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={useMyLocation}
-                disabled={geoBusy}
-                className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-60"
-              >
-                {geoBusy
-                  ? "Locating…"
-                  : geoSource === "device"
-                    ? "Using your location"
-                    : "Use my location"}
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["value", "Best value"],
+                  ["price", "Cheapest /L"],
+                  ["distance", "Nearest"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSort(id)}
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                    sort === id
+                      ? "chip-active"
+                      : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-            <p className="text-xs text-savr-mute">
-              {geoSource === "device"
-                ? "Distances from your location"
-                : "Distances from Westlands · share location for your trip"}
-            </p>
-            {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
+            <ShopperOriginBar
+              label={geoLabel}
+              source={geoSource}
+              busy={geoBusy}
+              error={geoError}
+              useMyLocation={useMyLocation}
+              setEstate={setEstate}
+            />
 
             {ranked.length === 0 ? (
               <EmptyState
