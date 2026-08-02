@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   confirmBasketChoice,
+  enableListShare,
   fetchSavedLists,
   loadProfile,
   loadSavedList,
@@ -24,10 +26,31 @@ import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { RankList } from "@/components/RankList";
 import { SavingsMoment } from "@/components/SavingsMoment";
-import { buildBasketShare } from "@/lib/share";
+import { buildBasketShare, sharePayload } from "@/lib/share";
 
 export default function BasketPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-52 animate-pulse bg-savr-night/80" />
+          <PageShell>
+            <div className="space-y-4 animate-pulse">
+              <div className="h-28 w-full bg-savr-fog" />
+              <div className="h-40 w-full bg-savr-fog" />
+            </div>
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <BasketInner />
+    </Suspense>
+  );
+}
+
+function BasketInner() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
   const [query, setQuery] = useState("");
@@ -38,6 +61,7 @@ export default function BasketPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [preferredMerchantIds, setPreferredMerchantIds] = useState<string[]>([]);
+  const [sharingId, setSharingId] = useState<string | null>(null);
 
   const refreshLists = useCallback(async () => {
     if (!user) {
@@ -51,10 +75,29 @@ export default function BasketPage() {
   useEffect(() => {
     loadCatalog().then((c) => {
       setCatalog(c);
-      setItems(defaultListFromCatalog(c));
+      const sharedFlag = searchParams.get("shared");
+      let appliedShared = false;
+      if (sharedFlag && typeof window !== "undefined") {
+        try {
+          const raw = sessionStorage.getItem("savr_shared_list");
+          if (raw) {
+            const parsed = JSON.parse(raw) as { name?: string; items?: ListItem[] };
+            if (parsed.items?.length) {
+              setItems(parsed.items);
+              setListName(parsed.name ?? "Shared list");
+              setStatus(`Loaded shared list “${parsed.name ?? "list"}”.`);
+              appliedShared = true;
+              sessionStorage.removeItem("savr_shared_list");
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!appliedShared) setItems(defaultListFromCatalog(c));
       setLoading(false);
     });
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     refreshLists();
@@ -144,6 +187,26 @@ export default function BasketPage() {
     setItems(outcome.items);
     setListName(outcome.name);
     setStatus(`Loaded “${outcome.name}”.`);
+  }
+
+  async function onShareList(listId: string) {
+    setSharingId(listId);
+    setStatus(null);
+    const outcome = await enableListShare(listId);
+    setSharingId(null);
+    if ("error" in outcome) {
+      setStatus(outcome.error);
+      return;
+    }
+    const result = await sharePayload({
+      title: "Savr shopping list",
+      text: "Here's our weekly shop on Savr — open it, compare, and pick the smarter store.",
+      url: outcome.url,
+    });
+    await refreshLists();
+    if (result === "shared") setStatus("List shared with your household.");
+    else if (result === "copied") setStatus("Share link copied.");
+    else setStatus(`Share link: ${outcome.url}`);
   }
 
   async function choose(merchantId: string) {
@@ -319,19 +382,30 @@ export default function BasketPage() {
                     <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
                       {savedLists.map((list) => (
                         <li key={list.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-sm font-medium">{list.name}</p>
                             <p className="text-xs text-savr-mute">
                               {list.itemCount} items · {list.updatedAt}
+                              {list.shareToken ? " · shared" : ""}
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => onLoadList(list.id)}
-                            className="text-sm font-semibold text-savr-forest hover:underline"
-                          >
-                            Load
-                          </button>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <button
+                              type="button"
+                              disabled={sharingId === list.id}
+                              onClick={() => onShareList(list.id)}
+                              className="text-sm font-semibold text-savr-ink hover:underline disabled:opacity-50"
+                            >
+                              {sharingId === list.id ? "…" : "Share"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onLoadList(list.id)}
+                              className="text-sm font-semibold text-savr-forest hover:underline"
+                            >
+                              Load
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>

@@ -92,7 +92,7 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  if (pathname === "/login" || pathname === "/merchant" || pathname === "/account" || pathname === "/invite")
+  if (pathname === "/login" || pathname === "/merchant" || pathname === "/account" || pathname === "/invite" || pathname.startsWith("/l/"))
     return null;
 
   return (

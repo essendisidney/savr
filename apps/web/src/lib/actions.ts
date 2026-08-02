@@ -242,6 +242,7 @@ export type SavedListSummary = {
   name: string;
   updatedAt: string;
   itemCount: number;
+  shareToken: string | null;
 };
 
 export async function saveShoppingList(params: {
@@ -293,7 +294,7 @@ export async function fetchSavedLists(): Promise<{
 
   const { data, error } = await supabase
     .from("shopping_lists")
-    .select("id, name, updated_at, list_items(count)")
+    .select("id, name, updated_at, share_token, list_items(count)")
     .eq("owner_id", user.id)
     .neq("name", "Basket compare")
     .order("updated_at", { ascending: false })
@@ -311,6 +312,7 @@ export async function fetchSavedLists(): Promise<{
         day: "numeric",
       }),
       itemCount: countRaw?.[0]?.count ?? 0,
+      shareToken: row.share_token ?? null,
     };
   });
 
@@ -350,6 +352,47 @@ export async function loadSavedList(
         productId: r.product_id as string,
         freeText: r.free_text,
         quantity: Number(r.quantity) || 1,
+      })),
+  };
+}
+
+export async function enableListShare(
+  listId: string,
+): Promise<{ token: string; url: string } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const { data, error } = await supabase.rpc("enable_list_share", { p_list_id: listId });
+  if (error) return { error: error.message };
+
+  const token = data as string;
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
+  return { token, url: `${origin}/l/${token}` };
+}
+
+export async function loadSharedList(
+  token: string,
+): Promise<{ name: string; items: ListItem[] } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const { data, error } = await supabase.rpc("get_shared_list", { p_token: token });
+  if (error) return { error: error.message };
+
+  const row = (data ?? {}) as {
+    name?: string;
+    items?: { product_id: string; free_text: string; quantity: number }[];
+  };
+
+  return {
+    name: row.name ?? "Shared list",
+    items: (row.items ?? [])
+      .filter((i) => i.product_id)
+      .map((i) => ({
+        productId: i.product_id,
+        freeText: i.free_text,
+        quantity: Number(i.quantity) || 1,
       })),
   };
 }
