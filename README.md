@@ -42,13 +42,26 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). Basket / rides / fuel use local seed logic so the product is demoable before Supabase is linked.
 
+### Env vars (`apps/web/.env.local`)
+
+| Variable | Where | Purpose |
+|----------|--------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Client + server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | Public anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Phone OTP mint + admin writes |
+| `TAIFA_API_KEY` | Server only | Taifa Mobile SMS send |
+| `TAIFA_SENDER_ID` | Server only | SMS sender (e.g. `SIDNET`) |
+| `SMS_BYPASS` | Server only | `true` logs OTP locally (dev only) |
+
+Mirror the same keys on Vercel (Production + Development). Never expose the service role key to the browser.
+
 ## Supabase
 
 1. Install [Supabase CLI](https://supabase.com/docs/guides/cli).
 2. From repo root: `supabase start` then `supabase db reset` (applies migrations + Nairobi seed).
 3. Copy API URL + anon key into `apps/web/.env.local`.
 
-Schema includes profiles, merchants, products, prices, shopping lists, basket compares, rides, fuel, promotions, cashback rules, wallet + ledger, and RLS.
+Schema includes profiles, merchants, products, prices, shopping lists, basket compares, rides, fuel, promotions, cashback rules, wallet + ledger, OTP codes, crowdsource tips, and RLS. Nairobi grocery catalog is seeded across Naivas / Quickmart / Carrefour (~65 staples).
 
 ## Flutter
 
