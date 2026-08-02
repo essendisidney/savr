@@ -3,7 +3,6 @@ import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppNav } from "@/components/AppNav";
-import { BetaBanner } from "@/components/BetaBanner";
 import { BottomNav } from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { PwaRegister } from "@/components/PwaRegister";
@@ -59,7 +58,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <Providers>
           <div className="grain-bg min-h-screen">
-            <BetaBanner />
             <AppNav />
             <main>{children}</main>
             <SiteFooter />

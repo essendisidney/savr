@@ -75,7 +75,7 @@ export default function RidesPage() {
         setMeta({
           km: data.km ?? 0,
           surge: data.surge ?? 1,
-          label: data.label ?? "Savr estimate · open partner app to confirm",
+          label: data.label ?? "",
         });
       }
     } catch {
@@ -209,8 +209,8 @@ export default function RidesPage() {
             </div>
 
             <p className="rounded-sm bg-savr-fog px-3 py-2 text-xs font-semibold text-savr-mute">
-              {meta?.label ?? "Savr estimate · open partner app to confirm"}
-              {meta ? ` · ~${meta.km} km · surge ×${meta.surge}` : ""}
+              {meta ? `~${meta.km} km` : "Route"}
+              {meta && meta.surge !== 1 ? ` · demand ×${meta.surge}` : ""}
               {loading ? " · updating…" : ""}
             </p>
 
@@ -218,7 +218,7 @@ export default function RidesPage() {
               <SavingsMoment
                 amountLabel={`Take ${best.partner}`}
                 amountCents={saved}
-                detail={`Est. save vs priciest net · +${formatKes(best.cashbackCents)} cashback · ${pickup} → ${destination}`}
+                detail={`Save vs priciest net · +${formatKes(best.cashbackCents)} cashback · ${pickup} → ${destination}`}
                 share={share}
               />
             )}
@@ -251,7 +251,6 @@ export default function RidesPage() {
                           </p>
                           <p className={`text-sm ${i === 0 ? "text-white/65" : "text-savr-mute"}`}>
                             ETA ~{q.etaMin} min · Cashback {formatKes(q.cashbackCents)}
-                            {q.isEstimated ? " · Estimated" : " · Live"}
                           </p>
                           <p
                             className={`mt-0.5 text-xs font-semibold ${

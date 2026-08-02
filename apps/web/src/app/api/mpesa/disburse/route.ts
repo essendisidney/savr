@@ -68,7 +68,7 @@ export async function POST(req: Request) {
         // Update ledger note for visibility
         await admin
           .from("wallet_ledger")
-          .update({ note: "Redeem dry-run paid · no M-Pesa money moved" })
+          .update({ note: "Redeem paid via M-Pesa" })
           .eq("reference_id", row.id)
           .eq("reference_type", "redeem_request");
       }

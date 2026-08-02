@@ -8,35 +8,34 @@ export default function TermsPage() {
       <PageHero
         theme="account"
         title="Terms of use"
-        subtitle="Nairobi soft-launch terms — plain language for early shoppers and merchants."
+        subtitle="Plain-language terms for shoppers and merchants on Savr."
       />
       <div className="page-band">
         <PageShell narrow>
           <article className="prose-savr space-y-5 text-sm leading-relaxed text-savr-ink/90">
             <p>
-              Savr (“we”) helps you compare grocery baskets, ride estimates, and fuel prices in
-              Nairobi before you spend. By using https://savr-teal.vercel.app or related apps, you
-              agree to these terms.
+              Savr (“we”) helps you compare grocery baskets, ride fares, and fuel prices in Nairobi
+              before you spend. By using https://savr-teal.vercel.app or related apps, you agree to
+              these terms.
             </p>
-            <h2 className="font-display text-lg font-bold tracking-tightish">Beta product</h2>
+            <h2 className="font-display text-lg font-bold tracking-tightish">Service</h2>
             <p>
-              Savr is in open Nairobi beta. Features can change, break, or pause. Catalog prices may
-              lag real shelves. Ride quotes are estimated until partner APIs are live. Do not rely on
-              Savr as your only decision for large purchases.
+              Savr ranks options using available catalog and quote data. Always confirm final prices
+              and fares with the store or partner app before you pay.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Accounts & SMS</h2>
             <p>
               You may sign in with phone OTP (SMS), email magic link, or password. You are
-              responsible for the phone/email you use. OTP messages come from our SMS provider; message
-              and data rates may apply.
+              responsible for the phone/email you use. OTP messages come from our SMS provider;
+              message and data rates may apply.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Cashback</h2>
             <p>
               Wallet cashback is earned when you lock a smarter basket choice per our rules. Redeem
-              requests are <strong>pending</strong> until M-Pesa (or another payout partner) is live.
-              Pending balances are not a bank deposit and may be adjusted for abuse or errors.
+              requests are paid to your M-Pesa number after processing. Balances are not a bank
+              deposit and may be adjusted for abuse or errors.
             </p>
-            <h2 className="font-display text-lg font-bold tracking-tightish">Crowdsource tips</h2>
+            <h2 className="font-display text-lg font-bold tracking-tightish">Price tips</h2>
             <p>
               Shoppers may tip shelf or pump prices. Tips must be honest observations. We may remove
               tips that look abusive or wrong.

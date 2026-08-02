@@ -571,10 +571,7 @@ function BasketInner() {
                 )}
 
                 <p className="text-xs text-savr-mute">
-                  Catalog · {catalog.products.length} products · {catalog.source}
-                  {catalog.source === "supabase"
-                    ? " · tips refresh prices; stale rows marked on /prices"
-                    : ""}
+                  Catalog · {catalog.products.length} products
                 </p>
               </section>
 

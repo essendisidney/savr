@@ -9,8 +9,7 @@ export function SiteFooter() {
         <div>
           <p className="font-display text-2xl font-bold tracking-tightish">Savr</p>
           <p className="mt-2 max-w-sm text-sm text-white/65">
-            Before you spend, Savr it. Nairobi soft launch — grocery compare first; rides and fuel
-            as hooks.
+            Before you spend, Savr it. Compare groceries, rides, and fuel across Nairobi.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -38,10 +37,6 @@ export function SiteFooter() {
           )}
         </div>
       </div>
-      <p className="mx-auto mt-8 max-w-5xl text-xs text-white/40">
-        Cashback stays pending until M-Pesa payouts go live. Ride quotes are estimated. Prices may
-        include seed and shopper tips.
-      </p>
     </footer>
   );
 }

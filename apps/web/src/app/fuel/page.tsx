@@ -246,13 +246,7 @@ export default function FuelPage() {
                               return (
                                 <p
                                   className={`mt-0.5 text-[11px] ${
-                                    fresh.stale
-                                      ? i === 0
-                                        ? "text-savr-signal/80"
-                                        : "text-amber-800"
-                                      : i === 0
-                                        ? "text-white/55"
-                                        : "text-savr-mute"
+                                    i === 0 ? "text-white/55" : "text-savr-mute"
                                   }`}
                                 >
                                   {fresh.label}

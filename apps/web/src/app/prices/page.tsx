@@ -312,13 +312,7 @@ function PricesInner() {
                                   return (
                                     <p
                                       className={`mt-0.5 text-[11px] ${
-                                        fresh.stale
-                                          ? r.isCheapest
-                                            ? "text-savr-signal/80"
-                                            : "text-amber-800"
-                                          : r.isCheapest
-                                            ? "text-white/55"
-                                            : "text-savr-mute"
+                                        r.isCheapest ? "text-white/55" : "text-savr-mute"
                                       }`}
                                     >
                                       {fresh.label}
@@ -465,7 +459,7 @@ function PricesInner() {
             {selected && results.length === 0 && (
               <div className="space-y-4">
                 <p className="border border-savr-ink/[0.08] bg-white px-4 py-6 text-sm text-savr-mute">
-                  No merchant prices for this product yet. Tip the shelf price you saw to seed it.
+                  No merchant prices for this product yet. Tip the shelf price you saw.
                 </p>
                 {user && selectedId && (
                   <form

@@ -73,8 +73,8 @@ export type RideQuoteResult = {
 };
 
 /**
- * Best-effort Savr estimates — not live partner fares.
- * Open the partner deep-link to confirm before requesting.
+ * Nairobi ride quotes from distance + time-of-day surge.
+ * Deep-link to partner apps for booking.
  */
 export function buildRideQuotes(pickup: string, destination: string, now = new Date()): RideQuoteResult {
   const from = resolveRidePlace(pickup);
@@ -136,7 +136,7 @@ export function buildRideQuotes(pickup: string, destination: string, now = new D
     pickupLng: from?.lng ?? null,
     destLat: to?.lat ?? null,
     destLng: to?.lng ?? null,
-    label: "Savr estimate · open partner app to confirm",
+    label: "",
   };
 }
 

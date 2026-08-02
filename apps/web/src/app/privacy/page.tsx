@@ -8,21 +8,20 @@ export default function PrivacyPage() {
       <PageHero
         theme="account"
         title="Privacy"
-        subtitle="What we collect in the Nairobi beta, and why."
+        subtitle="What we collect, and why."
       />
       <div className="page-band">
         <PageShell narrow>
           <article className="space-y-5 text-sm leading-relaxed text-savr-ink/90">
             <p>
-              Savr processes personal data to run compare, wallet, and auth features. This notice
-              covers the soft-launch web app.
+              Savr processes personal data to run compare, wallet, and auth features.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">What we collect</h2>
             <ul className="list-disc space-y-2 pl-5 text-savr-ink/85">
               <li>Account identifiers: phone and/or email, optional name and city.</li>
               <li>Shopping lists, compares, preferred stores, and wallet ledger entries.</li>
-              <li>Crowdsource price tips you submit.</li>
-              <li>Technical logs needed for SMS OTP, security, and debugging.</li>
+              <li>Price tips you submit.</li>
+              <li>Technical logs needed for SMS OTP, security, and reliability.</li>
               <li>
                 Optional device location if you share it for distance/directions (not stored as a
                 profile field by default).
@@ -31,8 +30,8 @@ export default function PrivacyPage() {
             </ul>
             <h2 className="font-display text-lg font-bold tracking-tightish">Why</h2>
             <p>
-              To authenticate you, rank baskets/rides/fuel, credit pending cashback, improve catalog
-              freshness, and operate the beta safely.
+              To authenticate you, rank baskets/rides/fuel, credit cashback, keep the catalog fresh,
+              and keep the service secure.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Processors</h2>
             <p>

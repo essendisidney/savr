@@ -48,7 +48,7 @@ function InviteInner() {
       <PageHero
         theme="wallet"
         title="Look what we saved"
-        subtitle="Nairobi invite beta — enter a code to unlock Savr."
+        subtitle="Enter your invite code to continue."
       />
 
       <div className="page-band">
@@ -74,19 +74,15 @@ function InviteInner() {
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   className="field"
-                  placeholder="NAIROBI"
+                  placeholder="Your code"
                   autoComplete="off"
                   required
                 />
               </label>
               {error && <p className="text-sm font-medium text-red-700">{error}</p>}
               <button type="submit" disabled={busy || !code.trim()} className="btn-primary disabled:opacity-50">
-                {busy ? "Checking…" : "Unlock Savr"}
+                {busy ? "Checking…" : "Continue"}
               </button>
-              <p className="text-xs text-savr-mute">
-                Soft-close beta · try <span className="font-semibold text-savr-ink">NAIROBI</span> or{" "}
-                <span className="font-semibold text-savr-ink">SAVRBETA</span>
-              </p>
             </form>
 
             <div className="space-y-3 text-center sm:text-left">

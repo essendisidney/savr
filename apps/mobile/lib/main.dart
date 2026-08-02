@@ -108,8 +108,8 @@ class _HomeTab extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             hasSupabase
-                ? 'Connected to Supabase — basket, fuel, and wallet pull live Nairobi data.'
-                : 'Demo mode — pass SUPABASE_ANON_KEY via --dart-define to go live.',
+                ? 'Connected — basket, fuel, and wallet pull Nairobi data.'
+                : 'Compare baskets, fuel, and wallet savings before you spend.',
             style: TextStyle(color: Colors.black.withValues(alpha: 0.65)),
           ),
           const SizedBox(height: 24),

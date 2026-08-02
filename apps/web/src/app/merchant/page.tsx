@@ -246,7 +246,7 @@ export default function MerchantPage() {
     setPromoProductId("");
     setPromoCategory("");
     setPromoEndsAt("");
-    setStatus("Promotion live — partners can see it on your portal (ranking not applied yet).");
+    setStatus("Promotion published.");
     setPromotions(await loadPromotions(selectedId));
   }
 
@@ -340,7 +340,7 @@ export default function MerchantPage() {
       <PageHero
         theme="basket"
         title="Compete on value"
-        subtitle="Register your store or claim a seeded chain — then compete on price and cashback."
+        subtitle="Register your store or claim your chain — then compete on price and cashback."
       />
 
       <div className="page-band">
@@ -660,7 +660,7 @@ export default function MerchantPage() {
                     Promotions · {selected.name}
                   </h2>
                   <p className="mt-1 text-sm text-savr-mute">
-                    Label-ready offers for partners — not yet applied to consumer ranking.
+                    Create offers for your store — title, discount, product or category, end date.
                   </p>
                 </div>
 

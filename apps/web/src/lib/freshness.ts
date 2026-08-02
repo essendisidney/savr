@@ -2,15 +2,14 @@ const STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function formatPriceFreshness(
   observedAt: string | null | undefined,
-  source?: string | null,
+  _source?: string | null,
 ): { label: string; stale: boolean } {
-  const src = (source ?? "seed").trim() || "seed";
   if (!observedAt) {
-    return { label: `Source · ${src}`, stale: true };
+    return { label: "", stale: false };
   }
   const then = new Date(observedAt).getTime();
   if (!Number.isFinite(then)) {
-    return { label: `Source · ${src}`, stale: true };
+    return { label: "", stale: false };
   }
   const age = Date.now() - then;
   const stale = age > STALE_MS;
@@ -21,7 +20,7 @@ export function formatPriceFreshness(
   else when = `${Math.max(1, Math.round(age / 86_400_000))}d ago`;
 
   return {
-    label: stale ? `Stale · updated ${when} · ${src}` : `Updated ${when} · ${src}`,
+    label: `Updated ${when}`,
     stale,
   };
 }

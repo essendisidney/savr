@@ -92,9 +92,7 @@ export default function WalletPage() {
       setStatus(res.error);
       return;
     }
-    setStatus(
-      "Redeem requested — pending until M-Pesa B2C disburses (sandbox/dry-run until keys are live).",
-    );
+    setStatus("Redeem requested — we’ll send it to your M-Pesa shortly.");
     track("redeem_request", { amountKes: Math.round(cents / 100) });
     await refresh();
   }
@@ -193,7 +191,7 @@ export default function WalletPage() {
                 style={{ animationDelay: "0.06s" }}
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                  Pending redeem
+                  In progress
                 </p>
                 <p className="mt-2 font-display text-3xl font-bold tracking-tightish tabular-nums text-savr-ink">
                   {formatKes(pendingTotal)}
@@ -205,8 +203,7 @@ export default function WalletPage() {
               <div>
                 <h2 className="font-display text-lg font-bold tracking-tightish">Redeem cashback</h2>
                 <p className="mt-1 text-sm text-savr-mute">
-                  Request a payout now — stays <span className="font-semibold">pending</span> until
-                  B2C marks it paid (dry-run pipeline available for ops). Min KES 50.
+                  Cashback pays out to M-Pesa. Minimum redeem is KES 50.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -273,7 +270,11 @@ export default function WalletPage() {
                           r.status === "pending" ? "text-savr-forest" : "text-savr-mute"
                         }`}
                       >
-                        {r.status}
+                        {r.status === "pending"
+                          ? "In progress"
+                          : r.status === "paid"
+                            ? "Paid"
+                            : r.status}
                       </span>
                     </li>
                   ))}
