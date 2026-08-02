@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatKes } from "@/lib/compare";
+import { formatDistanceKm } from "@/lib/geo";
 import type { BasketResult, LineItemPrice } from "@/lib/types";
 
 export function RankList({
@@ -31,6 +32,7 @@ export function RankList({
         const open = openId === r.merchantId;
         const lines = open && getLineItems ? getLineItems(r.merchantId) : [];
         const preferred = preferredMerchantIds.includes(r.merchantId);
+        const distanceLabel = formatDistanceKm(r.distanceKm);
 
         return (
           <li
@@ -124,6 +126,12 @@ export function RankList({
                 >
                   {formatKes(r.netCents)}
                 </span>
+                {distanceLabel && (
+                  <>
+                    <span className="mx-1.5 opacity-40">·</span>
+                    {distanceLabel}
+                  </>
+                )}
               </p>
 
               {getLineItems && (

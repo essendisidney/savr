@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { loadCatalog } from "@/lib/catalog";
 import { compareProduct, formatKes } from "@/lib/compare";
+import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
 import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -17,6 +18,8 @@ function PricesInner() {
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("id"));
   const [category, setCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
+    useShopperOrigin();
 
   useEffect(() => {
     loadCatalog().then((c) => {
@@ -58,8 +61,8 @@ function PricesInner() {
   }, [catalog, query, category]);
 
   const results = useMemo(
-    () => (catalog && selectedId ? compareProduct(catalog, selectedId) : []),
-    [catalog, selectedId],
+    () => (catalog && selectedId ? compareProduct(catalog, selectedId, origin) : []),
+    [catalog, selectedId, origin],
   );
 
   const cheapest = results[0];
@@ -207,9 +210,31 @@ function PricesInner() {
                   />
                 )}
 
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-savr-mute">
+                    {geoSource === "device"
+                      ? "Distances from your location"
+                      : "Distances from Westlands"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={useMyLocation}
+                    disabled={geoBusy}
+                    className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-60"
+                  >
+                    {geoBusy
+                      ? "Locating…"
+                      : geoSource === "device"
+                        ? "Refresh location"
+                        : "Use my location"}
+                  </button>
+                </div>
+                {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
+
                 <ol className="space-y-4">
                   {results.map((r, i) => {
                     const width = Math.max(14, (r.priceCents / maxPrice) * 100);
+                    const dist = formatDistanceKm(r.distanceKm);
                     return (
                       <li
                         key={r.merchantId}
@@ -261,6 +286,7 @@ function PricesInner() {
                                   {r.isCheapest
                                     ? "Lowest price"
                                     : `+${formatKes(r.deltaCents)} vs cheapest`}
+                                  {dist ? ` · ${dist}` : ""}
                                 </p>
                               </div>
                             </div>

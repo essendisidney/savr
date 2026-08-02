@@ -66,6 +66,7 @@ export type BasketResult = {
   netCents: number;
   isRecommended: boolean;
   mapsUrl: string;
+  distanceKm: number | null;
 };
 
 export type MissedSavingsResult = {
@@ -117,4 +118,5 @@ export type ProductPriceResult = {
   deltaCents: number;
   isCheapest: boolean;
   mapsUrl: string;
+  distanceKm: number | null;
 };

@@ -8,6 +8,7 @@ import type {
   ProductPriceResult,
   RideQuote,
 } from "./types";
+import { haversineKm, type GeoPoint } from "./geo";
 
 export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
   const staples = catalog.products.slice(0, 6);
@@ -35,10 +36,21 @@ export function searchProducts(
     .slice(0, limit);
 }
 
-function mapsUrlForMerchant(merchant: Merchant): string {
+function distanceForMerchant(merchant: Merchant, origin?: GeoPoint | null): number | null {
+  const lat = merchant.location?.lat;
+  const lng = merchant.location?.lng;
+  if (origin == null || lat == null || lng == null) return null;
+  return Math.round(haversineKm(origin, { lat, lng }) * 10) / 10;
+}
+
+function mapsUrlForMerchant(merchant: Merchant, origin?: GeoPoint | null): string {
   const loc = merchant.location;
   if (loc?.lat != null && loc?.lng != null) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
+    const dest = `${loc.lat},${loc.lng}`;
+    if (origin) {
+      return `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${dest}`;
+    }
+    return `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
   }
   const query = [loc?.name, loc?.address, merchant.name, loc?.city ?? "Nairobi"]
     .filter(Boolean)
@@ -46,7 +58,11 @@ function mapsUrlForMerchant(merchant: Merchant): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-export function compareProduct(catalog: Catalog, productId: string): ProductPriceResult[] {
+export function compareProduct(
+  catalog: Catalog,
+  productId: string,
+  origin?: GeoPoint | null,
+): ProductPriceResult[] {
   const grocery = catalog.merchants.filter((m) => m.category === "grocery");
   const priced = grocery
     .map((merchant) => {
@@ -60,7 +76,8 @@ export function compareProduct(catalog: Catalog, productId: string): ProductPric
         branchName: merchant.location?.name ?? null,
         address: merchant.location?.address ?? null,
         priceCents: price.priceCents,
-        mapsUrl: mapsUrlForMerchant(merchant),
+        mapsUrl: mapsUrlForMerchant(merchant, origin),
+        distanceKm: distanceForMerchant(merchant, origin),
       };
     })
     .filter(
@@ -73,6 +90,7 @@ export function compareProduct(catalog: Catalog, productId: string): ProductPric
         address: string | null;
         priceCents: number;
         mapsUrl: string;
+        distanceKm: number | null;
       } => row !== null,
     )
     .sort((a, b) => a.priceCents - b.priceCents);
@@ -113,7 +131,11 @@ export function lineItemsForMerchant(
   });
 }
 
-export function compareBasket(catalog: Catalog, items: ListItem[]): BasketResult[] {
+export function compareBasket(
+  catalog: Catalog,
+  items: ListItem[],
+  origin?: GeoPoint | null,
+): BasketResult[] {
   if (!items.length) return [];
 
   const grocery = catalog.merchants.filter((m) => m.category === "grocery");
@@ -139,7 +161,8 @@ export function compareBasket(catalog: Catalog, items: ListItem[]): BasketResult
       coverage: items.length ? matched / items.length : 0,
       netCents: total - cashback,
       isRecommended: false,
-      mapsUrl: mapsUrlForMerchant(merchant),
+      mapsUrl: mapsUrlForMerchant(merchant, origin),
+      distanceKm: distanceForMerchant(merchant, origin),
     };
   });
 

@@ -21,6 +21,7 @@ import {
   lineItemsForMerchant,
   searchProducts,
 } from "@/lib/compare";
+import { useShopperOrigin } from "@/lib/geo";
 import type { Catalog, ListItem } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -62,6 +63,8 @@ function BasketInner() {
   const [loading, setLoading] = useState(true);
   const [preferredMerchantIds, setPreferredMerchantIds] = useState<string[]>([]);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
+    useShopperOrigin();
 
   const refreshLists = useCallback(async () => {
     if (!user) {
@@ -114,8 +117,8 @@ function BasketInner() {
   }, [user]);
 
   const results = useMemo(
-    () => (catalog ? compareBasket(catalog, items) : []),
-    [catalog, items],
+    () => (catalog ? compareBasket(catalog, items, origin) : []),
+    [catalog, items, origin],
   );
   const recommended = results.find((r) => r.isRecommended);
   const worst = results[results.length - 1];
@@ -437,7 +440,27 @@ function BasketInner() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="font-display text-lg font-bold tracking-tightish">Live ranking</h2>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-display text-lg font-bold tracking-tightish">Live ranking</h2>
+                  <button
+                    type="button"
+                    onClick={useMyLocation}
+                    disabled={geoBusy}
+                    className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-60"
+                  >
+                    {geoBusy
+                      ? "Locating…"
+                      : geoSource === "device"
+                        ? "Using your location"
+                        : "Use my location"}
+                  </button>
+                </div>
+                {geoSource === "default" && (
+                  <p className="text-xs text-savr-mute">
+                    Distances from Westlands · share location for your trip.
+                  </p>
+                )}
+                {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
                 {items.length === 0 ? (
                   <p className="border border-dashed border-savr-forest/35 bg-white px-4 py-8 text-center text-sm text-savr-mute">
                     Add items to see who is cheapest.
