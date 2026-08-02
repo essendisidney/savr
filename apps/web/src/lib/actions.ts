@@ -451,3 +451,32 @@ export async function saveProfile(profile: UserProfile): Promise<{ error?: strin
 
   return error ? { error: error.message } : {};
 }
+
+/** Shopper tip — updates catalog price (crowdsource source unless merchant-owned). */
+export async function submitCrowdsourcePrice(params: {
+  merchantId: string;
+  productId: string;
+  priceKes: number;
+}): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to tip a price you saw in store." };
+
+  const kes = Number(params.priceKes);
+  if (!Number.isFinite(kes) || kes < 1 || kes > 500000) {
+    return { error: "Enter a valid price in KES." };
+  }
+
+  const { error } = await supabase.rpc("submit_crowdsource_price", {
+    p_merchant_id: params.merchantId,
+    p_product_id: params.productId,
+    p_price_cents: Math.round(kes * 100),
+  });
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}

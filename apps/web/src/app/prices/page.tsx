@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { submitCrowdsourcePrice } from "@/lib/actions";
+import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { compareProduct, formatKes } from "@/lib/compare";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
@@ -12,12 +14,17 @@ import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
 
 function PricesInner() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("id"));
   const [category, setCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [tipMerchantId, setTipMerchantId] = useState("");
+  const [tipPrice, setTipPrice] = useState("");
+  const [tipBusy, setTipBusy] = useState(false);
+  const [tipStatus, setTipStatus] = useState<string | null>(null);
   const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
     useShopperOrigin();
 
@@ -29,14 +36,25 @@ function PricesInner() {
       if (id && c.products.some((p) => p.id === id)) {
         setSelectedId(id);
       }
+      const grocery = c.merchants.filter((m) => m.category === "grocery");
+      if (grocery[0]) setTipMerchantId(grocery[0].id);
     });
   }, [searchParams]);
+
+  useEffect(() => {
+    setTipStatus(null);
+    setTipPrice("");
+  }, [selectedId]);
 
   const selected: Product | null = useMemo(() => {
     if (!catalog || !selectedId) return null;
     return catalog.products.find((p) => p.id === selectedId) ?? null;
   }, [catalog, selectedId]);
 
+  const groceryMerchants = useMemo(
+    () => (catalog ? catalog.merchants.filter((m) => m.category === "grocery") : []),
+    [catalog],
+  );
   const categories = useMemo(() => {
     if (!catalog) return [] as string[];
     return Array.from(new Set(catalog.products.map((p) => p.category))).sort();
@@ -338,14 +356,148 @@ function PricesInner() {
                   </Link>{" "}
                   for the real total.
                 </p>
+
+                <section className="border border-savr-ink/[0.08] bg-white px-4 py-5 sm:px-5">
+                  <h3 className="font-display text-lg font-bold tracking-tightish">
+                    Saw a different price?
+                  </h3>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    Tip what you paid for {selected.name} — helps keep Nairobi prices fresh.
+                  </p>
+                  {!user ? (
+                    <p className="mt-4 text-sm text-savr-mute">
+                      <Link href="/login" className="font-semibold text-savr-forest hover:underline">
+                        Sign in
+                      </Link>{" "}
+                      to submit a tip.
+                    </p>
+                  ) : (
+                    <form
+                      className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+                      onSubmit={async (e: FormEvent) => {
+                        e.preventDefault();
+                        if (!selectedId || !tipMerchantId) return;
+                        setTipBusy(true);
+                        setTipStatus(null);
+                        const res = await submitCrowdsourcePrice({
+                          merchantId: tipMerchantId,
+                          productId: selectedId,
+                          priceKes: Number(tipPrice),
+                        });
+                        setTipBusy(false);
+                        if ("error" in res) {
+                          setTipStatus(res.error);
+                          return;
+                        }
+                        setTipStatus("Thanks — price tip saved. Refresh ranks in a moment.");
+                        setTipPrice("");
+                        const c = await loadCatalog();
+                        setCatalog(c);
+                      }}
+                    >
+                      <label className="block space-y-1.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                          Store
+                        </span>
+                        <select
+                          value={tipMerchantId}
+                          onChange={(e) => setTipMerchantId(e.target.value)}
+                          className="field"
+                        >
+                          {groceryMerchants.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                              {m.location?.name ? ` · ${m.location.name}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block space-y-1.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                          Price (KES)
+                        </span>
+                        <input
+                          required
+                          inputMode="decimal"
+                          value={tipPrice}
+                          onChange={(e) => setTipPrice(e.target.value)}
+                          placeholder="e.g. 185"
+                          className="field w-full sm:w-28"
+                        />
+                      </label>
+                      <button type="submit" disabled={tipBusy} className="btn-primary h-[46px]">
+                        {tipBusy ? "Saving…" : "Tip price"}
+                      </button>
+                    </form>
+                  )}
+                  {tipStatus && (
+                    <p
+                      className={`mt-3 text-sm font-medium ${
+                        tipStatus.startsWith("Thanks") ? "text-savr-forest" : "text-red-700"
+                      }`}
+                    >
+                      {tipStatus}
+                    </p>
+                  )}
+                </section>
               </>
             )}
 
             {selected && results.length === 0 && (
-              <p className="border border-savr-ink/[0.08] bg-white px-4 py-6 text-sm text-savr-mute">
-                No merchant prices for this product yet. Try another staple or check back after a
-                merchant updates prices.
-              </p>
+              <div className="space-y-4">
+                <p className="border border-savr-ink/[0.08] bg-white px-4 py-6 text-sm text-savr-mute">
+                  No merchant prices for this product yet. Tip the shelf price you saw to seed it.
+                </p>
+                {user && selectedId && (
+                  <form
+                    className="grid gap-3 border border-savr-ink/[0.08] bg-white px-4 py-5 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+                    onSubmit={async (e: FormEvent) => {
+                      e.preventDefault();
+                      if (!tipMerchantId) return;
+                      setTipBusy(true);
+                      setTipStatus(null);
+                      const res = await submitCrowdsourcePrice({
+                        merchantId: tipMerchantId,
+                        productId: selectedId,
+                        priceKes: Number(tipPrice),
+                      });
+                      setTipBusy(false);
+                      if ("error" in res) {
+                        setTipStatus(res.error);
+                        return;
+                      }
+                      setTipStatus("Thanks — price tip saved.");
+                      setTipPrice("");
+                      const c = await loadCatalog();
+                      setCatalog(c);
+                    }}
+                  >
+                    <select
+                      value={tipMerchantId}
+                      onChange={(e) => setTipMerchantId(e.target.value)}
+                      className="field"
+                    >
+                      {groceryMerchants.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      required
+                      inputMode="decimal"
+                      value={tipPrice}
+                      onChange={(e) => setTipPrice(e.target.value)}
+                      placeholder="KES"
+                      className="field sm:w-28"
+                    />
+                    <button type="submit" disabled={tipBusy} className="btn-primary">
+                      Tip price
+                    </button>
+                  </form>
+                )}
+                {tipStatus && <p className="text-sm font-medium text-savr-forest">{tipStatus}</p>}
+              </div>
             )}
 
             {!selected && (
