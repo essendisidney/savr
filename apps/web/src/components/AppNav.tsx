@@ -33,24 +33,25 @@ export function AppNav() {
               { href: "/basket", label: "Basket" },
               { href: "/check", label: "Check" },
               { href: "/prices", label: "Prices" },
+              { href: "/map", label: "Map" },
               { href: "/rides", label: "Rides" },
               { href: "/fuel", label: "Fuel" },
               { href: "/wallet", label: "Savings" },
               { href: "/merchant", label: "Merchants" },
             ].map((l) => {
-              const active = pathname === l.href;
+              const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href));
               return (
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`px-3 py-1.5 transition ${
+                  className={`rounded-sm px-3 py-1.5 transition ${
                     onHero
                       ? active
-                        ? "text-savr-signal"
-                        : "text-white/85 hover:text-white"
+                        ? "bg-white/10 text-savr-signal"
+                        : "text-white/80 hover:bg-white/5 hover:text-white"
                       : active
-                        ? "text-savr-forest"
-                        : "text-savr-mute hover:text-savr-ink"
+                        ? "bg-savr-fog text-savr-forest"
+                        : "text-savr-mute hover:bg-savr-fog/70 hover:text-savr-ink"
                   }`}
                 >
                   {l.label}
@@ -82,11 +83,11 @@ export function AppNav() {
               </div>
             ) : (
               <Link
-                href="/login"
+                href={`/login?next=${encodeURIComponent(pathname || "/basket")}`}
                 className={`text-[13px] font-semibold ${
                   onHero
                     ? "bg-savr-signal px-3 py-1.5 text-savr-ink hover:bg-[#ffd23a]"
-                    : "text-savr-forest"
+                    : "bg-savr-night px-3 py-1.5 text-white hover:bg-savr-ink"
                 }`}
               >
                 Sign in

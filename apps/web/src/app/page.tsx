@@ -30,8 +30,11 @@ export default function HomePage() {
           Everyday money decisions
         </p>
         <h2 className="mt-3 max-w-xl font-display text-3xl font-bold tracking-tightish text-savr-ink md:text-[2.75rem] md:leading-[1.1]">
-          Three checks that pay for themselves
+          One habit. Every spend.
         </h2>
+        <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-savr-mute">
+          Basket first. Then rides, fuel, and a wallet that remembers what you kept.
+        </p>
 
         <div className="mt-12 divide-y divide-savr-ink/[0.08] border-y border-savr-ink/[0.08]">
           {[

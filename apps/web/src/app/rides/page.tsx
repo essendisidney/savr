@@ -28,6 +28,7 @@ export default function RidesPage() {
   const [quotes, setQuotes] = useState<RideQuote[]>([]);
   const [meta, setMeta] = useState<{ km: number; surge: number; label: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const draft = loadRideRouteDraft();
@@ -46,9 +47,11 @@ export default function RidesPage() {
   const fetchQuotes = useCallback(async () => {
     if (!destination.trim()) {
       setQuotes([]);
+      setError(null);
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       const supabase = getSupabase();
@@ -70,16 +73,18 @@ export default function RidesPage() {
         label?: string;
         error?: string;
       };
-      if (res.ok && data.quotes) {
+      if (res.ok && data.quotes?.length) {
         setQuotes(data.quotes);
         setMeta({
           km: data.km ?? 0,
           surge: data.surge ?? 1,
           label: data.label ?? "",
         });
+      } else {
+        setError(data.error ?? "Couldn’t load quotes — try again.");
       }
     } catch {
-      // keep last quotes
+      setError("Network issue — check connection and retry.");
     } finally {
       setLoading(false);
     }
@@ -213,6 +218,19 @@ export default function RidesPage() {
               {meta && meta.surge !== 1 ? ` · demand ×${meta.surge}` : ""}
               {loading ? " · updating…" : ""}
             </p>
+
+            {error && (
+              <div className="panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <p className="text-sm font-medium text-red-700">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => void fetchQuotes()}
+                  className="text-sm font-semibold text-savr-forest hover:underline"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
 
             {best && (
               <SavingsMoment

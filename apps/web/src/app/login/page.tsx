@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { formatPhoneHint } from "@/lib/phone";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -12,7 +12,12 @@ type Tab = "phone" | "email" | "password";
 
 const PHONE_RESEND_SEC = 60;
 
-export default function LoginPage() {
+function safeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/basket";
+  return raw;
+}
+
+function LoginInner() {
   const {
     signIn,
     signUp,
@@ -23,6 +28,8 @@ export default function LoginPage() {
     user,
   } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = useMemo(() => safeNext(searchParams.get("next")), [searchParams]);
   const [tab, setTab] = useState<Tab>("phone");
   const [passwordMode, setPasswordMode] = useState<"in" | "up">("in");
 
@@ -39,8 +46,12 @@ export default function LoginPage() {
   const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
-    if (user) router.replace("/basket");
-  }, [user, router]);
+    if (user) router.replace(nextPath);
+  }, [user, router, nextPath]);
+
+  function goNext() {
+    router.push(nextPath);
+  }
 
   useEffect(() => {
     setError(null);
@@ -102,7 +113,7 @@ export default function LoginPage() {
       setError(err);
       return;
     }
-    router.push("/basket");
+    goNext();
   }
 
   async function onEmailSend(e: FormEvent) {
@@ -147,7 +158,7 @@ export default function LoginPage() {
       setError(err);
       return;
     }
-    router.push("/basket");
+    goNext();
   }
 
   async function onPassword(e: FormEvent) {
@@ -167,7 +178,7 @@ export default function LoginPage() {
     if (passwordMode === "up") {
       setInfo("Account created — check email if confirmation is required, or you’re signed in.");
     }
-    router.push("/basket");
+    goNext();
   }
 
   const tabs: { id: Tab; label: string }[] = [
@@ -217,7 +228,7 @@ export default function LoginPage() {
                     className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
                   />
                   <p className="text-xs text-savr-mute">
-                    Kenya mobiles only · SMS from SIDNET via Taifa Mobile.
+                    Kenya mobiles · we’ll text a one-time code.
                   </p>
                   <button
                     type="submit"
@@ -439,5 +450,19 @@ export default function LoginPage() {
         </PageShell>
       </div>
     </PageFrame>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-52 animate-pulse bg-savr-night/80" />
+        </PageFrame>
+      }
+    >
+      <LoginInner />
+    </Suspense>
   );
 }

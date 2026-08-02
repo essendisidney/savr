@@ -553,7 +553,7 @@ function BasketInner() {
                 {!user && (
                   <p className="text-xs text-savr-mute">
                     Draft saved on this device.{" "}
-                    <Link href="/login" className="font-semibold text-savr-forest hover:underline">
+                    <Link href="/login?next=/basket" className="font-semibold text-savr-forest hover:underline">
                       Sign in
                     </Link>{" "}
                     to keep lists across phones.
@@ -655,7 +655,7 @@ function BasketInner() {
 
                 {!user && items.length > 0 && (
                   <p className="text-sm text-savr-mute">
-                    <Link href="/login" className="font-semibold text-savr-forest hover:underline">
+                    <Link href="/login?next=/basket" className="font-semibold text-savr-forest hover:underline">
                       Sign in
                     </Link>{" "}
                     to earn wallet cashback.

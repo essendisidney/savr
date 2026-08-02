@@ -60,30 +60,28 @@ export function PageHero({
 
   return (
     <section
-      className="relative overflow-hidden border-b border-savr-ink/5"
+      className="relative overflow-hidden"
       style={{
-        backgroundImage: `linear-gradient(180deg, rgba(1,20,14,0.72) 0%, rgba(1,20,14,0.55) 45%, rgba(243,250,246,0.97) 100%), url(${t.image})`,
+        backgroundImage: `linear-gradient(165deg, rgba(1,20,14,0.88) 0%, rgba(1,20,14,0.62) 48%, rgba(3,26,18,0.92) 100%), url(${t.image})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-savr-signal/25 blur-3xl" />
-      <div className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-savr-leaf/30 blur-3xl" />
-
-      <div className="relative mx-auto max-w-5xl px-4 pb-10 pt-10 md:px-6 md:pb-12 md:pt-14">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-savr-mist" />
+      <div className="relative mx-auto max-w-5xl px-4 pb-12 pt-12 md:px-6 md:pb-14 md:pt-16">
         <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.22em] text-savr-signal">
           {t.label}
         </p>
-        <h1 className="animate-rise-delay mt-3 max-w-2xl font-display text-[clamp(2rem,6vw,3.4rem)] font-extrabold leading-[1.05] tracking-tightish text-white">
+        <h1 className="animate-rise-delay mt-3 max-w-2xl font-display text-[clamp(2.1rem,5.5vw,3.5rem)] font-extrabold leading-[1.05] tracking-tightish text-white">
           {title}
         </h1>
         {subtitle && (
-          <p className="animate-rise-delay-2 mt-3 max-w-lg text-[15px] leading-relaxed text-white/75 md:text-base">
+          <p className="animate-rise-delay-2 mt-3 max-w-md text-[15px] leading-relaxed text-white/70 md:text-base">
             {subtitle}
           </p>
         )}
         {action && (
-          <Link href={action.href} className="btn-primary mt-6 inline-flex animate-rise-delay-2">
+          <Link href={action.href} className="btn-primary mt-7 inline-flex animate-rise-delay-2">
             {action.label}
           </Link>
         )}
