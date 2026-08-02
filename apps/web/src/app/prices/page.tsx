@@ -7,12 +7,14 @@ import { submitCrowdsourcePrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { compareProduct, formatKes } from "@/lib/compare";
-import { formatPriceFreshness } from "@/lib/freshness";
+import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
 import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingBlock } from "@/components/LoadingBlock";
 
 function PricesInner() {
   const { user } = useAuth();
@@ -93,9 +95,9 @@ function PricesInner() {
   if (loading) {
     return (
       <PageFrame>
-        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <div className="h-44 animate-pulse bg-savr-night/85" />
         <PageShell>
-          <div className="h-28 animate-pulse bg-savr-fog" />
+          <LoadingBlock rows={4} />
         </PageShell>
       </PageFrame>
     );
@@ -196,8 +198,11 @@ function PricesInner() {
                   );
                 })}
                 {!suggestions.length && (
-                  <li className="px-4 py-6 text-sm text-savr-mute">
-                    No products match. Try milk, sugar, or oil.
+                  <li className="list-none border-0">
+                    <EmptyState
+                      title="No products match"
+                      body="Try milk, sugar, oil — or clear the search to browse categories."
+                    />
                   </li>
                 )}
               </ul>
@@ -309,11 +314,13 @@ function PricesInner() {
                                 </p>
                                 {(() => {
                                   const fresh = formatPriceFreshness(r.observedAt, r.source);
+                                  if (!fresh.label) return null;
                                   return (
                                     <p
-                                      className={`mt-0.5 text-[11px] ${
-                                        r.isCheapest ? "text-white/55" : "text-savr-mute"
-                                      }`}
+                                      className={`mt-0.5 text-[11px] ${freshnessClassName(
+                                        fresh.stale,
+                                        r.isCheapest ? "dark" : "light",
+                                      )}`}
                                     >
                                       {fresh.label}
                                     </p>
@@ -458,9 +465,10 @@ function PricesInner() {
 
             {selected && results.length === 0 && (
               <div className="space-y-4">
-                <p className="border border-savr-ink/[0.08] bg-white px-4 py-6 text-sm text-savr-mute">
-                  No merchant prices for this product yet. Tip the shelf price you saw.
-                </p>
+                <EmptyState
+                  title="No prices yet"
+                  body="Tip the shelf price you saw — it helps the next shopper."
+                />
                 {user && selectedId && (
                   <form
                     className="grid gap-3 border border-savr-ink/[0.08] bg-white px-4 py-5 sm:grid-cols-[1fr_auto_auto] sm:items-end"

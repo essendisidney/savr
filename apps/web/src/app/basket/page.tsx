@@ -36,6 +36,8 @@ import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { RankList } from "@/components/RankList";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingBlock } from "@/components/LoadingBlock";
 import { buildBasketShare, sharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
 
@@ -325,12 +327,9 @@ function BasketInner() {
   if (loading || !catalog) {
     return (
       <PageFrame>
-        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <div className="h-44 animate-pulse bg-savr-night/85" />
         <PageShell>
-          <div className="space-y-4 animate-pulse">
-            <div className="h-28 w-full bg-savr-fog" />
-            <div className="h-40 w-full bg-savr-fog" />
-          </div>
+          <LoadingBlock rows={4} />
         </PageShell>
       </PageFrame>
     );
@@ -357,7 +356,7 @@ function BasketInner() {
             )}
 
             <div className="grid gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-12">
-              <section className="animate-rise-delay space-y-3">
+              <section className="animate-rise-delay space-y-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <h2 className="font-display text-lg font-bold tracking-tightish">Your list</h2>
                   <div className="flex items-center gap-2">
@@ -478,8 +477,24 @@ function BasketInner() {
                     </li>
                   ))}
                   {items.length === 0 && (
-                    <li className="px-4 py-8 text-center text-sm text-savr-mute">
-                      Search above to build your list.
+                    <li className="list-none">
+                      <EmptyState
+                        title="Your list is empty"
+                        body="Search staples above, or load a weekly set to compare stores in seconds."
+                        action={
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setItems(defaultListFromCatalog(catalog));
+                              setListName("Weekly shop");
+                              setStatus("Loaded weekly staples — milk, bread, rice, sugar, soap, oil.");
+                            }}
+                            className="btn-primary"
+                          >
+                            Load weekly staples
+                          </button>
+                        }
+                      />
                     </li>
                   )}
                 </ul>
@@ -629,17 +644,20 @@ function BasketInner() {
                 )}
                 {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
                 {items.length === 0 ? (
-                  <p className="border border-dashed border-savr-forest/35 bg-white px-4 py-8 text-center text-sm text-savr-mute">
-                    Add items to see who is cheapest.
-                  </p>
+                  <EmptyState
+                    title="Add items to rank stores"
+                    body="Build your list on the left — Savr ranks who is cheapest after cashback."
+                  />
                 ) : results.length === 0 ? (
-                  <p className="border border-dashed border-savr-forest/35 bg-white px-4 py-8 text-center text-sm text-savr-mute">
-                    No preferred stores in range.{" "}
-                    <Link href="/account" className="font-semibold text-savr-forest hover:underline">
-                      Update Account
-                    </Link>{" "}
-                    or show all stores.
-                  </p>
+                  <EmptyState
+                    title="No preferred stores in range"
+                    body="Widen the filter or update which stores you prefer."
+                    action={
+                      <Link href="/account" className="btn-ghost">
+                        Update Account
+                      </Link>
+                    }
+                  />
                 ) : (
                   <RankList
                     results={results}

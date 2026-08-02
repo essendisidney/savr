@@ -7,13 +7,15 @@ import { useAuth } from "@/lib/auth";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import { loadFuelPrefsDraft, saveFuelPrefsDraft } from "@/lib/fuel-draft";
-import { formatPriceFreshness } from "@/lib/freshness";
+import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
 import { track } from "@/lib/track";
 import type { FuelStation, FuelType } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingBlock } from "@/components/LoadingBlock";
 
 type SortMode = "price" | "distance" | "value";
 
@@ -109,9 +111,9 @@ export default function FuelPage() {
   if (loading) {
     return (
       <PageFrame>
-        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <div className="h-44 animate-pulse bg-savr-night/85" />
         <PageShell>
-          <div className="h-28 animate-pulse bg-savr-fog" />
+          <LoadingBlock rows={4} />
         </PageShell>
       </PageFrame>
     );
@@ -201,6 +203,12 @@ export default function FuelPage() {
             </p>
             {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
 
+            {ranked.length === 0 ? (
+              <EmptyState
+                title="No stations yet"
+                body="Fuel prices will show here when the catalog is online. Try again in a moment."
+              />
+            ) : (
             <ol className="space-y-4">
               {ranked.map((s, i) => {
                 const dist = formatDistanceKm(s.distanceKm);
@@ -243,11 +251,13 @@ export default function FuelPage() {
                             </p>
                             {(() => {
                               const fresh = formatPriceFreshness(s.observedAt, s.source);
+                              if (!fresh.label) return null;
                               return (
                                 <p
-                                  className={`mt-0.5 text-[11px] ${
-                                    i === 0 ? "text-white/55" : "text-savr-mute"
-                                  }`}
+                                  className={`mt-0.5 text-[11px] ${freshnessClassName(
+                                    fresh.stale,
+                                    i === 0 ? "dark" : "light",
+                                  )}`}
                                 >
                                   {fresh.label}
                                 </p>
@@ -296,6 +306,7 @@ export default function FuelPage() {
                 );
               })}
             </ol>
+            )}
 
             <section className="border border-savr-ink/[0.08] bg-white px-4 py-5 sm:px-5">
               <h3 className="font-display text-lg font-bold tracking-tightish">

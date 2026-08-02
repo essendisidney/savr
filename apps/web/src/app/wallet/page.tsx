@@ -12,6 +12,8 @@ import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingBlock } from "@/components/LoadingBlock";
 import { buildLifetimeShare, sharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
 
@@ -100,9 +102,9 @@ export default function WalletPage() {
   if (loading || authLoading) {
     return (
       <PageFrame>
-        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <div className="h-44 animate-pulse bg-savr-night/85" />
         <PageShell>
-          <div className="h-32 animate-pulse bg-savr-fog" />
+          <LoadingBlock rows={4} />
         </PageShell>
       </PageFrame>
     );
@@ -115,8 +117,20 @@ export default function WalletPage() {
           theme="wallet"
           title="Saved with Savr"
           subtitle="Sign in to track lifetime savings and cashback from smarter choices."
-          action={{ href: "/login", label: "Sign in" }}
         />
+        <div className="page-band">
+          <PageShell>
+            <EmptyState
+              title="Your streak lives here"
+              body="Every smarter basket adds lifetime savings and wallet cashback."
+              action={
+                <Link href="/login?next=/wallet" className="btn-primary">
+                  Sign in
+                </Link>
+              }
+            />
+          </PageShell>
+        </div>
       </PageFrame>
     );
   }
@@ -177,33 +191,38 @@ export default function WalletPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="animate-rise border border-savr-ink/[0.08] bg-white px-5 py-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                  Wallet cashback
-                </p>
-                <p className="mt-2 font-display text-3xl font-bold tracking-tightish tabular-nums text-savr-forest">
-                  {formatKes(balanceCents)}
-                </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="animate-rise relative overflow-hidden bg-savr-night px-5 py-6 text-white">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,197,24,0.35),transparent_55%)]" />
+                <div className="relative">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+                    Wallet cashback
+                  </p>
+                  <p className="mt-2 font-display text-4xl font-bold tracking-tightish tabular-nums text-savr-signal">
+                    {formatKes(balanceCents)}
+                  </p>
+                  <p className="mt-2 text-xs text-white/55">Ready when you hit KES 50</p>
+                </div>
               </div>
               <div
-                className="animate-rise border border-savr-ink/[0.08] bg-white px-5 py-5"
+                className="animate-rise border border-savr-ink/[0.08] bg-white px-5 py-6"
                 style={{ animationDelay: "0.06s" }}
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
                   In progress
                 </p>
-                <p className="mt-2 font-display text-3xl font-bold tracking-tightish tabular-nums text-savr-ink">
+                <p className="mt-2 font-display text-4xl font-bold tracking-tightish tabular-nums text-savr-ink">
                   {formatKes(pendingTotal)}
                 </p>
+                <p className="mt-2 text-xs text-savr-mute">Redeem requests pending</p>
               </div>
             </div>
 
-            <section className="space-y-4 border border-savr-ink/[0.08] bg-white p-4 sm:p-5">
+            <section className="space-y-4 border border-savr-ink/[0.08] bg-gradient-to-br from-white to-savr-mist/40 p-5 sm:p-6">
               <div>
                 <h2 className="font-display text-lg font-bold tracking-tightish">Redeem cashback</h2>
                 <p className="mt-1 text-sm text-savr-mute">
-                  Cashback pays out to M-Pesa. Minimum redeem is KES 50.
+                  Request a payout to your phone. Minimum redeem is KES 50.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -295,14 +314,16 @@ export default function WalletPage() {
                 </div>
               </div>
               {history.length === 0 ? (
-                <div className="mt-4 border border-dashed border-savr-forest/40 bg-white px-5 py-8 text-center">
-                  <p className="text-[15px] text-savr-mute">
-                    Nothing yet —{" "}
-                    <Link href="/basket" className="font-semibold text-savr-forest hover:underline">
-                      compare a basket
-                    </Link>{" "}
-                    and choose a store to start your streak.
-                  </p>
+                <div className="mt-4">
+                  <EmptyState
+                    title="Nothing on the streak yet"
+                    body="Compare a basket and choose a store — your saves land here."
+                    action={
+                      <Link href="/basket" className="btn-primary">
+                        Compare a basket
+                      </Link>
+                    }
+                  />
                 </div>
               ) : (
                 <ol className="mt-3 space-y-3">
@@ -371,9 +392,12 @@ export default function WalletPage() {
             <section>
               <h2 className="font-display text-lg font-bold tracking-tightish">Cashback activity</h2>
               {ledger.length === 0 ? (
-                <p className="mt-3 text-sm text-savr-mute">
-                  Cashback credits appear here when you lock in a recommended basket.
-                </p>
+                <div className="mt-3">
+                  <EmptyState
+                    title="No cashback activity"
+                    body="Credits appear when you lock in a recommended basket."
+                  />
+                </div>
               ) : (
                 <ul className="mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
                   {ledger.map((e, i) => {

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingBlock } from "@/components/LoadingBlock";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import dynamic from "next/dynamic";
@@ -20,6 +22,7 @@ const NairobiMap = dynamic(() => import("@/components/NairobiMap").then((m) => m
 export default function MapPage() {
   const [points, setPoints] = useState<MapPoint[]>([]);
   const [selected, setSelected] = useState<MapPoint | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void (async () => {
@@ -50,6 +53,7 @@ export default function MapPage() {
           mapsUrl: s.mapsUrl,
         }));
       setPoints([...grocery, ...stations]);
+      setLoading(false);
     })();
   }, []);
 
@@ -62,37 +66,46 @@ export default function MapPage() {
       />
       <div className="page-band">
         <PageShell>
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wide text-savr-mute">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-savr-forest" /> Grocery
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-600" /> Fuel
-              </span>
-              <span>{points.length} places</span>
-            </div>
-            <NairobiMap points={points} onSelect={setSelected} />
-            {selected && (
-              <div className="border border-savr-ink/[0.08] bg-white px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                  {selected.kind === "fuel" ? "Fuel" : "Grocery"}
-                </p>
-                <p className="mt-1 font-display text-xl font-bold">{selected.name}</p>
-                <p className="text-sm text-savr-mute">{selected.subtitle}</p>
-                {selected.mapsUrl && (
-                  <a
-                    href={selected.mapsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-block text-sm font-semibold text-savr-forest hover:underline"
-                  >
-                    Directions →
-                  </a>
-                )}
+          {loading ? (
+            <LoadingBlock rows={3} />
+          ) : points.length === 0 ? (
+            <EmptyState
+              title="Map is empty"
+              body="Places will appear when grocery and fuel catalogs load."
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wide text-savr-mute">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-savr-forest" /> Grocery
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-600" /> Fuel
+                </span>
+                <span>{points.length} places</span>
               </div>
-            )}
-          </div>
+              <NairobiMap points={points} onSelect={setSelected} />
+              {selected && (
+                <div className="border border-savr-ink/[0.08] bg-white px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                    {selected.kind === "fuel" ? "Fuel" : "Grocery"}
+                  </p>
+                  <p className="mt-1 font-display text-xl font-bold">{selected.name}</p>
+                  <p className="text-sm text-savr-mute">{selected.subtitle}</p>
+                  {selected.mapsUrl && (
+                    <a
+                      href={selected.mapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-block text-sm font-semibold text-savr-forest hover:underline"
+                    >
+                      Directions →
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </PageShell>
       </div>
     </PageFrame>

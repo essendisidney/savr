@@ -20,7 +20,12 @@ export function formatPriceFreshness(
   else when = `${Math.max(1, Math.round(age / 86_400_000))}d ago`;
 
   return {
-    label: `Updated ${when}`,
+    label: stale ? `Updated ${when} · may be stale` : `Updated ${when}`,
     stale,
   };
+}
+
+export function freshnessClassName(stale: boolean, tone: "dark" | "light" = "light"): string {
+  if (stale) return tone === "dark" ? "text-amber-300" : "text-amber-700";
+  return tone === "dark" ? "text-white/55" : "text-savr-mute";
 }

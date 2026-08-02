@@ -20,6 +20,8 @@ import type { Catalog, ListItem } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingBlock } from "@/components/LoadingBlock";
 import { buildMissedShare } from "@/lib/share";
 
 export default function CheckPage() {
@@ -148,12 +150,9 @@ export default function CheckPage() {
   if (loading || !catalog) {
     return (
       <PageFrame>
-        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <div className="h-44 animate-pulse bg-savr-night/85" />
         <PageShell>
-          <div className="space-y-4 animate-pulse">
-            <div className="h-28 w-full bg-savr-fog" />
-            <div className="h-40 w-full bg-savr-fog" />
-          </div>
+          <LoadingBlock rows={4} />
         </PageShell>
       </PageFrame>
     );
@@ -276,9 +275,21 @@ export default function CheckPage() {
                   </div>
 
                   {items.length === 0 ? (
-                    <p className="mt-4 text-sm text-savr-mute">
-                      Add a few staples from this trip to see the miss.
-                    </p>
+                    <EmptyState
+                      title="What did you buy?"
+                      body="Add a few staples from this trip — or pull your basket draft — to see the miss."
+                      action={
+                        draftHint && draftHint.items.length > 0 ? (
+                          <button type="button" onClick={useBasketDraft} className="btn-primary">
+                            Use basket draft
+                          </button>
+                        ) : (
+                          <Link href="/basket" className="btn-ghost">
+                            Open basket
+                          </Link>
+                        )
+                      }
+                    />
                   ) : (
                     <ul className="mt-4 divide-y divide-savr-ink/[0.06] border-y border-savr-ink/[0.06]">
                       {items.map((item) => {
