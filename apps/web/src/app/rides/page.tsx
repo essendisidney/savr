@@ -7,7 +7,16 @@ import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
 import { buildRideShare } from "@/lib/share";
 
-const PRESETS = ["Westlands", "CBD", "Airport", "Kilimani", "Karen", "Eastleigh"];
+const PRESETS = [
+  "Westlands",
+  "CBD",
+  "Airport",
+  "Kilimani",
+  "Karen",
+  "Eastleigh",
+  "Lavington",
+  "Thika",
+];
 
 export default function RidesPage() {
   const [pickup, setPickup] = useState("Westlands");
@@ -18,8 +27,7 @@ export default function RidesPage() {
   );
   const best = quotes[0];
   const worst = quotes[quotes.length - 1];
-  const saved =
-    worst && best ? worst.netCents - best.netCents : 0;
+  const saved = worst && best ? worst.netCents - best.netCents : 0;
   const maxPrice = Math.max(...quotes.map((q) => q.priceCents), 1);
   const share = useMemo(() => {
     if (!best || saved <= 0) return undefined;
@@ -29,6 +37,11 @@ export default function RidesPage() {
       destination: destination.trim() || "Nairobi",
     });
   }, [best, saved, destination]);
+
+  function swapRoute() {
+    setPickup(destination);
+    setDestination(pickup);
+  }
 
   return (
     <PageFrame>
@@ -41,7 +54,7 @@ export default function RidesPage() {
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
-            <div className="animate-rise grid gap-4 sm:grid-cols-2">
+            <div className="animate-rise grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
               <label className="block space-y-2">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
                   Pickup
@@ -54,6 +67,15 @@ export default function RidesPage() {
                   className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
                 />
               </label>
+              <button
+                type="button"
+                onClick={swapRoute}
+                className="mx-auto flex h-11 w-11 items-center justify-center border border-savr-ink/10 bg-white text-savr-ink transition hover:border-savr-forest/40 hover:text-savr-forest"
+                aria-label="Swap pickup and destination"
+                title="Swap"
+              >
+                ⇄
+              </button>
               <label className="block space-y-2">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
                   Destination
@@ -73,21 +95,49 @@ export default function RidesPage() {
               </datalist>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {PRESETS.filter((p) => p !== pickup).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setDestination(p)}
-                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                    destination === p
-                      ? "bg-savr-night text-white"
-                      : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
-                  }`}
-                >
-                  → {p}
-                </button>
-              ))}
+            <div className="space-y-3">
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                  From
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {PRESETS.filter((p) => p !== destination).map((p) => (
+                    <button
+                      key={`from-${p}`}
+                      type="button"
+                      onClick={() => setPickup(p)}
+                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                        pickup === p
+                          ? "bg-savr-forest text-white"
+                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                  To
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {PRESETS.filter((p) => p !== pickup).map((p) => (
+                    <button
+                      key={`to-${p}`}
+                      type="button"
+                      onClick={() => setDestination(p)}
+                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                        destination === p
+                          ? "bg-savr-night text-white"
+                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                      }`}
+                    >
+                      → {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <p className="rounded-sm bg-savr-fog px-3 py-2 text-xs font-semibold text-savr-mute">
@@ -126,7 +176,9 @@ export default function RidesPage() {
                           {i + 1}
                         </span>
                         <div>
-                          <p className="font-display text-2xl font-bold tracking-tightish">{q.partner}</p>
+                          <p className="font-display text-2xl font-bold tracking-tightish">
+                            {q.partner}
+                          </p>
                           <p className={`text-sm ${i === 0 ? "text-white/65" : "text-savr-mute"}`}>
                             ETA ~{q.etaMin} min · Cashback {formatKes(q.cashbackCents)}
                             {q.isEstimated ? " · Estimated" : " · Live"}
@@ -156,7 +208,9 @@ export default function RidesPage() {
                         </a>
                       </div>
                     </div>
-                    <div className={`mt-4 h-2 overflow-hidden ${i === 0 ? "bg-white/15" : "bg-savr-fog"}`}>
+                    <div
+                      className={`mt-4 h-2 overflow-hidden ${i === 0 ? "bg-white/15" : "bg-savr-fog"}`}
+                    >
                       <div
                         className={`rank-bar h-full animate-barGrow ${
                           i === 0 ? "bg-savr-signal" : "bg-savr-forest/70"
