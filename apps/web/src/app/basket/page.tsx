@@ -692,6 +692,12 @@ function BasketInner() {
                     onChoose={choose}
                     chooseLabel={(name) => `Choose ${name} & earn`}
                     preferredMerchantIds={preferredMerchantIds}
+                    canTip={Boolean(user)}
+                    onPriceTipped={async () => {
+                      const c = await loadCatalog();
+                      setCatalog(c);
+                      setStatus("Price tip saved — ranks refreshed.");
+                    }}
                     getLineItems={(merchantId) =>
                       lineItemsForMerchant(catalog, items, merchantId)
                     }
