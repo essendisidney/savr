@@ -9,6 +9,7 @@ import {
   fetchSavedLists,
   loadProfile,
   loadSavedList,
+  loadSharedList,
   saveShoppingList,
   type SavedListSummary,
 } from "@/lib/actions";
@@ -96,9 +97,22 @@ function BasketInner() {
       if (cancelled) return;
       setCatalog(c);
       const ids = new Set(c.products.map((p) => p.id));
-      const sharedFlag = searchParams.get("shared");
       let appliedShared = false;
-      if (sharedFlag && typeof window !== "undefined") {
+      const shareToken = searchParams.get("token");
+      if (shareToken) {
+        const res = await loadSharedList(shareToken);
+        if (!cancelled && !("error" in res) && res.items.length) {
+          const kept = res.items.filter((i) => ids.has(i.productId));
+          if (kept.length) {
+            setItems(kept);
+            setListName(res.name || "Shared list");
+            setStatus(`Loaded shared list “${res.name || "list"}”.`);
+            track("shared_list_compare", { items: kept.length, via: "token" });
+            appliedShared = true;
+          }
+        }
+      }
+      if (!appliedShared && searchParams.get("shared") && typeof window !== "undefined") {
         try {
           const raw = sessionStorage.getItem("savr_shared_list");
           if (raw) {

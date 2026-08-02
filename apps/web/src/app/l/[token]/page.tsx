@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { appendSharedListItem, loadSharedList } from "@/lib/actions";
 import { loadCatalog } from "@/lib/catalog";
@@ -11,15 +11,16 @@ import {
   quickAddChips,
   searchProducts,
 } from "@/lib/compare";
+import { useShopperOrigin } from "@/lib/geo";
 import { track } from "@/lib/track";
 import type { Catalog, ListItem } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { PageFrame, PageShell } from "@/components/PageShell";
+import { RankList } from "@/components/RankList";
 
 export default function SharedListPage() {
   const params = useParams<{ token: string }>();
-  const router = useRouter();
   const token = params.token;
   const [name, setName] = useState("Shared list");
   const [items, setItems] = useState<ListItem[]>([]);
@@ -29,6 +30,8 @@ export default function SharedListPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
+    useShopperOrigin();
 
   useEffect(() => {
     if (!token) return;
@@ -60,9 +63,12 @@ export default function SharedListPage() {
     );
   }, [catalog, items]);
 
+  const ranks = useMemo(() => {
+    if (!catalog || items.length === 0) return [];
+    return compareBasket(catalog, items, origin).filter((r) => r.coverage > 0);
+  }, [catalog, items, origin]);
+
   const tease = useMemo(() => {
-    if (!catalog || items.length < 2) return null;
-    const ranks = compareBasket(catalog, items).filter((r) => r.coverage > 0);
     if (ranks.length < 2) return null;
     const best = ranks.find((r) => r.isRecommended) ?? ranks[0];
     const worst = ranks[ranks.length - 1];
@@ -71,18 +77,9 @@ export default function SharedListPage() {
     const branch =
       best.branchName != null ? `${best.merchantName} · ${best.branchName}` : best.merchantName;
     return { delta, branch, bestNet: best.netCents };
-  }, [catalog, items]);
+  }, [ranks]);
 
-  function openInBasket() {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(
-        "savr_shared_list",
-        JSON.stringify({ name, items, token }),
-      );
-    }
-    track("shared_list_compare", { items: items.length });
-    router.push("/basket?shared=1");
-  }
+  const compareHref = token ? `/basket?token=${encodeURIComponent(token)}` : "/basket";
 
   async function addProduct(productId: string, productName: string) {
     if (!token) return;
@@ -148,7 +145,7 @@ export default function SharedListPage() {
             {name}
           </h1>
           <p className="mt-2 max-w-md text-sm text-savr-mute">
-            Add what you&apos;re out of. One person compares branches before anyone shops.
+            Add what you&apos;re out of. See where this list is cheapest before anyone shops.
           </p>
           {tease && (
             <p className="mt-4 inline-flex rounded-full bg-savr-forest/10 px-3 py-1.5 text-xs font-semibold text-savr-forest">
@@ -162,13 +159,42 @@ export default function SharedListPage() {
         <PageShell>
           <div className="mx-auto max-w-lg space-y-7">
             {items.length > 0 && (
-              <button
-                type="button"
-                onClick={openInBasket}
-                className="btn-primary w-full py-3.5 text-base"
+              <Link
+                href={compareHref}
+                onClick={() => track("shared_list_compare", { items: items.length, via: "cta" })}
+                className="btn-primary flex w-full items-center justify-center py-3.5 text-base"
               >
-                Compare where to shop
-              </button>
+                Open full compare
+              </Link>
+            )}
+
+            {ranks.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-display text-lg font-bold tracking-tightish">
+                    Where to shop
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={useMyLocation}
+                    disabled={geoBusy}
+                    className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-60"
+                  >
+                    {geoBusy
+                      ? "Locating…"
+                      : geoSource === "device"
+                        ? "Using your location"
+                        : "Use my location"}
+                  </button>
+                </div>
+                {geoSource === "default" && (
+                  <p className="text-xs text-savr-mute">
+                    Distances from Westlands · share location for your trip.
+                  </p>
+                )}
+                {geoError && <p className="text-xs font-medium text-red-700">{geoError}</p>}
+                <RankList results={ranks.slice(0, 4)} />
+              </section>
             )}
 
             <section className="space-y-3">
@@ -257,9 +283,13 @@ export default function SharedListPage() {
             )}
 
             {items.length > 0 && (
-              <button type="button" onClick={openInBasket} className="btn-primary w-full">
-                Compare where to shop
-              </button>
+              <Link
+                href={compareHref}
+                onClick={() => track("shared_list_compare", { items: items.length, via: "cta" })}
+                className="btn-primary flex w-full items-center justify-center"
+              >
+                Open full compare
+              </Link>
             )}
 
             <p className="text-center text-xs text-savr-mute">
