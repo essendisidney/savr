@@ -19,6 +19,8 @@ export type Merchant = {
   name: string;
   slug: string;
   category: string;
+  /** Branch this catalog row represents (one merchant row per active location). */
+  locationId?: string | null;
   location?: MerchantLocation | null;
 };
 
@@ -32,6 +34,7 @@ export type Product = {
 
 export type MerchantPrice = {
   merchantId: string;
+  locationId?: string | null;
   productId: string;
   priceCents: number;
   observedAt?: string | null;
@@ -74,6 +77,7 @@ export type ListItem = {
 
 export type BasketResult = {
   merchantId: string;
+  locationId: string | null;
   merchantName: string;
   branchName: string | null;
   totalCents: number;
@@ -150,6 +154,7 @@ export type FuelStation = {
 
 export type ProductPriceResult = {
   merchantId: string;
+  locationId: string | null;
   merchantName: string;
   branchName: string | null;
   address: string | null;

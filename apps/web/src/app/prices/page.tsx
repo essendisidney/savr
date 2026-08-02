@@ -70,10 +70,16 @@ function PricesInner() {
     return catalog.products.find((p) => p.id === selectedId) ?? null;
   }, [catalog, selectedId]);
 
-  const groceryMerchants = useMemo(
-    () => (catalog ? catalog.merchants.filter((m) => m.category === "grocery") : []),
-    [catalog],
-  );
+  const groceryMerchants = useMemo(() => {
+    if (!catalog) return [];
+    const seen = new Set<string>();
+    return catalog.merchants.filter((m) => {
+      if (m.category !== "grocery") return false;
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+  }, [catalog]);
   const categories = useMemo(() => {
     if (!catalog) return [] as string[];
     return Array.from(new Set(catalog.products.map((p) => p.category))).sort();
@@ -325,7 +331,7 @@ function PricesInner() {
                     const dist = formatDistanceKm(r.distanceKm);
                     return (
                       <li
-                        key={r.merchantId}
+                        key={`${r.merchantId}:${r.locationId ?? "none"}`}
                         className={`animate-rise relative overflow-hidden border ${
                           r.isCheapest
                             ? "card-winner"

@@ -23,17 +23,22 @@ export function RankList({
   onChoose?: (merchantId: string) => void;
   busy?: boolean;
   chooseLabel?: (name: string, isRecommended: boolean, cashbackCents: number) => string;
-  getLineItems?: (merchantId: string) => LineItemPrice[];
+  getLineItems?: (merchantId: string, locationId: string | null) => LineItemPrice[];
   preferredMerchantIds?: string[];
   canTip?: boolean;
   onPriceTipped?: () => void | Promise<void>;
 }) {
   const firstIncomplete =
-    results.find((r) => r.coverage < 1 && r.coverage > 0)?.merchantId ??
-    results.find((r) => r.coverage < 1)?.merchantId ??
+    results.find((r) => r.coverage < 1 && r.coverage > 0) ??
+    results.find((r) => r.coverage < 1) ??
     null;
+  const recommended = results.find((r) => r.isRecommended) ?? null;
   const [openId, setOpenId] = useState<string | null>(
-    firstIncomplete ?? results.find((r) => r.isRecommended)?.merchantId ?? null,
+    firstIncomplete
+      ? `${firstIncomplete.merchantId}:${firstIncomplete.locationId ?? "none"}`
+      : recommended
+        ? `${recommended.merchantId}:${recommended.locationId ?? "none"}`
+        : null,
   );
   const [tipKey, setTipKey] = useState<string | null>(null);
   const [tipPrice, setTipPrice] = useState("");
@@ -48,6 +53,10 @@ export function RankList({
   function valueScore(netCents: number): number {
     if (worstNet === bestNet) return 96;
     return Math.round(72 + (30 * (worstNet - netCents)) / (worstNet - bestNet));
+  }
+
+  function branchKey(merchantId: string, locationId: string | null | undefined) {
+    return `${merchantId}:${locationId ?? "none"}`;
   }
 
   async function onTip(
@@ -79,8 +88,9 @@ export function RankList({
     <ol className="space-y-4">
       {results.map((r, i) => {
         const width = Math.max(14, (r.totalCents / maxTotal) * 100);
-        const open = openId === r.merchantId;
-        const allLines = getLineItems ? getLineItems(r.merchantId) : [];
+        const key = branchKey(r.merchantId, r.locationId);
+        const open = openId === key;
+        const allLines = getLineItems ? getLineItems(r.merchantId, r.locationId) : [];
         const lines = open ? allLines : [];
         const missing = allLines.filter((l) => l.lineCents == null);
         const preferred = preferredMerchantIds.includes(r.merchantId);
@@ -91,7 +101,7 @@ export function RankList({
 
         return (
           <li
-            key={r.merchantId}
+            key={key}
             className={`animate-rise group relative overflow-hidden transition duration-soft ${
               r.isRecommended
                 ? "card-winner scale-[1.01] p-1 shadow-[0_28px_60px_-28px_rgba(0,200,83,0.55)]"
@@ -294,7 +304,7 @@ export function RankList({
               {getLineItems && (
                 <button
                   type="button"
-                  onClick={() => setOpenId(open ? null : r.merchantId)}
+                  onClick={() => setOpenId(open ? null : key)}
                   className={`mt-3 text-sm font-semibold ${
                     "text-savr-forest"
                   }`}

@@ -722,8 +722,8 @@ function BasketInner() {
                       setCatalog(c);
                       setStatus("Price tip saved — ranks refreshed.");
                     }}
-                    getLineItems={(merchantId) =>
-                      lineItemsForMerchant(catalog, items, merchantId)
+                    getLineItems={(merchantId, locationId) =>
+                      lineItemsForMerchant(catalog, items, merchantId, locationId)
                     }
                   />
                 )}

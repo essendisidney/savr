@@ -16,6 +16,26 @@ import { compareRidesForRoute } from "./rides";
 
 export { compareRidesForRoute } from "./rides";
 
+function priceForBranch(
+  catalog: Catalog,
+  merchantId: string,
+  locationId: string | null | undefined,
+  productId: string,
+) {
+  if (locationId) {
+    const exact = catalog.prices.find(
+      (p) =>
+        p.merchantId === merchantId &&
+        p.productId === productId &&
+        p.locationId === locationId,
+    );
+    if (exact) return exact;
+  }
+  return catalog.prices.find(
+    (p) => p.merchantId === merchantId && p.productId === productId,
+  );
+}
+
 /** Classic Nairobi weekly shop — match by name so catalog order never breaks the wedge demo. */
 const WEEKLY_STAPLE_MATCHERS: { label: string; match: RegExp }[] = [
   { label: "Fresh Milk 500ml", match: /^fresh milk 500ml$/i },
@@ -215,8 +235,11 @@ export function compareProduct(
   const grocery = catalog.merchants.filter((m) => m.category === "grocery");
   const priced = grocery
     .map((merchant) => {
-      const price = catalog.prices.find(
-        (p) => p.merchantId === merchant.id && p.productId === productId,
+      const price = priceForBranch(
+        catalog,
+        merchant.id,
+        merchant.locationId ?? merchant.location?.id,
+        productId,
       );
       if (!price) return null;
       const promo = productPromoForUnit(catalog, merchant.id, productId, price.priceCents);
@@ -224,6 +247,7 @@ export function compareProduct(
       const conf = priceConfidence(price.observedAt, price.source);
       return {
         merchantId: merchant.id,
+        locationId: merchant.locationId ?? merchant.location?.id ?? null,
         merchantName: merchant.name,
         branchName: merchant.location?.name ?? null,
         address: merchant.location?.address ?? null,
@@ -247,6 +271,7 @@ export function compareProduct(
         row,
       ): row is {
         merchantId: string;
+        locationId: string | null;
         merchantName: string;
         branchName: string | null;
         address: string | null;
@@ -288,12 +313,11 @@ export function lineItemsForMerchant(
   catalog: Catalog,
   items: ListItem[],
   merchantId: string,
+  locationId?: string | null,
 ): LineItemPrice[] {
   const promos = activePromosForMerchant(catalog, merchantId);
   return items.map((item) => {
-    const price = catalog.prices.find(
-      (p) => p.merchantId === merchantId && p.productId === item.productId,
-    );
+    const price = priceForBranch(catalog, merchantId, locationId, item.productId);
     const product = catalog.products.find((p) => p.id === item.productId);
     const lineCents = price ? price.priceCents * item.quantity : null;
     const promo =
@@ -327,6 +351,7 @@ export function compareBasket(
     grocery = grocery.filter((m) => allow.has(m.id));
   }
   const results = grocery.map((merchant) => {
+    const locId = merchant.locationId ?? merchant.location?.id ?? null;
     const promos = activePromosForMerchant(catalog, merchant.id);
     let total = 0;
     let matched = 0;
@@ -337,9 +362,7 @@ export function compareBasket(
     const confLines: { observedAt?: string | null; source?: string | null }[] = [];
 
     for (const item of items) {
-      const price = catalog.prices.find(
-        (p) => p.merchantId === merchant.id && p.productId === item.productId,
-      );
+      const price = priceForBranch(catalog, merchant.id, locId, item.productId);
       if (!price) continue;
       const line = price.priceCents * item.quantity;
       total += line;
@@ -372,6 +395,7 @@ export function compareBasket(
 
     return {
       merchantId: merchant.id,
+      locationId: locId,
       merchantName: merchant.name,
       branchName: merchant.location?.name ?? null,
       totalCents: total,
@@ -391,10 +415,19 @@ export function compareBasket(
   });
 
   if (!results.length) return [];
-  const bestNet = Math.min(...results.map((r) => r.netCents));
-  return results
-    .map((r) => ({ ...r, isRecommended: r.netCents === bestNet && r.coverage > 0 }))
-    .sort((a, b) => a.netCents - b.netCents);
+  const sorted = results
+    .slice()
+    .sort((a, b) => {
+      if (a.netCents !== b.netCents) return a.netCents - b.netCents;
+      const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+      const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+      return da - db;
+    });
+  const bestNet = sorted[0]?.netCents;
+  return sorted.map((r, i) => ({
+    ...r,
+    isRecommended: i === 0 && r.coverage > 0 && r.netCents === bestNet,
+  }));
 }
 
 export function compareRides(destination: string): RideQuote[] {

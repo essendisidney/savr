@@ -42,7 +42,9 @@ export default function MapPage() {
       const [catalog, fuel] = await Promise.all([loadCatalog(), loadFuelStations("petrol")]);
       const staples = defaultListFromCatalog(catalog);
       const basketRanks = staples.length ? compareBasket(catalog, staples) : [];
-      const byMerchant = new Map(basketRanks.map((r) => [r.merchantId, r]));
+      const byBranch = new Map(
+        basketRanks.map((r) => [`${r.merchantId}:${r.locationId ?? "none"}`, r]),
+      );
       const worstNet = basketRanks.length
         ? Math.max(...basketRanks.map((r) => r.netCents))
         : 0;
@@ -51,8 +53,13 @@ export default function MapPage() {
       const grocery: MapPoint[] = catalog.merchants
         .filter((m) => m.category === "grocery" && m.location?.lat != null && m.location?.lng != null)
         .map((m) => {
-          const rank = byMerchant.get(m.id);
-          const rankIndex = sortedGrocery.findIndex((r) => r.merchantId === m.id);
+          const branchKey = `${m.id}:${m.locationId ?? m.location?.id ?? "none"}`;
+          const rank = byBranch.get(branchKey);
+          const rankIndex = sortedGrocery.findIndex(
+            (r) =>
+              r.merchantId === m.id &&
+              (r.locationId ?? "none") === (m.locationId ?? m.location?.id ?? "none"),
+          );
           const tier: ValueTier =
             rankIndex >= 0 ? tierFromRank(rankIndex, sortedGrocery.length) : "neutral";
           const saveCents = rank ? Math.max(0, worstNet - rank.netCents) : 0;
@@ -63,7 +70,7 @@ export default function MapPage() {
                 ? `Basket ${formatKes(rank.netCents)}`
                 : null;
           return {
-            id: `m-${m.id}`,
+            id: `m-${branchKey}`,
             kind: "grocery" as const,
             name: m.name,
             subtitle: [

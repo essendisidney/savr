@@ -161,7 +161,7 @@ export async function loadCatalog(): Promise<Catalog> {
       supabase
         .from("merchant_prices")
         .select(
-          "merchant_id, product_id, price_cents, observed_at, source, prev_price_cents, prev_observed_at",
+          "merchant_id, location_id, product_id, price_cents, observed_at, source, prev_price_cents, prev_observed_at",
         ),
       supabase
         .from("cashback_rules")
@@ -188,27 +188,45 @@ export async function loadCatalog(): Promise<Catalog> {
     return fallbackCatalog;
   }
 
-  const locationByMerchant = new Map<string, Merchant["location"]>();
+  const merchantsById = new Map(merchantsRes.data.map((m) => [m.id, m]));
+  const merchants: Merchant[] = [];
   for (const row of locationsRes.data ?? []) {
-    if (locationByMerchant.has(row.merchant_id)) continue;
-    locationByMerchant.set(row.merchant_id, {
-      id: row.id,
-      merchantId: row.merchant_id,
-      name: row.name,
-      address: row.address,
-      lat: row.lat,
-      lng: row.lng,
-      city: row.city,
+    const chain = merchantsById.get(row.merchant_id);
+    if (!chain) continue;
+    merchants.push({
+      id: chain.id,
+      name: chain.name,
+      slug: chain.slug,
+      category: chain.category,
+      locationId: row.id,
+      location: {
+        id: row.id,
+        merchantId: row.merchant_id,
+        name: row.name,
+        address: row.address,
+        lat: row.lat,
+        lng: row.lng,
+        city: row.city,
+      },
+    });
+  }
+  // Chains with no location row still appear once (no geo).
+  for (const chain of merchantsRes.data) {
+    if (merchants.some((m) => m.id === chain.id)) continue;
+    merchants.push({
+      id: chain.id,
+      name: chain.name,
+      slug: chain.slug,
+      category: chain.category,
+      locationId: null,
+      location: null,
     });
   }
 
-  const merchants: Merchant[] = merchantsRes.data.map((m) => ({
-    ...m,
-    location: locationByMerchant.get(m.id) ?? null,
-  }));
   const products: Product[] = productsRes.data ?? [];
   const prices: MerchantPrice[] = (pricesRes.data ?? []).map((row) => ({
     merchantId: row.merchant_id,
+    locationId: (row as { location_id?: string | null }).location_id ?? null,
     productId: row.product_id,
     priceCents: row.price_cents,
     observedAt: (row as { observed_at?: string | null }).observed_at ?? null,
