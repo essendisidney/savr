@@ -9,6 +9,9 @@ import type {
   RideQuote,
 } from "./types";
 import { haversineKm, type GeoPoint } from "./geo";
+import { compareRidesForRoute } from "./rides";
+
+export { compareRidesForRoute } from "./rides";
 
 /** Classic Nairobi weekly shop — match by name so catalog order never breaks the wedge demo. */
 const WEEKLY_STAPLE_MATCHERS: { label: string; match: RegExp }[] = [
@@ -248,87 +251,6 @@ export function compareBasket(
 
 export function compareRides(destination: string): RideQuote[] {
   return compareRidesForRoute("Westlands", destination);
-}
-
-const NAIROBI_PLACES: Record<string, { lat: number; lng: number; baseFare: number }> = {
-  westlands: { lat: -1.2674, lng: 36.811, baseFare: 350 },
-  cbd: { lat: -1.2864, lng: 36.8172, baseFare: 320 },
-  airport: { lat: -1.3192, lng: 36.9275, baseFare: 900 },
-  jkia: { lat: -1.3192, lng: 36.9275, baseFare: 900 },
-  karen: { lat: -1.3195, lng: 36.715, baseFare: 700 },
-  kilimani: { lat: -1.2921, lng: 36.787, baseFare: 400 },
-  lavington: { lat: -1.277, lng: 36.768, baseFare: 450 },
-  eastleigh: { lat: -1.274, lng: 36.848, baseFare: 500 },
-  thika: { lat: -1.038, lng: 37.083, baseFare: 1200 },
-};
-
-function placeKey(label: string): string {
-  return label.trim().toLowerCase();
-}
-
-function resolvePlace(label: string): { lat: number; lng: number; baseFare: number } | null {
-  const key = placeKey(label);
-  if (NAIROBI_PLACES[key]) return NAIROBI_PLACES[key];
-  const hit = Object.entries(NAIROBI_PLACES).find(([k]) => key.includes(k) || k.includes(key));
-  return hit ? hit[1] : null;
-}
-
-function routeSeed(pickup: string, destination: string): number {
-  const s = `${placeKey(pickup)}→${placeKey(destination)}`;
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-/** Estimated Nairobi quotes — clearly labeled until partner APIs are live. */
-export function compareRidesForRoute(pickup: string, destination: string): RideQuote[] {
-  const from = resolvePlace(pickup);
-  const to = resolvePlace(destination);
-  let km = 8;
-  if (from && to) {
-    km = Math.max(1.5, haversineKm(from, to));
-  } else {
-    const seed = routeSeed(pickup, destination);
-    km = 4 + (seed % 18);
-  }
-
-  const perKm = 55;
-  const base = Math.round((320 + km * perKm) * 100); // cents
-  const seed = routeSeed(pickup, destination || "nairobi");
-  const destQ = encodeURIComponent(destination.trim() || "Nairobi");
-  const pickQ = encodeURIComponent(pickup.trim() || "Westlands");
-
-  const partners: Omit<RideQuote, "netCents" | "isEstimated">[] = [
-    {
-      partner: "Bolt",
-      priceCents: Math.round(base * (0.92 + ((seed % 5) * 0.01))),
-      etaMin: Math.max(3, Math.round(4 + km * 0.35)),
-      cashbackCents: 2000,
-      deepLink: `https://bolt.eu/en-ke/?pickup=${pickQ}&destination=${destQ}`,
-    },
-    {
-      partner: "Little",
-      priceCents: Math.round(base * (0.98 + ((seed % 7) * 0.012))),
-      etaMin: Math.max(4, Math.round(5 + km * 0.4)),
-      cashbackCents: 1500,
-      deepLink: `https://little.africa/?from=${pickQ}&to=${destQ}`,
-    },
-    {
-      partner: "Uber",
-      priceCents: Math.round(base * (1.05 + ((seed % 4) * 0.015))),
-      etaMin: Math.max(3, Math.round(4 + km * 0.38)),
-      cashbackCents: 1000,
-      deepLink: `https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${destQ}`,
-    },
-  ];
-
-  return partners
-    .map((p) => ({
-      ...p,
-      netCents: p.priceCents - p.cashbackCents,
-      isEstimated: true,
-    }))
-    .sort((a, b) => a.netCents - b.netCents);
 }
 
 /** What you paid at one store vs the best basket total elsewhere. */

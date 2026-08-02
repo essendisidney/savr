@@ -2,7 +2,7 @@
 
 **The Consumer Savings Operating System** — before you spend, Savr it.
 
-Monorepo for Phase 1 (Nairobi): groceries basket compare (wedge), ride quotes, fuel nearby, wallet, merchant portal shell.
+Monorepo for Phase 1 (Nairobi): groceries basket compare (wedge), ride quotes, fuel nearby, wallet, merchant portal, city map, invite gate.
 
 ## Docs
 
@@ -17,8 +17,8 @@ Monorepo for Phase 1 (Nairobi): groceries basket compare (wedge), ride quotes, f
 ## Structure
 
 ```
-apps/web      Next.js (React) — primary MVP UI with live compare demos
-apps/mobile  Flutter shell — install Flutter, then `flutter create .` to generate platforms
+apps/web      Next.js (React) — primary MVP UI
+apps/mobile  Flutter thin shell (Supabase-ready)
 supabase/    Migrations + config
 docs/        Product spine
 ```
@@ -40,7 +40,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Basket / rides / fuel use local seed logic so the product is demoable before Supabase is linked.
+Open [http://localhost:3000](http://localhost:3000). For local work without the invite wall, set `INVITE_GATE_ENABLED=false`.
 
 ### Env vars (`apps/web/.env.local`)
 
@@ -54,18 +54,30 @@ Open [http://localhost:3000](http://localhost:3000). Basket / rides / fuel use l
 | `SMS_BYPASS` | Server only | `true` logs OTP locally (dev only) |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | Client | Footer / beta banner support mailto |
 | `NEXT_PUBLIC_SUPPORT_WHATSAPP` | Client | Optional WhatsApp link (E.164 or wa.me) |
+| `INVITE_GATE_ENABLED` | Server | `false` disables middleware invite wall |
+| `INVITE_COOKIE_SECRET` | Server | Signs `savr_invite` cookie |
+| `MPESA_DRY_RUN` | Server | Default `true` — no money moved |
+| `MPESA_*` | Server | Daraja B2C keys when leaving dry-run |
 
 Mirror the same keys on Vercel (Production + Development). Never expose the service role key to the browser.
 
-Vercel Analytics + Speed Insights ship with the web app (no extra env). Client events (`track`) fire on OTP success, basket confirm, list share, redeem request, and fuel tip — no PII.
+Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
 
-## Soft-launch checklist (Nairobi open beta)
+### M-Pesa redeem (sandbox / dry-run)
 
-- [ ] SMS OTP live: `TAIFA_API_KEY`, `TAIFA_SENDER_ID`, `SUPABASE_SERVICE_ROLE_KEY` on Vercel
-- [ ] Support email (and optional WhatsApp) set via `NEXT_PUBLIC_SUPPORT_*`
-- [ ] Seed refresh cadence: grocery / fuel prices — crowdsource + periodic seed `observed_at`
-- [ ] Wallet redeem = **pending** (no M-Pesa disbursement yet; copy says so on Terms + banner)
-- [ ] Terms / Privacy linked from login + footer
+1. Keep `MPESA_DRY_RUN=true` until Daraja keys are pasted.
+2. Users request redeem → `redeem_requests` stay `pending`.
+3. Ops: `POST /api/mpesa/disburse` with `Authorization: Bearer $MPESA_DISBURSE_SECRET` (or service role).
+4. Dry-run marks requests `paid` with ledger note “no M-Pesa money moved”. Live mode waits for `/api/mpesa/b2c/result`.
+
+### Soft-launch checklist
+
+- [ ] SMS OTP live on Vercel
+- [ ] `INVITE_GATE_ENABLED` + `INVITE_COOKIE_SECRET` set
+- [ ] Support email / WhatsApp
+- [ ] Seed refresh cadence for grocery + fuel
+- [ ] M-Pesa: dry-run OK for beta; paste keys + set `MPESA_DRY_RUN=false` for real B2C
+- [ ] Terms / Privacy linked
 
 ## Supabase
 
@@ -73,23 +85,22 @@ Vercel Analytics + Speed Insights ship with the web app (no extra env). Client e
 2. From repo root: `supabase start` then `supabase db reset` (applies migrations + Nairobi seed).
 3. Copy API URL + anon key into `apps/web/.env.local`.
 
-Schema includes profiles, merchants, products, prices, shopping lists, basket compares, rides, fuel, promotions, cashback rules, wallet + ledger, OTP codes, crowdsource tips, and RLS. Nairobi grocery catalog is seeded across Naivas / Quickmart / Carrefour (~65 staples).
-
 ## Flutter
 
-Flutter SDK is not assumed on this machine. After installing Flutter:
-
 ```bash
+# SDK (once): clone stable Flutter, add bin to PATH
+# git clone https://github.com/flutter/flutter.git -b stable --depth 1
+
 cd apps/mobile
-flutter create . --project-name savr_mobile
+flutter create . --project-name savr_mobile --org app.savr
 flutter pub get
-flutter run
+flutter run --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
 
-`lib/main.dart` already contains the Phase 1 navigation shell (Home, Basket, Rides, Fuel, Wallet).
+`lib/main.dart` is a thin live shell (Home, Basket, Fuel, Wallet). Map/rides deep-link to the web app. Platform folders are generated locally (gitignored until you choose to commit them). No store submission in this pass.
 
 ## Phase 1 scope
 
-- **P0:** Basket compare, price compare, cashback ledger, thin merchant portal  
-- **P1:** Ride compare (deep-link/demo quotes), fuel nearby  
+- **P0:** Basket compare, price compare, cashback ledger, merchant portal (+ CSV), invite gate  
+- **P1:** Ride estimates (server surge heuristics), fuel nearby, city map (Leaflet), M-Pesa B2C dry-run  
 - **City:** Nairobi · **Goal:** 10,000 users · habit = weekly shop prep

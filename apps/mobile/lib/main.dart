@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+/// Thin live shell — set via --dart-define or leave empty for demo data.
+const supabaseUrl = String.fromEnvironment(
+  'SUPABASE_URL',
+  defaultValue: 'https://thmxbhpuomggphgdzllk.supabase.co',
+);
+const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (supabaseAnonKey.isNotEmpty) {
+    // ignore: deprecated_member_use
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  }
   runApp(const SavrApp());
 }
+
+bool get hasSupabase => supabaseAnonKey.isNotEmpty;
+
+SupabaseClient? get sb => hasSupabase ? Supabase.instance.client : null;
 
 class SavrApp extends StatelessWidget {
   const SavrApp({super.key});
@@ -13,7 +30,6 @@ class SavrApp extends StatelessWidget {
     const ink = Color(0xFF0B1F1A);
     const forest = Color(0xFF145C45);
     const sand = Color(0xFFF3EDE3);
-    const mint = Color(0xFFD8F3E7);
 
     return MaterialApp(
       title: 'Savr',
@@ -27,7 +43,7 @@ class SavrApp extends StatelessWidget {
         scaffoldBackgroundColor: sand,
         textTheme: GoogleFonts.dmSansTextTheme().apply(bodyColor: ink, displayColor: ink),
         appBarTheme: AppBarTheme(
-          backgroundColor: sand.withOpacity(0.9),
+          backgroundColor: sand.withValues(alpha: 0.9),
           foregroundColor: ink,
           elevation: 0,
           titleTextStyle: GoogleFonts.fraunces(fontSize: 28, color: ink),
@@ -49,16 +65,14 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int index = 0;
 
-  static const pages = [
-    _HomeTab(),
-    _BasketTab(),
-    _RidesTab(),
-    _FuelTab(),
-    _WalletTab(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      const _HomeTab(),
+      const _BasketTab(),
+      const _FuelTab(),
+      const _WalletTab(),
+    ];
     return Scaffold(
       body: SafeArea(child: pages[index]),
       bottomNavigationBar: NavigationBar(
@@ -67,7 +81,6 @@ class _HomeShellState extends State<HomeShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.shopping_basket_outlined), label: 'Basket'),
-          NavigationDestination(icon: Icon(Icons.local_taxi_outlined), label: 'Rides'),
           NavigationDestination(icon: Icon(Icons.local_gas_station_outlined), label: 'Fuel'),
           NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Wallet'),
         ],
@@ -89,13 +102,20 @@ class _HomeTab extends StatelessWidget {
           Text('Savr', style: GoogleFonts.fraunces(fontSize: 56, height: 1)),
           const SizedBox(height: 16),
           Text(
-            'Before you spend, check once.',
+            'Before you spend, Savr it.',
             style: GoogleFonts.fraunces(fontSize: 28, height: 1.2),
           ),
           const SizedBox(height: 12),
           Text(
-            'Nairobi Phase 1 — basket compare is the habit. Rides and fuel keep you coming back.',
-            style: TextStyle(color: Colors.black.withOpacity(0.65)),
+            hasSupabase
+                ? 'Connected to Supabase — basket, fuel, and wallet pull live Nairobi data.'
+                : 'Demo mode — pass SUPABASE_ANON_KEY via --dart-define to go live.',
+            style: TextStyle(color: Colors.black.withValues(alpha: 0.65)),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Map & rides live on the web app: https://savr-teal.vercel.app/map',
+            style: TextStyle(fontSize: 13),
           ),
         ],
       ),
@@ -103,30 +123,78 @@ class _HomeTab extends StatelessWidget {
   }
 }
 
-class _BasketTab extends StatelessWidget {
+class _BasketTab extends StatefulWidget {
   const _BasketTab();
 
   @override
+  State<_BasketTab> createState() => _BasketTabState();
+}
+
+class _BasketTabState extends State<_BasketTab> {
+  List<(String, String, String)> rows = const [
+    ('Carrefour', 'KES 3,960', 'Recommended · demo'),
+    ('Quickmart', 'KES 4,050', 'Demo'),
+    ('Naivas', 'KES 4,280', 'Demo'),
+  ];
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final client = sb;
+    if (client == null) return;
+    setState(() => loading = true);
+    try {
+      final merchants = await client
+          .from('merchants')
+          .select('id, name')
+          .eq('category', 'grocery')
+          .order('name');
+      final prices = await client.from('merchant_prices').select('merchant_id, price_cents');
+      final byMerchant = <String, int>{};
+      for (final p in prices as List) {
+        final id = p['merchant_id'] as String;
+        byMerchant[id] = (byMerchant[id] ?? 0) + (p['price_cents'] as int? ?? 0);
+      }
+      final next = <(String, String, String)>[];
+      for (final m in merchants as List) {
+        final id = m['id'] as String;
+        final name = m['name'] as String;
+        final cents = byMerchant[id] ?? 0;
+        final kes = (cents / 100).round();
+        next.add((
+          name,
+          cents > 0 ? 'KES ${kes.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}' : 'No prices',
+          cents > 0 ? '${byMerchant.length} stores ranked' : 'Add prices on web',
+        ));
+      }
+      next.sort((a, b) => a.$2.compareTo(b.$2));
+      if (next.isNotEmpty && mounted) setState(() => rows = next.take(8).toList());
+    } catch (_) {
+      // keep demo
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const rows = [
-      ('Carrefour', 'KES 3,960', 'Recommended · +KES 45 cashback'),
-      ('Quickmart', 'KES 4,050', '+KES 30 cashback'),
-      ('Naivas', 'KES 4,280', '+KES 20 cashback'),
-    ];
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
         Text('Basket compare', style: GoogleFonts.fraunces(fontSize: 32)),
         const SizedBox(height: 8),
-        const Text('Milk · Bread · Rice · Sugar · Soap · Oil'),
+        Text(loading ? 'Loading catalog…' : 'Live merchant totals (sum of listed SKUs)'),
         const SizedBox(height: 20),
         ...rows.map(
           (r) => Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
-            color: r.$3.startsWith('Recommended')
-                ? const Color(0xFFD8F3E7)
-                : Colors.white.withOpacity(0.5),
+            color: rows.indexOf(r) == 0 ? const Color(0xFFD8F3E7) : Colors.white.withValues(alpha: 0.5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -142,35 +210,47 @@ class _BasketTab extends StatelessWidget {
   }
 }
 
-class _RidesTab extends StatelessWidget {
-  const _RidesTab();
+class _FuelTab extends StatefulWidget {
+  const _FuelTab();
 
   @override
-  Widget build(BuildContext context) {
-    const rows = [
-      ('Bolt', 'KES 740', 'Save KES 150 · +KES 20'),
-      ('Little', 'KES 810', '+KES 15'),
-      ('Uber', 'KES 890', '+KES 10'),
-    ];
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text('Airport', style: GoogleFonts.fraunces(fontSize: 32)),
-        const SizedBox(height: 16),
-        ...rows.map(
-          (r) => ListTile(
-            title: Text(r.$1, style: GoogleFonts.fraunces(fontSize: 22)),
-            subtitle: Text(r.$3),
-            trailing: Text(r.$2, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ),
-      ],
-    );
-  }
+  State<_FuelTab> createState() => _FuelTabState();
 }
 
-class _FuelTab extends StatelessWidget {
-  const _FuelTab();
+class _FuelTabState extends State<_FuelTab> {
+  List<(String, String)> rows = const [
+    ('TotalEnergies', 'KES 179/L'),
+    ('Rubis', 'KES 180/L'),
+    ('Shell', 'KES 183/L'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final client = sb;
+    if (client == null) return;
+    try {
+      final stations = await client
+          .from('fuel_stations')
+          .select('name, brand, fuel_prices(price_cents_per_litre, fuel_type)')
+          .eq('is_active', true);
+      final next = <(String, String)>[];
+      for (final s in stations as List) {
+        final prices = s['fuel_prices'] as List? ?? [];
+        final petrol = prices.cast<Map>().where((p) => p['fuel_type'] == 'petrol').toList();
+        if (petrol.isEmpty) continue;
+        final cents = petrol.first['price_cents_per_litre'] as int;
+        final kes = (cents / 100).round();
+        next.add(('${s['name']}', 'KES $kes/L'));
+      }
+      next.sort((a, b) => a.$2.compareTo(b.$2));
+      if (next.isNotEmpty && mounted) setState(() => rows = next.take(12).toList());
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,16 +258,57 @@ class _FuelTab extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         Text('Fuel nearby', style: GoogleFonts.fraunces(fontSize: 32)),
-        const ListTile(title: Text('TotalEnergies'), trailing: Text('KES 179/L')),
-        const ListTile(title: Text('Rubis'), trailing: Text('KES 180/L')),
-        const ListTile(title: Text('Shell'), trailing: Text('KES 183/L')),
+        ...rows.map((r) => ListTile(title: Text(r.$1), trailing: Text(r.$2))),
       ],
     );
   }
 }
 
-class _WalletTab extends StatelessWidget {
+class _WalletTab extends StatefulWidget {
   const _WalletTab();
+
+  @override
+  State<_WalletTab> createState() => _WalletTabState();
+}
+
+class _WalletTabState extends State<_WalletTab> {
+  String balance = 'Sign in on web';
+  final phoneCtrl = TextEditingController();
+  final otpCtrl = TextEditingController();
+  String? status;
+
+  Future<void> _refreshWallet() async {
+    final client = sb;
+    final user = client?.auth.currentUser;
+    if (client == null || user == null) return;
+    try {
+      final row = await client
+          .from('wallet_accounts')
+          .select('cashback_cents')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+      final cents = row?['cashback_cents'] as int? ?? 0;
+      if (mounted) {
+        setState(() => balance = 'KES ${(cents / 100).round()}');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _sendOtp() async {
+    final client = sb;
+    if (client == null) {
+      setState(() => status = 'Set SUPABASE_ANON_KEY to enable auth');
+      return;
+    }
+    // Phone OTP is handled by Savr web API — open web for full Taifa flow.
+    setState(() => status = 'Use https://savr-teal.vercel.app/login for phone OTP, then paste session later.');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshWallet();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,10 +327,22 @@ class _WalletTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Savings cashback'),
-                Text('KES 80', style: GoogleFonts.fraunces(fontSize: 48)),
+                Text(balance, style: GoogleFonts.fraunces(fontSize: 48)),
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: phoneCtrl,
+            decoration: const InputDecoration(labelText: 'Phone (web OTP)'),
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 8),
+          FilledButton(onPressed: _sendOtp, child: const Text('How to sign in')),
+          if (status != null) ...[
+            const SizedBox(height: 8),
+            Text(status!, style: const TextStyle(fontSize: 13)),
+          ],
         ],
       ),
     );

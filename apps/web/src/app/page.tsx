@@ -54,6 +54,12 @@ export default function HomePage() {
               meta: "Single item",
             },
             {
+              title: "Map",
+              body: "See Nairobi groceries and fuel stations on one map — then get directions.",
+              href: "/map",
+              meta: "City",
+            },
+            {
               title: "Rides",
               body: "See Bolt, Uber, and Little side by side before you request.",
               href: "/rides",

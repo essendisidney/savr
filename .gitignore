@@ -11,6 +11,7 @@ build/
 .vscode/
 .vercel
 apps/web/.vercel
+.tools/
 apps/mobile/.dart_tool/
 apps/mobile/build/
 apps/mobile/.flutter-plugins

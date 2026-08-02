@@ -27,6 +27,7 @@ import {
   type MerchantSummary,
 } from "@/lib/merchant";
 import { loadCatalog } from "@/lib/catalog";
+import { csvTemplate, parsePriceCsv, type CsvPriceRow } from "@/lib/merchant-csv";
 import type { Product } from "@/lib/types";
 
 export default function MerchantPage() {
@@ -51,6 +52,7 @@ export default function MerchantPage() {
   const [promoProductId, setPromoProductId] = useState("");
   const [promoCategory, setPromoCategory] = useState("");
   const [promoEndsAt, setPromoEndsAt] = useState("");
+  const [csvRows, setCsvRows] = useState<CsvPriceRow[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -259,6 +261,59 @@ export default function MerchantPage() {
     }
     setStatus("Promotion deactivated.");
     if (selectedId) setPromotions(await loadPromotions(selectedId));
+  }
+
+  function downloadCsvTemplate() {
+    const blob = new Blob([csvTemplate(catalogProducts)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "savr-price-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function onCsvFile(file: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result ?? "");
+      setCsvRows(parsePriceCsv(text, catalogProducts));
+    };
+    reader.readAsText(file);
+  }
+
+  async function onConfirmCsv() {
+    if (!selectedId) return;
+    const valid = csvRows.filter((r) => !r.error && r.matchedProduct);
+    if (!valid.length) {
+      setStatus("No valid CSV rows to import.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    let ok = 0;
+    let fail = 0;
+    const existing = new Map(prices.map((p) => [p.productId, p]));
+    for (const row of valid) {
+      const productId = row.matchedProduct!.id;
+      const cents = Math.round(row.priceKes * 100);
+      const current = existing.get(productId);
+      const res = current
+        ? await updateMerchantPrice(current.id, cents)
+        : await addMerchantPrice({ merchantId: selectedId, productId, priceCents: cents });
+      if (res.error) fail += 1;
+      else ok += 1;
+    }
+    setBusy(false);
+    setStatus(`CSV import · ${ok} updated · ${fail} failed`);
+    setCsvRows([]);
+    const rows = await loadMerchantPrices(selectedId);
+    setPrices(rows);
+    const next: Record<string, string> = {};
+    for (const row of rows) next[row.id] = (row.priceCents / 100).toFixed(2);
+    setDrafts(next);
+    await refresh();
   }
 
   const categories = useMemo(() => {
@@ -754,6 +809,54 @@ export default function MerchantPage() {
                   <p className="mt-1 text-sm text-savr-mute">
                     Add catalog SKUs or edit prices — live on basket compare immediately.
                   </p>
+                </div>
+
+                <div className="space-y-3 border border-savr-ink/[0.08] bg-white p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-forest">
+                    Bulk CSV
+                  </p>
+                  <p className="text-sm text-savr-mute">
+                    Columns: product_id, sku_name, brand, price_kes — download a template, fill prices,
+                    upload.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={downloadCsvTemplate} className="btn-ghost text-sm">
+                      Download template
+                    </button>
+                    <label className="btn-dark cursor-pointer px-4 py-2.5 text-sm">
+                      Upload CSV
+                      <input
+                        type="file"
+                        accept=".csv,text/csv"
+                        className="hidden"
+                        onChange={(e) => onCsvFile(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    {csvRows.length > 0 && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={onConfirmCsv}
+                        className="btn-primary disabled:opacity-50"
+                      >
+                        Confirm {csvRows.filter((r) => !r.error).length} rows
+                      </button>
+                    )}
+                  </div>
+                  {csvRows.length > 0 && (
+                    <ul className="max-h-48 overflow-auto divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.06] text-sm">
+                      {csvRows.slice(0, 40).map((r) => (
+                        <li key={r.line} className="flex justify-between gap-2 px-3 py-2">
+                          <span>
+                            L{r.line} · {r.skuName || r.productId || "—"}
+                          </span>
+                          <span className={r.error ? "text-red-700" : "text-savr-forest"}>
+                            {r.error ?? `KES ${r.priceKes}`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="grid gap-3 border border-savr-ink/[0.08] bg-savr-mist/40 p-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end">

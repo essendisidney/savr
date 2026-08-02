@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { compareRidesForRoute, formatKes } from "@/lib/compare";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatKes } from "@/lib/compare";
 import { loadRideRouteDraft, saveRideRouteDraft } from "@/lib/ride-draft";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
 import { buildRideShare } from "@/lib/share";
+import { getSupabase } from "@/lib/supabase";
+import type { RideQuote } from "@/lib/types";
 
 const PRESETS = [
   "Westlands",
@@ -23,6 +25,9 @@ export default function RidesPage() {
   const [pickup, setPickup] = useState("Westlands");
   const [destination, setDestination] = useState("Airport");
   const [ready, setReady] = useState(false);
+  const [quotes, setQuotes] = useState<RideQuote[]>([]);
+  const [meta, setMeta] = useState<{ km: number; surge: number; label: string } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const draft = loadRideRouteDraft();
@@ -38,10 +43,56 @@ export default function RidesPage() {
     saveRideRouteDraft(pickup, destination);
   }, [ready, pickup, destination]);
 
-  const quotes = useMemo(
-    () => compareRidesForRoute(pickup, destination),
-    [pickup, destination],
-  );
+  const fetchQuotes = useCallback(async () => {
+    if (!destination.trim()) {
+      setQuotes([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const supabase = getSupabase();
+      if (supabase) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) {
+          headers.Authorization = `Bearer ${data.session.access_token}`;
+        }
+      }
+      const res = await fetch("/api/rides/quote", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ pickup, destination }),
+      });
+      const data = (await res.json()) as {
+        quotes?: RideQuote[];
+        km?: number;
+        surge?: number;
+        label?: string;
+        error?: string;
+      };
+      if (res.ok && data.quotes) {
+        setQuotes(data.quotes);
+        setMeta({
+          km: data.km ?? 0,
+          surge: data.surge ?? 1,
+          label: data.label ?? "Savr estimate · open partner app to confirm",
+        });
+      }
+    } catch {
+      // keep last quotes
+    } finally {
+      setLoading(false);
+    }
+  }, [pickup, destination]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => {
+      void fetchQuotes();
+    }, 200);
+    return () => clearTimeout(t);
+  }, [ready, fetchQuotes]);
+
   const best = quotes[0];
   const worst = quotes[quotes.length - 1];
   const saved = worst && best ? worst.netCents - best.netCents : 0;
@@ -158,7 +209,9 @@ export default function RidesPage() {
             </div>
 
             <p className="rounded-sm bg-savr-fog px-3 py-2 text-xs font-semibold text-savr-mute">
-              Estimated quotes · not live partner fares · route remembered on this device
+              {meta?.label ?? "Savr estimate · open partner app to confirm"}
+              {meta ? ` · ~${meta.km} km · surge ×${meta.surge}` : ""}
+              {loading ? " · updating…" : ""}
             </p>
 
             {best && (

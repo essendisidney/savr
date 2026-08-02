@@ -92,7 +92,9 @@ export default function WalletPage() {
       setStatus(res.error);
       return;
     }
-    setStatus("Redeem requested — marked pending until M-Pesa payouts go live.");
+    setStatus(
+      "Redeem requested — pending until M-Pesa B2C disburses (sandbox/dry-run until keys are live).",
+    );
     track("redeem_request", { amountKes: Math.round(cents / 100) });
     await refresh();
   }
@@ -203,8 +205,8 @@ export default function WalletPage() {
               <div>
                 <h2 className="font-display text-lg font-bold tracking-tightish">Redeem cashback</h2>
                 <p className="mt-1 text-sm text-savr-mute">
-                  Request a payout now — status stays <span className="font-semibold">pending</span>{" "}
-                  until M-Pesa partners go live. Min KES 50.
+                  Request a payout now — stays <span className="font-semibold">pending</span> until
+                  B2C marks it paid (dry-run pipeline available for ops). Min KES 50.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
