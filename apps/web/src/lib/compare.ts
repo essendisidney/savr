@@ -46,6 +46,8 @@ const WEEKLY_STAPLE_MATCHERS: { label: string; match: RegExp }[] = [
   { label: "Cooking Oil 2L", match: /cooking oil 2l/i },
   { label: "Eggs Tray 30", match: /eggs tray/i },
   { label: "Maize Flour 2kg", match: /maize flour 2kg/i },
+  { label: "Sukuma Wiki", match: /sukuma wiki/i },
+  { label: "Tomatoes 1kg", match: /^tomatoes 1kg$/i },
 ];
 
 /** One-tap adds beyond the default weekly set — short labels for the chip row. */
@@ -57,11 +59,11 @@ const QUICK_ADD_MATCHERS: { chip: string; match: RegExp }[] = [
   { chip: "Tomatoes", match: /^tomatoes 1kg$/i },
   { chip: "Onions", match: /^onions 1kg$/i },
   { chip: "Bananas", match: /^bananas 1kg$/i },
-  { chip: "Chicken", match: /chicken pieces/i },
+  { chip: "Chicken", match: /chicken (pieces|broiler)/i },
   { chip: "Yoghurt", match: /yoghurt/i },
   { chip: "Detergent", match: /laundry detergent/i },
-  { chip: "Tissue", match: /tissue paper/i },
-  { chip: "Noodles", match: /instant noodles/i },
+  { chip: "Tissue", match: /tissue (paper|rolls)/i },
+  { chip: "Noodles", match: /instant noodles|spaghetti 500g/i },
 ];
 
 export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
@@ -75,13 +77,13 @@ export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
     if (!product) continue;
     used.add(product.id);
     picked.push({ productId: product.id, freeText: product.name, quantity: 1 });
-    if (picked.length >= 6) break;
+    if (picked.length >= 10) break;
   }
 
   if (picked.length >= 4) return picked;
 
   // Fallback if seed names drift — keep a usable demo basket.
-  return catalog.products.slice(0, 6).map((p) => ({
+  return catalog.products.slice(0, 8).map((p) => ({
     productId: p.id,
     freeText: p.name,
     quantity: 1,

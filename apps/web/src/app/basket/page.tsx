@@ -148,6 +148,19 @@ function BasketInner() {
         }
       }
       if (!appliedShared) {
+        const forceStaples = searchParams.get("staples") === "1";
+        if (forceStaples) {
+          const staples = defaultListFromCatalog(c);
+          setItems(staples);
+          setListName("Weekly shop");
+          setStatus(
+            `Starter basket ready — ${staples.length} staples. Scroll to see where to shop.`,
+          );
+          track("starter_basket", { items: staples.length });
+          appliedShared = true;
+        }
+      }
+      if (!appliedShared) {
         const draft = loadBasketDraft();
         const hydrated = draft ? hydrateDraftAgainstCatalog(draft, ids) : null;
         if (hydrated) {
@@ -410,7 +423,10 @@ function BasketInner() {
                       onClick={() => {
                         setItems(defaultListFromCatalog(catalog));
                         setListName("Weekly shop");
-                        setStatus("Loaded weekly staples — milk, bread, rice, sugar, soap, oil.");
+                        setStatus(
+                          "Loaded weekly staples — milk, bread, rice, sugar, soap, oil, eggs, ugali…",
+                        );
+                        track("starter_basket", { items: 10, via: "chip" });
                       }}
                       className="text-xs font-semibold text-savr-forest hover:underline"
                     >
@@ -532,7 +548,10 @@ function BasketInner() {
                             onClick={() => {
                               setItems(defaultListFromCatalog(catalog));
                               setListName("Weekly shop");
-                              setStatus("Loaded weekly staples — milk, bread, rice, sugar, soap, oil.");
+                              setStatus(
+                                "Loaded weekly staples — milk, bread, rice, sugar, soap, oil, eggs, ugali…",
+                              );
+                              track("starter_basket", { items: 10, via: "empty" });
                             }}
                             className="btn-primary"
                           >

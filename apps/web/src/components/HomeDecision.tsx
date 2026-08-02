@@ -303,6 +303,21 @@ export function HomeDecision() {
           </div>
         </form>
 
+        <Link
+          href="/basket?staples=1"
+          className="animate-rise-delay-2 mt-4 flex items-center justify-between gap-3 rounded-card-lg border border-savr-forest/20 bg-savr-forest/[0.06] px-4 py-3.5 transition duration-soft hover:border-savr-forest/40 hover:bg-savr-forest/[0.1]"
+        >
+          <span>
+            <span className="block text-sm font-bold text-savr-ink">
+              Compare this week&apos;s staples
+            </span>
+            <span className="mt-0.5 block text-xs text-savr-mute">
+              Milk, bread, rice, sugar, oil… — one tap, ranks every branch
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-semibold text-savr-forest">Go →</span>
+        </Link>
+
         <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
           I want to…
         </p>

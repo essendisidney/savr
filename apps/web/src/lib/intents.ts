@@ -11,7 +11,7 @@ export const SPEND_INTENTS: SpendIntent[] = [
   {
     id: "family",
     label: "Feed my family",
-    href: "/basket",
+    href: "/basket?staples=1",
     hint: "Compare a full grocery basket",
   },
   {
@@ -59,7 +59,7 @@ export const SPEND_INTENTS: SpendIntent[] = [
   {
     id: "bills",
     label: "Pay less this week",
-    href: "/basket",
+    href: "/basket?staples=1",
     hint: "Start with the weekly staples list",
   },
 ];
@@ -90,7 +90,7 @@ export function routeAskQuery(raw: string): string {
     return "/map";
   }
   if (/\b(family|basket|grocer|weekly shop|feed|staples|milk|bread|rice)\b/.test(q)) {
-    return "/basket";
+    return "/basket?staples=1";
   }
   if (/\b(missed|could i|receipt|after)\b/.test(q)) {
     return "/check";

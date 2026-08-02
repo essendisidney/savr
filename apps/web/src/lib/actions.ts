@@ -42,6 +42,7 @@ export type ActivityItem = {
 
 const ACTIVITY_LABELS: Record<string, string> = {
   basket_lock: "Locked a basket",
+  starter_basket: "Started weekly staples",
   shop_receipt: "Logged a shop",
   price_tip: "Tipped a shelf price",
   fuel_tip: "Tipped a fuel price",
