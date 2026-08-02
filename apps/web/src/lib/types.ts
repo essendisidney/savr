@@ -34,6 +34,8 @@ export type MerchantPrice = {
   merchantId: string;
   productId: string;
   priceCents: number;
+  observedAt?: string | null;
+  source?: string | null;
 };
 
 export type CashbackRule = {
@@ -116,6 +118,8 @@ export type FuelStation = {
   lat: number | null;
   lng: number | null;
   mapsUrl: string | null;
+  observedAt?: string | null;
+  source?: string | null;
 };
 
 export type ProductPriceResult = {
@@ -128,4 +132,6 @@ export type ProductPriceResult = {
   isCheapest: boolean;
   mapsUrl: string;
   distanceKm: number | null;
+  observedAt?: string | null;
+  source?: string | null;
 };

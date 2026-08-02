@@ -37,6 +37,7 @@ import { PageHero } from "@/components/PageHero";
 import { RankList } from "@/components/RankList";
 import { SavingsMoment } from "@/components/SavingsMoment";
 import { buildBasketShare, sharePayload } from "@/lib/share";
+import { track } from "@/lib/track";
 
 export default function BasketPage() {
   return (
@@ -291,6 +292,7 @@ function BasketInner() {
     if (result === "shared") setStatus("List shared — no sign-in needed for them to open it.");
     else if (result === "copied") setStatus("Share link copied.");
     else setStatus(`Share link: ${url}`);
+    track("list_share", { via: "draft", items: items.length });
   }
 
   async function choose(merchantId: string) {
@@ -316,6 +318,7 @@ function BasketInner() {
       return;
     }
     setStatus("Locked in — share your save or see it in Savings.");
+    track("basket_confirm", { followed: merchantId === recommended.merchantId });
     refreshLists();
   }
 
@@ -569,6 +572,9 @@ function BasketInner() {
 
                 <p className="text-xs text-savr-mute">
                   Catalog · {catalog.products.length} products · {catalog.source}
+                  {catalog.source === "supabase"
+                    ? " · tips refresh prices; stale rows marked on /prices"
+                    : ""}
                 </p>
               </section>
 

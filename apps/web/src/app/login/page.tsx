@@ -423,7 +423,15 @@ export default function LoginPage() {
           )}
 
           <p className="mt-8 text-center text-xs text-savr-mute">
-            By continuing you agree to Savr’s savings-first habit — check before you spend.{" "}
+            By continuing you agree to our{" "}
+            <Link href="/terms" className="font-semibold text-savr-forest hover:underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="font-semibold text-savr-forest hover:underline">
+              Privacy
+            </Link>
+            .{" "}
             <Link href="/" className="font-semibold text-savr-forest hover:underline">
               Back home
             </Link>

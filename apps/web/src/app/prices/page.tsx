@@ -7,6 +7,7 @@ import { submitCrowdsourcePrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { compareProduct, formatKes } from "@/lib/compare";
+import { formatPriceFreshness } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
 import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -306,6 +307,24 @@ function PricesInner() {
                                     : `+${formatKes(r.deltaCents)} vs cheapest`}
                                   {dist ? ` · ${dist}` : ""}
                                 </p>
+                                {(() => {
+                                  const fresh = formatPriceFreshness(r.observedAt, r.source);
+                                  return (
+                                    <p
+                                      className={`mt-0.5 text-[11px] ${
+                                        fresh.stale
+                                          ? r.isCheapest
+                                            ? "text-savr-signal/80"
+                                            : "text-amber-800"
+                                          : r.isCheapest
+                                            ? "text-white/55"
+                                            : "text-savr-mute"
+                                      }`}
+                                    >
+                                      {fresh.label}
+                                    </p>
+                                  );
+                                })()}
                               </div>
                             </div>
                             <p

@@ -13,6 +13,7 @@ import { formatKes } from "@/lib/compare";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { buildLifetimeShare, sharePayload } from "@/lib/share";
+import { track } from "@/lib/track";
 
 type LedgerRow = {
   note: string | null;
@@ -92,6 +93,7 @@ export default function WalletPage() {
       return;
     }
     setStatus("Redeem requested — marked pending until M-Pesa payouts go live.");
+    track("redeem_request", { amountKes: Math.round(cents / 100) });
     await refresh();
   }
 

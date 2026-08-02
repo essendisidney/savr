@@ -142,6 +142,8 @@ export function compareProduct(
         priceCents: price.priceCents,
         mapsUrl: mapsUrlForMerchant(merchant, origin),
         distanceKm: distanceForMerchant(merchant, origin),
+        observedAt: price.observedAt ?? null,
+        source: price.source ?? null,
       };
     })
     .filter(
@@ -155,6 +157,8 @@ export function compareProduct(
         priceCents: number;
         mapsUrl: string;
         distanceKm: number | null;
+        observedAt: string | null;
+        source: string | null;
       } => row !== null,
     )
     .sort((a, b) => a.priceCents - b.priceCents);

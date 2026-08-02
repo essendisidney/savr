@@ -10,16 +10,20 @@ import {
   addMerchantPrice,
   claimMerchant,
   createMerchant,
+  createPromotion,
+  deactivatePromotion,
   fetchMyMerchantIds,
   listMerchants,
   loadCashbackRule,
   loadMerchantAnalytics,
   loadMerchantPrices,
+  loadPromotions,
   saveCashbackRule,
   updateMerchantPrice,
   type ManagedPrice,
   type MerchantAnalytics,
   type MerchantCashbackRule,
+  type MerchantPromotion,
   type MerchantSummary,
 } from "@/lib/merchant";
 import { loadCatalog } from "@/lib/catalog";
@@ -34,12 +38,19 @@ export default function MerchantPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [cashback, setCashback] = useState<MerchantCashbackRule | null>(null);
   const [analytics, setAnalytics] = useState<MerchantAnalytics | null>(null);
+  const [promotions, setPromotions] = useState<MerchantPromotion[]>([]);
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
   const [newName, setNewName] = useState("");
   const [newBranch, setNewBranch] = useState("");
   const [newAddress, setNewAddress] = useState("");
   const [addProductId, setAddProductId] = useState("");
   const [addPriceKes, setAddPriceKes] = useState("");
+  const [promoTitle, setPromoTitle] = useState("");
+  const [promoPercent, setPromoPercent] = useState("");
+  const [promoFlatKes, setPromoFlatKes] = useState("");
+  const [promoProductId, setPromoProductId] = useState("");
+  const [promoCategory, setPromoCategory] = useState("");
+  const [promoEndsAt, setPromoEndsAt] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,13 +74,15 @@ export default function MerchantPage() {
       setDrafts({});
       setCashback(null);
       setAnalytics(null);
+      setPromotions([]);
       return;
     }
     Promise.all([
       loadMerchantPrices(selectedId),
       loadCashbackRule(selectedId),
       loadMerchantAnalytics(selectedId),
-    ]).then(([rows, rule, stats]) => {
+      loadPromotions(selectedId),
+    ]).then(([rows, rule, stats, promos]) => {
       setPrices(rows);
       const next: Record<string, string> = {};
       for (const row of rows) {
@@ -79,6 +92,7 @@ export default function MerchantPage() {
       setCashback(rule);
       if ("error" in stats) setAnalytics(null);
       else setAnalytics(stats);
+      setPromotions(promos);
     });
   }, [selectedId, myIds]);
 
@@ -198,11 +212,62 @@ export default function MerchantPage() {
       setStatus(res.error);
       return;
     }
-    const refreshed = await loadCashbackRule(selectedId);
-    setCashback(refreshed);
-    setStatus("Cashback offer live — basket rankings will use it.");
-    await refresh();
+    setStatus("Cashback published.");
+    setCashback(await loadCashbackRule(selectedId));
   }
+
+  async function onCreatePromo() {
+    if (!selectedId) return;
+    const percentRaw = promoPercent.trim() ? Number(promoPercent) : null;
+    const flatRaw = promoFlatKes.trim() ? Number(promoFlatKes) : null;
+    setBusy(true);
+    setStatus(null);
+    const res = await createPromotion({
+      merchantId: selectedId,
+      title: promoTitle,
+      discountPercent:
+        percentRaw != null && Number.isFinite(percentRaw) ? percentRaw : null,
+      flatCents:
+        flatRaw != null && Number.isFinite(flatRaw) ? Math.round(flatRaw * 100) : null,
+      productId: promoProductId || null,
+      category: promoCategory || null,
+      endsAt: promoEndsAt ? new Date(`${promoEndsAt}T23:59:59`).toISOString() : null,
+    });
+    setBusy(false);
+    if (res.error) {
+      setStatus(res.error);
+      return;
+    }
+    setPromoTitle("");
+    setPromoPercent("");
+    setPromoFlatKes("");
+    setPromoProductId("");
+    setPromoCategory("");
+    setPromoEndsAt("");
+    setStatus("Promotion live — partners can see it on your portal (ranking not applied yet).");
+    setPromotions(await loadPromotions(selectedId));
+  }
+
+  async function onDeactivatePromo(id: string) {
+    setBusy(true);
+    setStatus(null);
+    const res = await deactivatePromotion(id);
+    setBusy(false);
+    if (res.error) {
+      setStatus(res.error);
+      return;
+    }
+    setStatus("Promotion deactivated.");
+    if (selectedId) setPromotions(await loadPromotions(selectedId));
+  }
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of catalogProducts) {
+      if (p.category) set.add(p.category);
+    }
+    return Array.from(set).sort();
+  }, [catalogProducts]);
 
   if (loading || authLoading) {
     return (
@@ -531,6 +596,156 @@ export default function MerchantPage() {
                     </p>
                   </div>
                 </div>
+
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                    Partner promos
+                  </p>
+                  <h2 className="mt-1 font-display text-2xl font-bold tracking-tightish">
+                    Promotions · {selected.name}
+                  </h2>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    Label-ready offers for partners — not yet applied to consumer ranking.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 border border-savr-ink/[0.08] bg-white p-4 sm:grid-cols-2 sm:p-5">
+                  <label className="block sm:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Title
+                    </span>
+                    <input
+                      value={promoTitle}
+                      onChange={(e) => setPromoTitle(e.target.value)}
+                      className="field mt-1.5"
+                      placeholder="Weekend pasta deal"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Discount %
+                    </span>
+                    <input
+                      value={promoPercent}
+                      onChange={(e) => setPromoPercent(e.target.value)}
+                      className="field mt-1.5"
+                      inputMode="decimal"
+                      placeholder="10"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Flat off (KES)
+                    </span>
+                    <input
+                      value={promoFlatKes}
+                      onChange={(e) => setPromoFlatKes(e.target.value)}
+                      className="field mt-1.5"
+                      inputMode="numeric"
+                      placeholder="50"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Product
+                    </span>
+                    <select
+                      value={promoProductId}
+                      onChange={(e) => setPromoProductId(e.target.value)}
+                      className="field mt-1.5"
+                    >
+                      <option value="">All catalog</option>
+                      {catalogProducts.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                          {p.brand ? ` · ${p.brand}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Category
+                    </span>
+                    <select
+                      value={promoCategory}
+                      onChange={(e) => setPromoCategory(e.target.value)}
+                      className="field mt-1.5"
+                    >
+                      <option value="">Any</option>
+                      {categories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Ends
+                    </span>
+                    <input
+                      type="date"
+                      value={promoEndsAt}
+                      onChange={(e) => setPromoEndsAt(e.target.value)}
+                      className="field mt-1.5"
+                    />
+                  </label>
+                  <div className="sm:col-span-2">
+                    <button
+                      type="button"
+                      disabled={busy || !promoTitle.trim()}
+                      onClick={onCreatePromo}
+                      className="btn-primary disabled:opacity-50"
+                    >
+                      {busy ? "Saving…" : "Create promotion"}
+                    </button>
+                  </div>
+                </div>
+
+                <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                  {promotions.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {p.title}
+                          {!p.isActive ? (
+                            <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-savr-mute">
+                              inactive
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-xs text-savr-mute">
+                          {p.discountPercent != null ? `${p.discountPercent}%` : null}
+                          {p.discountPercent != null && p.description ? " · " : null}
+                          {p.description}
+                          {p.productName ? ` · ${p.productName}` : " · all catalog"}
+                          {p.endsAt
+                            ? ` · ends ${new Date(p.endsAt).toLocaleDateString("en-KE")}`
+                            : ""}
+                        </p>
+                      </div>
+                      {p.isActive ? (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => onDeactivatePromo(p.id)}
+                          className="btn-dark px-3 py-2 text-xs disabled:opacity-50"
+                        >
+                          Deactivate
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                  {promotions.length === 0 && (
+                    <li className="px-4 py-8 text-center text-sm text-savr-mute">
+                      No promotions yet — create one above for partner inventory.
+                    </li>
+                  )}
+                </ul>
 
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">

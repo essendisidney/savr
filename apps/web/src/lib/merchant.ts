@@ -239,6 +239,102 @@ export async function saveCashbackRule(
   return {};
 }
 
+export type MerchantPromotion = {
+  id: string;
+  title: string;
+  description: string | null;
+  discountPercent: number | null;
+  productId: string | null;
+  productName: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+};
+
+export async function loadPromotions(merchantId: string): Promise<MerchantPromotion[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("promotions")
+    .select("id, title, description, discount_percent, product_id, ends_at, is_active, products(name)")
+    .eq("merchant_id", merchantId)
+    .order("starts_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row) => {
+    const productRaw = row.products as unknown;
+    const product = (Array.isArray(productRaw) ? productRaw[0] : productRaw) as {
+      name: string;
+    } | null;
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description ?? null,
+      discountPercent: row.discount_percent != null ? Number(row.discount_percent) : null,
+      productId: row.product_id ?? null,
+      productName: product?.name ?? null,
+      endsAt: row.ends_at ?? null,
+      isActive: row.is_active,
+    };
+  });
+}
+
+export async function createPromotion(params: {
+  merchantId: string;
+  title: string;
+  discountPercent?: number | null;
+  flatCents?: number | null;
+  productId?: string | null;
+  category?: string | null;
+  endsAt?: string | null;
+}): Promise<{ error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const title = params.title.trim();
+  if (!title) return { error: "Promotion title is required." };
+
+  const percent =
+    params.discountPercent != null && Number.isFinite(params.discountPercent)
+      ? Math.min(100, Math.max(0, params.discountPercent))
+      : null;
+  const flat =
+    params.flatCents != null && Number.isFinite(params.flatCents) && params.flatCents > 0
+      ? Math.round(params.flatCents)
+      : null;
+
+  if (percent == null && flat == null) {
+    return { error: "Set a % discount or a flat KES amount." };
+  }
+
+  const notes: string[] = [];
+  if (flat != null) notes.push(`Flat ${Math.round(flat / 100)} KES off`);
+  if (params.category?.trim()) notes.push(`Category: ${params.category.trim()}`);
+
+  const { error } = await supabase.from("promotions").insert({
+    merchant_id: params.merchantId,
+    title,
+    description: notes.length ? notes.join(" · ") : null,
+    discount_percent: percent,
+    product_id: params.productId || null,
+    ends_at: params.endsAt || null,
+    is_active: true,
+  });
+
+  return error ? { error: error.message } : {};
+}
+
+export async function deactivatePromotion(promoId: string): Promise<{ error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+  const { error } = await supabase
+    .from("promotions")
+    .update({ is_active: false })
+    .eq("id", promoId);
+  return error ? { error: error.message } : {};
+}
+
 export type MerchantAnalytics = {
   impressions: number;
   recommended: number;

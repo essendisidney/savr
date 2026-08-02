@@ -52,8 +52,20 @@ Open [http://localhost:3000](http://localhost:3000). Basket / rides / fuel use l
 | `TAIFA_API_KEY` | Server only | Taifa Mobile SMS send |
 | `TAIFA_SENDER_ID` | Server only | SMS sender (e.g. `SIDNET`) |
 | `SMS_BYPASS` | Server only | `true` logs OTP locally (dev only) |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Client | Footer / beta banner support mailto |
+| `NEXT_PUBLIC_SUPPORT_WHATSAPP` | Client | Optional WhatsApp link (E.164 or wa.me) |
 
 Mirror the same keys on Vercel (Production + Development). Never expose the service role key to the browser.
+
+Vercel Analytics + Speed Insights ship with the web app (no extra env). Client events (`track`) fire on OTP success, basket confirm, list share, redeem request, and fuel tip — no PII.
+
+## Soft-launch checklist (Nairobi open beta)
+
+- [ ] SMS OTP live: `TAIFA_API_KEY`, `TAIFA_SENDER_ID`, `SUPABASE_SERVICE_ROLE_KEY` on Vercel
+- [ ] Support email (and optional WhatsApp) set via `NEXT_PUBLIC_SUPPORT_*`
+- [ ] Seed refresh cadence: grocery / fuel prices — crowdsource + periodic seed `observed_at`
+- [ ] Wallet redeem = **pending** (no M-Pesa disbursement yet; copy says so on Terms + banner)
+- [ ] Terms / Privacy linked from login + footer
 
 ## Supabase
 

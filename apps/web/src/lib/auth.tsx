@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabase } from "./supabase";
+import { track } from "./track";
 
 type AuthState = {
   user: User | null;
@@ -151,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         access_token: data.access_token,
         refresh_token: data.refresh_token,
       });
+      if (!error) track("phone_otp_success");
       return error?.message ?? null;
     } catch (e) {
       return e instanceof Error ? e.message : "Verification failed";

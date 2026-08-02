@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import { loadFuelPrefsDraft, saveFuelPrefsDraft } from "@/lib/fuel-draft";
+import { formatPriceFreshness } from "@/lib/freshness";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
+import { track } from "@/lib/track";
 import type { FuelStation, FuelType } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -239,6 +241,24 @@ export default function FuelPage() {
                               Cashback {formatKes(s.cashbackCents)} · Net{" "}
                               {formatKes(s.priceCentsPerLitre - s.cashbackCents)}/L
                             </p>
+                            {(() => {
+                              const fresh = formatPriceFreshness(s.observedAt, s.source);
+                              return (
+                                <p
+                                  className={`mt-0.5 text-[11px] ${
+                                    fresh.stale
+                                      ? i === 0
+                                        ? "text-savr-signal/80"
+                                        : "text-amber-800"
+                                      : i === 0
+                                        ? "text-white/55"
+                                        : "text-savr-mute"
+                                  }`}
+                                >
+                                  {fresh.label}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
                         <p className="font-display text-2xl font-bold tabular-nums">
@@ -321,6 +341,7 @@ export default function FuelPage() {
                     }
                     setTipStatus("Thanks — pump tip saved. Ranks refresh below.");
                     setTipPrice("");
+                    track("fuel_tip", { fuelType });
                     await reloadStations();
                   }}
                 >

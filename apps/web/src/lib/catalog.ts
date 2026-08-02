@@ -100,7 +100,9 @@ export async function loadCatalog(): Promise<Catalog> {
   const [merchantsRes, productsRes, pricesRes, rulesRes, locationsRes] = await Promise.all([
     supabase.from("merchants").select("id, name, slug, category").eq("category", "grocery"),
     supabase.from("products").select("id, name, brand, category, unit").order("name"),
-    supabase.from("merchant_prices").select("merchant_id, product_id, price_cents"),
+    supabase
+      .from("merchant_prices")
+      .select("merchant_id, product_id, price_cents, observed_at, source"),
     supabase
       .from("cashback_rules")
       .select("merchant_id, flat_cents, min_basket_cents")
@@ -143,6 +145,8 @@ export async function loadCatalog(): Promise<Catalog> {
     merchantId: row.merchant_id,
     productId: row.product_id,
     priceCents: row.price_cents,
+    observedAt: (row as { observed_at?: string | null }).observed_at ?? null,
+    source: (row as { source?: string | null }).source ?? null,
   }));
   const cashbackRules: CashbackRule[] = (rulesRes.data ?? []).map((row) => ({
     merchantId: row.merchant_id,
@@ -163,7 +167,7 @@ export async function loadFuelStations(
 
   const { data, error } = await supabase
     .from("fuel_stations")
-    .select("id, name, brand, lat, lng, address, fuel_prices(price_cents_per_litre, fuel_type, observed_at)")
+    .select("id, name, brand, lat, lng, address, fuel_prices(price_cents_per_litre, fuel_type, observed_at, source)")
     .eq("is_active", true);
 
   if (error || !data?.length) {
@@ -173,7 +177,12 @@ export async function loadFuelStations(
   const stations = data
     .map((s) => {
       const prices =
-        ((s.fuel_prices as { price_cents_per_litre: number; fuel_type: string; observed_at?: string }[] | null) ?? [])
+        ((s.fuel_prices as {
+          price_cents_per_litre: number;
+          fuel_type: string;
+          observed_at?: string;
+          source?: string;
+        }[] | null) ?? [])
           .slice()
           .sort((a, b) => String(b.observed_at ?? "").localeCompare(String(a.observed_at ?? "")));
       const match =
@@ -198,6 +207,8 @@ export async function loadFuelStations(
             : s.address
               ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.name}, ${s.address}, Nairobi`)}`
               : null,
+        observedAt: match.observed_at ?? null,
+        source: match.source ?? null,
       };
       return station;
     })
@@ -212,68 +223,135 @@ export async function loadFuelStations(
 }
 
 function loadFuelStationsFallback(fuelType: FuelType = "petrol") {
-  const petrol: FuelStation[] = [
+  const now = new Date().toISOString();
+  const petrolSeed: {
+    id: string;
+    name: string;
+    brand: string;
+    price: number;
+    diesel: number;
+    lat: number;
+    lng: number;
+    cashback: number;
+  }[] = [
     {
-      id: "fallback-total",
+      id: "fallback-total-kilimani",
       name: "Total Kilimani",
       brand: "TotalEnergies",
-      fuelType: "petrol",
-      priceCentsPerLitre: 17900,
-      cashbackCents: 1500,
-      distanceKm: null,
+      price: 17900,
+      diesel: 16650,
       lat: -1.29,
       lng: 36.788,
-      mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.29,36.788",
+      cashback: 1500,
     },
     {
-      id: "fallback-rubis",
+      id: "fallback-rubis-westlands",
       name: "Rubis Westlands",
       brand: "Rubis",
-      fuelType: "petrol",
-      priceCentsPerLitre: 18000,
-      cashbackCents: 1000,
-      distanceKm: null,
+      price: 18000,
+      diesel: 16800,
       lat: -1.265,
       lng: 36.804,
-      mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.265,36.804",
+      cashback: 1000,
     },
     {
-      id: "fallback-shell",
+      id: "fallback-shell-junction",
       name: "Shell Junction",
       brand: "Shell",
-      fuelType: "petrol",
-      priceCentsPerLitre: 18300,
-      cashbackCents: 1200,
-      distanceKm: null,
+      price: 18300,
+      diesel: 17100,
       lat: -1.3,
       lng: 36.78,
-      mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.3,36.78",
+      cashback: 1200,
+    },
+    {
+      id: "fallback-rubis-abc",
+      name: "Rubis ABC Place",
+      brand: "Rubis",
+      price: 18100,
+      diesel: 16900,
+      lat: -1.2608,
+      lng: 36.7925,
+      cashback: 1000,
+    },
+    {
+      id: "fallback-shell-sarit",
+      name: "Shell Sarit",
+      brand: "Shell",
+      price: 18250,
+      diesel: 17050,
+      lat: -1.2615,
+      lng: 36.8028,
+      cashback: 1200,
+    },
+    {
+      id: "fallback-total-westlands",
+      name: "Total Westlands",
+      brand: "TotalEnergies",
+      price: 18050,
+      diesel: 16850,
+      lat: -1.2682,
+      lng: 36.8075,
+      cashback: 1500,
+    },
+    {
+      id: "fallback-shell-yaya",
+      name: "Shell Yaya",
+      brand: "Shell",
+      price: 18200,
+      diesel: 17000,
+      lat: -1.2928,
+      lng: 36.7885,
+      cashback: 1200,
+    },
+    {
+      id: "fallback-rubis-cbd",
+      name: "Rubis CBD",
+      brand: "Rubis",
+      price: 18400,
+      diesel: 17200,
+      lat: -1.2868,
+      lng: 36.8255,
+      cashback: 1000,
+    },
+    {
+      id: "fallback-total-eastleigh",
+      name: "Total Eastleigh",
+      brand: "TotalEnergies",
+      price: 17980,
+      diesel: 16720,
+      lat: -1.2755,
+      lng: 36.8485,
+      cashback: 1500,
+    },
+    {
+      id: "fallback-shell-embakasi",
+      name: "Shell Embakasi",
+      brand: "Shell",
+      price: 18120,
+      diesel: 16880,
+      lat: -1.318,
+      lng: 36.895,
+      cashback: 1200,
     },
   ];
 
-  if (fuelType === "petrol") {
-    return { source: "fallback" as const, stations: petrol };
-  }
+  const stations: FuelStation[] = petrolSeed
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      brand: s.brand,
+      fuelType,
+      priceCentsPerLitre: fuelType === "diesel" ? s.diesel : s.price,
+      cashbackCents: fuelType === "diesel" ? Math.min(s.cashback, 1200) : s.cashback,
+      distanceKm: null,
+      lat: s.lat,
+      lng: s.lng,
+      mapsUrl: `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`,
+      observedAt: now,
+      source: "fallback",
+    }))
+    .sort((a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre);
 
-  const diesel: FuelStation[] = [
-    {
-      ...petrol[0],
-      fuelType: "diesel",
-      priceCentsPerLitre: 16650,
-      cashbackCents: 1200,
-    },
-    {
-      ...petrol[1],
-      fuelType: "diesel",
-      priceCentsPerLitre: 16800,
-      cashbackCents: 1000,
-    },
-    {
-      ...petrol[2],
-      fuelType: "diesel",
-      priceCentsPerLitre: 17100,
-      cashbackCents: 1100,
-    },
-  ];
-  return { source: "fallback" as const, stations: diesel };
+  return { source: "fallback" as const, stations };
 }

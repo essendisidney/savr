@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppNav } from "@/components/AppNav";
+import { BetaBanner } from "@/components/BetaBanner";
 import { BottomNav } from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { PwaRegister } from "@/components/PwaRegister";
 import { Providers } from "@/components/Providers";
+import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -55,13 +59,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <Providers>
           <div className="grain-bg min-h-screen">
+            <BetaBanner />
             <AppNav />
             <main>{children}</main>
+            <SiteFooter />
             <BottomNav />
             <InstallPrompt />
             <PwaRegister />
           </div>
         </Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
