@@ -69,7 +69,8 @@ export async function confirmBasketChoice(params: {
   const { error: resultsError } = await supabase.from("basket_compare_results").insert(resultRows);
   if (resultsError) return { error: resultsError.message };
 
-  if (params.cashbackCents > 0) {
+  const followedRecommended = params.chosenMerchantId === params.recommendedMerchantId;
+  if (params.cashbackCents > 0 && followedRecommended) {
     const { error: creditError } = await supabase.rpc("credit_cashback", {
       p_profile_id: user.id,
       p_amount_cents: params.cashbackCents,

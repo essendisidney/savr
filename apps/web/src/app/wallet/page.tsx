@@ -122,7 +122,7 @@ export default function WalletPage() {
           <PageShell>
             <EmptyState
               title="Your streak lives here"
-              body="Every smarter basket adds lifetime savings and wallet cashback."
+              body="Every time you lock the recommended basket, lifetime savings and wallet cashback add up."
               action={
                 <Link href="/login?next=/wallet" className="btn-primary">
                   Sign in
@@ -201,7 +201,9 @@ export default function WalletPage() {
                   <p className="mt-2 font-display text-4xl font-bold tracking-tightish tabular-nums text-savr-signal">
                     {formatKes(balanceCents)}
                   </p>
-                  <p className="mt-2 text-xs text-white/55">Ready when you hit KES 50</p>
+                  <p className="mt-2 text-xs text-white/55">
+                    Earned by locking Savr&apos;s recommended store
+                  </p>
                 </div>
               </div>
               <div
@@ -262,7 +264,7 @@ export default function WalletPage() {
               </button>
               {balanceCents < 5000 && (
                 <p className="text-xs text-savr-mute">
-                  Earn at least KES 50 cashback by locking in smarter baskets first.
+                  Earn at least KES 50 by locking recommended baskets (not just any store).
                 </p>
               )}
               {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}

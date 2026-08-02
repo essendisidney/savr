@@ -329,21 +329,31 @@ function BasketInner() {
     setBusy(true);
     setStatus(null);
     const chosen = results.find((r) => r.merchantId === merchantId) ?? recommended;
+    const followed = merchantId === recommended.merchantId;
+    const earnCents = followed ? recommended.cashbackCents : 0;
     const outcome = await confirmBasketChoice({
       items,
       results,
       chosenMerchantId: merchantId,
       recommendedMerchantId: recommended.merchantId,
-      savingsCents: saved,
-      cashbackCents: chosen.cashbackCents,
+      savingsCents: followed
+        ? saved
+        : Math.max(0, (worst?.netCents ?? chosen.netCents) - chosen.netCents),
+      cashbackCents: earnCents,
     });
     setBusy(false);
     if ("error" in outcome) {
       setStatus(outcome.error);
       return;
     }
-    setStatus("Locked in — share your save or see it in Savings.");
-    track("basket_confirm", { followed: merchantId === recommended.merchantId });
+    setStatus(
+      followed && earnCents > 0
+        ? `Locked in — ${formatKes(earnCents)} cashback in your wallet.`
+        : followed
+          ? "Locked in — share your save or see it in Savings."
+          : `Locked ${chosen.merchantName} — no cashback (Savr recommended ${recommended.merchantName}).`,
+    );
+    track("basket_confirm", { followed, earned: earnCents });
     refreshLists();
   }
 
@@ -698,7 +708,13 @@ function BasketInner() {
                     results={results}
                     busy={busy}
                     onChoose={choose}
-                    chooseLabel={(name) => `Choose ${name} & earn`}
+                    chooseLabel={(name, isRecommended, cashbackCents) =>
+                      isRecommended
+                        ? cashbackCents > 0
+                          ? `Lock ${name} · earn ${formatKes(cashbackCents)}`
+                          : `Lock ${name} · best value`
+                        : `Shop ${name} · no cashback`
+                    }
                     preferredMerchantIds={preferredMerchantIds}
                     canTip={Boolean(user)}
                     onPriceTipped={async () => {
@@ -717,7 +733,17 @@ function BasketInner() {
                     <Link href="/login?next=/basket" className="font-semibold text-savr-forest hover:underline">
                       Sign in
                     </Link>{" "}
-                    to earn wallet cashback.
+                    and lock the recommended store to earn wallet cashback.
+                  </p>
+                )}
+                {user && items.length > 0 && recommended && (
+                  <p className="text-sm text-savr-mute">
+                    Cashback pays only when you lock{" "}
+                    <span className="font-semibold text-savr-ink">{recommended.merchantName}</span>
+                    {recommended.cashbackCents > 0
+                      ? ` (${formatKes(recommended.cashbackCents)})`
+                      : ""}
+                    — other stores save the trip, not the wallet.
                   </p>
                 )}
                 {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}

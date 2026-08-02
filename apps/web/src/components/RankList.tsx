@@ -22,7 +22,7 @@ export function RankList({
   results: BasketResult[];
   onChoose?: (merchantId: string) => void;
   busy?: boolean;
-  chooseLabel?: (name: string) => string;
+  chooseLabel?: (name: string, isRecommended: boolean, cashbackCents: number) => string;
   getLineItems?: (merchantId: string) => LineItemPrice[];
   preferredMerchantIds?: string[];
   canTip?: boolean;
@@ -458,16 +458,23 @@ export function RankList({
                 >
                   Directions →
                 </a>
-                {r.isRecommended && onChoose && (
+                {onChoose && (
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => onChoose(r.merchantId)}
-                    className="btn-primary w-full sm:ml-auto sm:w-auto"
+                    className={
+                      r.isRecommended
+                        ? "btn-primary w-full sm:ml-auto sm:w-auto"
+                        : "btn-ghost w-full sm:ml-auto sm:w-auto"
+                    }
                   >
                     {busy
                       ? "Locking in…"
-                      : chooseLabel?.(r.merchantName) ?? `Choose ${r.merchantName}`}
+                      : chooseLabel?.(r.merchantName, r.isRecommended, r.cashbackCents) ??
+                        (r.isRecommended
+                          ? `Lock ${r.merchantName}`
+                          : `Shop ${r.merchantName}`)}
                   </button>
                 )}
               </div>
