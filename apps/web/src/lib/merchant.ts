@@ -80,6 +80,39 @@ export async function claimMerchant(merchantId: string): Promise<{ error?: strin
   return error ? { error: error.message } : {};
 }
 
+export async function createMerchant(params: {
+  name: string;
+  branchName?: string;
+  address?: string;
+  city?: string;
+}): Promise<{ merchantId: string } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+  const { data, error } = await supabase.rpc("create_merchant", {
+    p_name: params.name,
+    p_branch_name: params.branchName?.trim() || null,
+    p_address: params.address?.trim() || null,
+    p_city: params.city?.trim() || "Nairobi",
+  });
+  if (error) return { error: error.message };
+  return { merchantId: data as string };
+}
+
+export async function addMerchantPrice(params: {
+  merchantId: string;
+  productId: string;
+  priceCents: number;
+}): Promise<{ error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+  const { error } = await supabase.rpc("add_merchant_price", {
+    p_merchant_id: params.merchantId,
+    p_product_id: params.productId,
+    p_price_cents: params.priceCents,
+  });
+  return error ? { error: error.message } : {};
+}
+
 export async function loadMerchantPrices(merchantId: string): Promise<ManagedPrice[]> {
   const supabase = getSupabase();
   if (!supabase) return [];

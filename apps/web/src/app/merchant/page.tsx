@@ -7,7 +7,9 @@ import { PageHero } from "@/components/PageHero";
 import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
 import {
+  addMerchantPrice,
   claimMerchant,
+  createMerchant,
   fetchMyMerchantIds,
   listMerchants,
   loadCashbackRule,
@@ -20,6 +22,8 @@ import {
   type MerchantCashbackRule,
   type MerchantSummary,
 } from "@/lib/merchant";
+import { loadCatalog } from "@/lib/catalog";
+import type { Product } from "@/lib/types";
 
 export default function MerchantPage() {
   const { user, loading: authLoading } = useAuth();
@@ -30,6 +34,12 @@ export default function MerchantPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [cashback, setCashback] = useState<MerchantCashbackRule | null>(null);
   const [analytics, setAnalytics] = useState<MerchantAnalytics | null>(null);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [newName, setNewName] = useState("");
+  const [newBranch, setNewBranch] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+  const [addProductId, setAddProductId] = useState("");
+  const [addPriceKes, setAddPriceKes] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -44,6 +54,7 @@ export default function MerchantPage() {
 
   useEffect(() => {
     refresh();
+    loadCatalog().then((c) => setCatalogProducts(c.products));
   }, [refresh]);
 
   useEffect(() => {
@@ -116,6 +127,67 @@ export default function MerchantPage() {
     }
   }
 
+  async function onCreateStore() {
+    if (!user) {
+      setStatus("Sign in to register a store.");
+      return;
+    }
+    if (newName.trim().length < 2) {
+      setStatus("Enter a store name.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    const res = await createMerchant({
+      name: newName,
+      branchName: newBranch,
+      address: newAddress,
+    });
+    setBusy(false);
+    if ("error" in res) {
+      setStatus(res.error);
+      return;
+    }
+    setSelectedId(res.merchantId);
+    setNewName("");
+    setNewBranch("");
+    setNewAddress("");
+    setStatus("Store registered — add SKUs and cashback to compete on Savr.");
+    await refresh();
+  }
+
+  async function onAddSku() {
+    if (!selectedId || !addProductId) return;
+    const kes = Number(addPriceKes);
+    if (!Number.isFinite(kes) || kes < 0) {
+      setStatus("Enter a valid price in KES.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    const res = await addMerchantPrice({
+      merchantId: selectedId,
+      productId: addProductId,
+      priceCents: Math.round(kes * 100),
+    });
+    setBusy(false);
+    if (res.error) {
+      setStatus(res.error);
+      return;
+    }
+    setAddProductId("");
+    setAddPriceKes("");
+    setStatus("SKU priced — shoppers can compare it now.");
+    const rows = await loadMerchantPrices(selectedId);
+    setPrices(rows);
+    const next: Record<string, string> = {};
+    for (const row of rows) {
+      next[row.id] = (row.priceCents / 100).toFixed(2);
+    }
+    setDrafts(next);
+    await refresh();
+  }
+
   async function onSaveCashback() {
     if (!selectedId || !cashback) return;
     setBusy(true);
@@ -148,7 +220,7 @@ export default function MerchantPage() {
       <PageHero
         theme="basket"
         title="Compete on value"
-        subtitle="Claim a store, tune prices and cashback, and see which SKUs shoppers put on lists."
+        subtitle="Register your store or claim a seeded chain — then compete on price and cashback."
       />
 
       <div className="page-band">
@@ -159,8 +231,67 @@ export default function MerchantPage() {
                 <Link href="/login" className="font-semibold text-savr-ink underline-offset-2 hover:underline">
                   Sign in
                 </Link>{" "}
-                to claim a grocery merchant and edit live offers.
+                to register a grocery store or claim an existing chain.
               </p>
+            )}
+
+            {user && (
+              <section className="space-y-4 border border-savr-ink/[0.08] bg-white p-4 sm:p-5">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                    New on Savr
+                  </p>
+                  <h2 className="mt-1 font-display text-xl font-bold tracking-tightish">
+                    Register your store
+                  </h2>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    Creates a grocery merchant, first branch, and makes you the owner.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block sm:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Store name
+                    </span>
+                    <input
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="field mt-1.5"
+                      placeholder="Eastlands Fresh Mart"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Branch
+                    </span>
+                    <input
+                      value={newBranch}
+                      onChange={(e) => setNewBranch(e.target.value)}
+                      className="field mt-1.5"
+                      placeholder="Main · Buruburu"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Address
+                    </span>
+                    <input
+                      value={newAddress}
+                      onChange={(e) => setNewAddress(e.target.value)}
+                      className="field mt-1.5"
+                      placeholder="Outer Ring Rd"
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onCreateStore}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {busy ? "Creating…" : "Create store"}
+                </button>
+              </section>
             )}
 
             <section className="space-y-3">
@@ -406,8 +537,51 @@ export default function MerchantPage() {
                     Price desk
                   </p>
                   <p className="mt-1 text-sm text-savr-mute">
-                    Edits go live on basket compare immediately.
+                    Add catalog SKUs or edit prices — live on basket compare immediately.
                   </p>
+                </div>
+
+                <div className="grid gap-3 border border-savr-ink/[0.08] bg-savr-mist/40 p-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end">
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Add SKU
+                    </span>
+                    <select
+                      value={addProductId}
+                      onChange={(e) => setAddProductId(e.target.value)}
+                      className="field mt-1.5"
+                    >
+                      <option value="">Choose product…</option>
+                      {catalogProducts
+                        .filter((p) => !prices.some((row) => row.productId === p.id))
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                            {p.brand ? ` · ${p.brand}` : ""}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      KES
+                    </span>
+                    <input
+                      value={addPriceKes}
+                      onChange={(e) => setAddPriceKes(e.target.value)}
+                      className="field mt-1.5"
+                      inputMode="decimal"
+                      placeholder="0"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={busy || !addProductId}
+                    onClick={onAddSku}
+                    className="btn-dark px-4 py-2.5 text-sm disabled:opacity-50"
+                  >
+                    Add
+                  </button>
                 </div>
 
                 <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
@@ -446,7 +620,7 @@ export default function MerchantPage() {
                   ))}
                   {prices.length === 0 && (
                     <li className="px-4 py-8 text-center text-sm text-savr-mute">
-                      No priced SKUs for this store yet.
+                      No priced SKUs yet — add from the catalog above.
                     </li>
                   )}
                 </ul>
