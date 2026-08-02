@@ -30,7 +30,7 @@ export const SPEND_INTENTS: SpendIntent[] = [
     id: "medicine",
     label: "Need medicine",
     href: "/prices?q=panadol",
-    hint: "Find the best shelf price",
+    hint: "Panadol and OTC shelf prices",
   },
   {
     id: "watch",

@@ -622,7 +622,7 @@ function PricesInner() {
 
             {!selected && (
               <p className="text-sm text-savr-mute">
-                Pick a product above to rank Naivas, Quickmart, and Carrefour.
+                Pick a product above to rank Naivas, Quickmart, Carrefour, Chandarana, and Eastmatt.
               </p>
             )}
           </div>
