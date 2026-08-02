@@ -7,6 +7,7 @@ const tabs = [
   {
     href: "/",
     label: "Home",
+    match: (p: string) => p === "/",
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
@@ -19,59 +20,27 @@ const tabs = [
     ),
   },
   {
-    href: "/basket",
-    label: "Basket",
+    href: "/ask",
+    label: "Ask",
+    match: (p: string) =>
+      p === "/ask" ||
+      p.startsWith("/prices") ||
+      p.startsWith("/basket") ||
+      p.startsWith("/rides") ||
+      p.startsWith("/fuel") ||
+      p.startsWith("/map") ||
+      p.startsWith("/check"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M4 8h16l-1.2 11.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8L4 8Z"
+        <circle
+          cx="11"
+          cy="11"
+          r="6.5"
           stroke="currentColor"
           strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
         />
         <path
-          d="M8 8V6a4 4 0 0 1 8 0v2"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "/check",
-    label: "Check",
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M9 11.5 11 13.5 15.5 9"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Z"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "/prices",
-    label: "Prices",
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M4 7h16M4 12h10M4 17h7"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinecap="round"
-        />
-        <path
-          d="M17 14v6M14 17h6"
+          d="M16.5 16.5 20 20"
           stroke="currentColor"
           strokeWidth={active ? 2.2 : 1.7}
           strokeLinecap="round"
@@ -81,7 +50,8 @@ const tabs = [
   },
   {
     href: "/wallet",
-    label: "Savings",
+    label: "Wallet",
+    match: (p: string) => p.startsWith("/wallet"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
@@ -90,7 +60,48 @@ const tabs = [
           strokeWidth={active ? 2.2 : 1.7}
           strokeLinejoin="round"
         />
-        <path d="M20 12h-3.5a1.5 1.5 0 0 0 0 3H20" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} />
+        <path
+          d="M20 12h-3.5a1.5 1.5 0 0 0 0 3H20"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/saved",
+    label: "Saved",
+    match: (p: string) => p.startsWith("/saved"),
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M12 20s-6.5-4.35-6.5-9.2A3.8 3.8 0 0 1 12 7.2a3.8 3.8 0 0 1 6.5 3.6C18.5 15.65 12 20 12 20Z"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/account",
+    label: "You",
+    match: (p: string) => p.startsWith("/account") || p.startsWith("/login"),
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <circle
+          cx="12"
+          cy="9"
+          r="3.25"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+        />
+        <path
+          d="M5.5 19.2c1.6-2.8 3.9-4.2 6.5-4.2s4.9 1.4 6.5 4.2"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
@@ -98,8 +109,9 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  if (pathname === "/login" || pathname === "/merchant" || pathname === "/account" || pathname === "/invite" || pathname.startsWith("/l/"))
+  if (pathname === "/merchant" || pathname === "/invite" || pathname.startsWith("/l/")) {
     return null;
+  }
 
   return (
     <nav
@@ -107,9 +119,9 @@ export function BottomNav() {
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       aria-label="Primary"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-between px-2 pt-1.5">
+      <ul className="mx-auto flex max-w-lg items-stretch justify-between px-1 pt-1.5">
         {tabs.map((tab) => {
-          const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const active = tab.match(pathname);
           return (
             <li key={tab.href} className="flex-1">
               <Link

@@ -41,6 +41,14 @@ export function RankList({
   const [tipStatus, setTipStatus] = useState<string | null>(null);
 
   const maxTotal = Math.max(...results.map((r) => r.totalCents), 1);
+  const nets = results.map((r) => r.netCents);
+  const bestNet = nets.length ? Math.min(...nets) : 0;
+  const worstNet = nets.length ? Math.max(...nets) : 0;
+
+  function valueScore(netCents: number): number {
+    if (worstNet === bestNet) return 96;
+    return Math.round(72 + (30 * (worstNet - netCents)) / (worstNet - bestNet));
+  }
 
   async function onTip(
     e: FormEvent,
@@ -78,13 +86,15 @@ export function RankList({
         const preferred = preferredMerchantIds.includes(r.merchantId);
         const distanceLabel = formatDistanceKm(r.distanceKm);
         const gapCount = missing.length;
+        const score = valueScore(r.netCents);
+        const saveVsWorst = Math.max(0, worstNet - r.netCents);
 
         return (
           <li
             key={r.merchantId}
-            className={`animate-rise group relative overflow-hidden border transition duration-300 ${
+            className={`animate-rise group relative overflow-hidden transition duration-soft ${
               r.isRecommended
-                ? "card-winner"
+                ? "card-winner scale-[1.01] p-1 shadow-[0_28px_60px_-28px_rgba(0,200,83,0.55)]"
                 : "card hover:border-savr-forest/30"
             }`}
             style={{ animationDelay: `${i * 0.07}s` }}
@@ -93,34 +103,44 @@ export function RankList({
               <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-forest" />
             )}
 
-            <div className="px-4 py-5 sm:px-5">
+            <div className={`px-4 py-5 sm:px-5 ${r.isRecommended ? "sm:px-6 sm:py-7" : ""}`}>
+              {r.isRecommended && (
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-savr-forest px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                    Best value
+                  </span>
+                  <span className="rounded-full bg-savr-forest/10 px-3 py-1 text-[11px] font-bold tabular-nums text-savr-forest">
+                    Score {score}
+                  </span>
+                  {saveVsWorst > 0 && (
+                    <span className="rounded-full bg-savr-fog px-3 py-1 text-[11px] font-semibold text-savr-ink">
+                      Save {formatKes(saveVsWorst)} vs priciest
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <span
-                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-sm font-bold ${
+                    className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl font-display text-base font-bold ${
                       r.isRecommended
                         ? "bg-savr-forest text-white"
                         : "bg-savr-fog text-savr-mute"
                     }`}
                   >
-                    {i + 1}
+                    {r.isRecommended ? score : i + 1}
                   </span>
                   <div>
                     <p
-                      className={`font-display text-2xl font-bold tracking-tightish ${
-                        r.isRecommended ? "text-savr-ink" : "text-savr-ink"
+                      className={`font-display font-bold tracking-tightish text-savr-ink ${
+                        r.isRecommended ? "text-3xl md:text-4xl" : "text-2xl"
                       }`}
                     >
                       {r.merchantName}
                     </p>
                     {r.branchName && (
-                      <p
-                        className={`text-xs ${
-                          r.isRecommended ? "text-savr-mute" : "text-savr-mute"
-                        }`}
-                      >
-                        {r.branchName}
-                      </p>
+                      <p className="text-xs text-savr-mute">{r.branchName}</p>
                     )}
                     <p
                       className={`mt-0.5 text-xs font-semibold ${
@@ -129,22 +149,52 @@ export function RankList({
                     >
                       {r.isRecommended
                         ? "Winner · best total value"
-                        : `${Math.round(r.coverage * 100)}% list coverage`}
+                        : `${Math.round(r.coverage * 100)}% list coverage · score ${score}`}
                       {preferred ? (r.isRecommended ? " · Your store" : " · Your preferred") : ""}
-                      {r.coverage < 1
-                        ? ` · ${gapCount || "some"} missing`
-                        : ""}
+                      {r.coverage < 1 ? ` · ${gapCount || "some"} missing` : ""}
                     </p>
                   </div>
                 </div>
                 <p
-                  className={`font-display text-2xl font-bold tracking-tightish tabular-nums ${
-                    r.isRecommended ? "text-savr-ink" : "text-savr-ink"
+                  className={`font-display font-bold tracking-tightish tabular-nums text-savr-ink ${
+                    r.isRecommended ? "text-3xl md:text-4xl" : "text-2xl"
                   }`}
                 >
                   {formatKes(r.totalCents)}
                 </p>
               </div>
+
+              {r.isRecommended && (
+                <ul className="mt-5 grid gap-2 rounded-2xl bg-savr-forest/[0.06] px-4 py-3 text-sm text-savr-ink sm:grid-cols-2">
+                  <li>
+                    <span className="text-savr-mute">Net after rewards </span>
+                    <span className="font-semibold">{formatKes(r.netCents)}</span>
+                  </li>
+                  <li>
+                    <span className="text-savr-mute">Cashback </span>
+                    <span className="font-semibold">{formatKes(r.cashbackCents)}</span>
+                  </li>
+                  {r.promoCents > 0 && (
+                    <li>
+                      <span className="text-savr-mute">Promo </span>
+                      <span className="font-semibold">
+                        −{formatKes(r.promoCents)}
+                        {r.promoLabel ? ` · ${r.promoLabel}` : ""}
+                      </span>
+                    </li>
+                  )}
+                  {distanceLabel && (
+                    <li>
+                      <span className="text-savr-mute">Distance </span>
+                      <span className="font-semibold">{distanceLabel}</span>
+                    </li>
+                  )}
+                  <li>
+                    <span className="text-savr-mute">Coverage </span>
+                    <span className="font-semibold">{Math.round(r.coverage * 100)}% of list</span>
+                  </li>
+                </ul>
+              )}
 
               <div
                 className={`mt-4 h-2 overflow-hidden ${

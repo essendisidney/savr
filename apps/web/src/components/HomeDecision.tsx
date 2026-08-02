@@ -5,17 +5,15 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadProfile, loadWallet } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
+import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
-
-const CATEGORIES = [
-  { label: "Taxi", href: "/rides", icon: "🚕" },
-  { label: "Groceries", href: "/basket", icon: "🛒" },
-  { label: "Fuel", href: "/fuel", icon: "⛽" },
-  { label: "Medicine", href: "/prices?q=panadol", icon: "💊" },
-  { label: "Travel", href: "/map", icon: "✈️" },
-  { label: "Food", href: "/basket", icon: "🍔" },
-  { label: "Shopping", href: "/prices", icon: "🛍" },
-] as const;
+import { formatPriceTrend } from "@/lib/freshness";
+import {
+  ASK_PLACEHOLDERS,
+  SPEND_INTENTS,
+  routeAskQuery,
+  savingsBuys,
+} from "@/lib/intents";
 
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -39,13 +37,12 @@ function useCountUp(targetCents: number, enabled: boolean): number {
       return;
     }
     const start = performance.now();
-    const from = 0;
     const duration = 700;
     let raf = 0;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
-      setValue(Math.round(from + (targetCents - from) * eased));
+      setValue(Math.round(targetCents * eased));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -54,34 +51,100 @@ function useCountUp(targetCents: number, enabled: boolean): number {
   return value;
 }
 
+type DropSignal = {
+  productName: string;
+  merchantName: string;
+  label: string;
+  href: string;
+};
+
+type FuelSignal = {
+  stationName: string;
+  priceLabel: string;
+  href: string;
+};
+
 export function HomeDecision() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [query, setQuery] = useState("");
+  const [placeholder, setPlaceholder] = useState(ASK_PLACEHOLDERS[0]);
   const [name, setName] = useState("there");
   const [todayCents, setTodayCents] = useState(0);
   const [yesterdayCents, setYesterdayCents] = useState(0);
   const [lifetimeCents, setLifetimeCents] = useState(0);
   const [tip, setTip] = useState<{ savingsCents: number; merchantName: string } | null>(null);
+  const [drop, setDrop] = useState<DropSignal | null>(null);
+  const [fuel, setFuel] = useState<FuelSignal | null>(null);
   const [ready, setReady] = useState(false);
 
   const hour = useMemo(() => new Date().getHours(), []);
   const greeting = greetingForHour(hour);
   const counted = useCountUp(todayCents, ready);
+  const buys = savingsBuys(todayCents > 0 ? todayCents : tip?.savingsCents ?? 0);
+
+  useEffect(() => {
+    let i = 0;
+    const t = window.setInterval(() => {
+      i = (i + 1) % ASK_PLACEHOLDERS.length;
+      setPlaceholder(ASK_PLACEHOLDERS[i]);
+    }, 4000);
+    return () => window.clearInterval(t);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      const [catalog, fuelRes] = await Promise.all([
+        loadCatalog(),
+        loadFuelStations("petrol"),
+      ]);
+      if (cancelled) return;
+
+      let bestDrop: DropSignal | null = null;
+      let bestAbs = 0;
+      for (const price of catalog.prices) {
+        if (price.prevPriceCents == null) continue;
+        const delta = price.priceCents - price.prevPriceCents;
+        if (delta >= 0) continue;
+        const abs = Math.abs(delta);
+        if (abs < bestAbs) continue;
+        const product = catalog.products.find((p) => p.id === price.productId);
+        const merchant = catalog.merchants.find((m) => m.id === price.merchantId);
+        if (!product || !merchant) continue;
+        const trend = formatPriceTrend(
+          price.priceCents,
+          price.prevPriceCents,
+          price.prevObservedAt,
+        );
+        if (!trend.label || trend.direction !== "down") continue;
+        bestAbs = abs;
+        bestDrop = {
+          productName: product.name,
+          merchantName: merchant.name,
+          label: trend.label,
+          href: `/prices?id=${product.id}&q=${encodeURIComponent(product.name)}`,
+        };
+      }
+      setDrop(bestDrop);
+
+      const cheapest = fuelRes.stations[0];
+      if (cheapest) {
+        setFuel({
+          stationName: cheapest.name,
+          priceLabel: `${formatKes(cheapest.priceCentsPerLitre)}/L`,
+          href: "/fuel",
+        });
+      }
+
       if (authLoading) return;
       if (!user) {
-        if (!cancelled) {
-          setName("there");
-          setTodayCents(0);
-          setYesterdayCents(0);
-          setLifetimeCents(0);
-          setTip(null);
-          setReady(true);
-        }
+        setName("there");
+        setTodayCents(0);
+        setYesterdayCents(0);
+        setLifetimeCents(0);
+        setTip(null);
+        setReady(true);
         return;
       }
       const [profile, wallet] = await Promise.all([loadProfile(), loadWallet()]);
@@ -100,14 +163,9 @@ export function HomeDecision() {
     };
   }, [user, authLoading]);
 
-  function onSearch(e: FormEvent) {
+  function onAsk(e: FormEvent) {
     e.preventDefault();
-    const q = query.trim();
-    if (!q) {
-      router.push("/prices");
-      return;
-    }
-    router.push(`/prices?q=${encodeURIComponent(q)}`);
+    router.push(routeAskQuery(query));
   }
 
   const deltaPct =
@@ -117,6 +175,46 @@ export function HomeDecision() {
         ? 100
         : 0;
 
+  const liveCards = [
+    drop
+      ? {
+          key: "drop",
+          eyebrow: "Price move",
+          title: `${drop.productName} is cheaper`,
+          body: `${drop.label} at ${drop.merchantName}`,
+          href: drop.href,
+          tone: "forest" as const,
+        }
+      : null,
+    fuel
+      ? {
+          key: "fuel",
+          eyebrow: "Fuel now",
+          title: `${fuel.stationName} leads`,
+          body: `Petrol from ${fuel.priceLabel} — check before you fill`,
+          href: fuel.href,
+          tone: "accent" as const,
+        }
+      : null,
+    tip && tip.savingsCents > 0
+      ? {
+          key: "tip",
+          eyebrow: "Your last win",
+          title: `You saved ${formatKes(tip.savingsCents)}`,
+          body: `At ${tip.merchantName}. Run another list before you shop.`,
+          href: "/basket",
+          tone: "night" as const,
+        }
+      : null,
+  ].filter(Boolean) as {
+    key: string;
+    eyebrow: string;
+    title: string;
+    body: string;
+    href: string;
+    tone: "forest" | "accent" | "night";
+  }[];
+
   return (
     <div className="page-band min-h-[calc(100svh-3.5rem)]">
       <div className="mx-auto max-w-2xl px-4 pb-16 pt-10 md:px-6 md:pb-24 md:pt-16">
@@ -125,40 +223,42 @@ export function HomeDecision() {
           {name !== "there" ? `, ${name}` : ""}
         </p>
         <h1 className="animate-rise-delay mt-2 font-display text-[1.85rem] font-bold leading-[1.15] tracking-tightish text-savr-ink md:text-4xl">
-          What would you like to save on today?
+          What do you need today?
         </h1>
 
-        <form onSubmit={onSearch} className="animate-rise-delay-2 mt-8">
-          <label className="sr-only" htmlFor="savr-home-search">
-            Search anything
+        <form onSubmit={onAsk} className="animate-rise-delay-2 mt-8">
+          <label className="sr-only" htmlFor="savr-home-ask">
+            Ask Savr
           </label>
           <div className="glass-card flex items-center gap-3 px-4 py-2.5 transition duration-soft focus-within:border-savr-forest/35 focus-within:ring-4 focus-within:ring-savr-forest/10">
-            <span className="text-lg text-savr-mute" aria-hidden>
-              ⌕
+            <span className="text-sm font-bold text-savr-forest" aria-hidden>
+              Ask
             </span>
             <input
-              id="savr-home-search"
+              id="savr-home-ask"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search anything — rice, fuel, Samsung…"
-              className="w-full border-0 bg-transparent py-2.5 text-[15px] text-savr-ink outline-none placeholder:text-savr-mute/60"
+              placeholder={placeholder}
+              className="w-full border-0 bg-transparent py-2.5 text-[15px] text-savr-ink outline-none placeholder:text-savr-mute/55"
               autoComplete="off"
             />
             <button type="submit" className="btn-primary shrink-0 px-4 py-2.5 text-sm">
-              Search
+              Go
             </button>
           </div>
         </form>
 
-        <div className="animate-rise-delay-2 mt-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {CATEGORIES.map((c) => (
+        <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+          I want to…
+        </p>
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {SPEND_INTENTS.slice(0, 6).map((intent) => (
             <Link
-              key={c.label}
-              href={c.href}
-              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-savr-ink/[0.06] bg-white/80 px-3.5 py-2 text-sm font-semibold text-savr-ink shadow-[0_8px_24px_-18px_rgba(11,18,32,0.35)] transition duration-soft hover:border-savr-forest/30 hover:text-savr-forest"
+              key={intent.id}
+              href={intent.href}
+              className="inline-flex shrink-0 items-center rounded-full border border-savr-ink/[0.06] bg-white/80 px-3.5 py-2 text-sm font-semibold text-savr-ink shadow-[0_8px_24px_-18px_rgba(11,18,32,0.35)] transition duration-soft hover:border-savr-forest/30 hover:text-savr-forest"
             >
-              <span aria-hidden>{c.icon}</span>
-              {c.label}
+              {intent.label}
             </Link>
           ))}
         </div>
@@ -176,10 +276,10 @@ export function HomeDecision() {
           </p>
           <p className="mt-2 text-sm text-savr-mute">
             {todayCents > 0
-              ? "From smarter basket choices you locked in today."
+              ? buys ?? "From smarter choices you locked in today."
               : user
-                ? "Compare a basket to start today’s number growing."
-                : "Sign in and compare — this number becomes your habit."}
+                ? "Ask Savr or compare a basket — this number is your habit score."
+                : "Sign in and decide smarter — savings become the hero metric."}
           </p>
           {(todayCents > 0 || yesterdayCents > 0) && (
             <p
@@ -199,55 +299,49 @@ export function HomeDecision() {
           )}
         </section>
 
-        {tip && tip.savingsCents > 0 ? (
-          <section className="animate-rise mt-5 overflow-hidden rounded-card-lg bg-gradient-to-br from-savr-accent to-[#1d4ed8] p-6 text-white shadow-[0_22px_50px_-28px_rgba(37,99,235,0.55)] md:p-7">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-              Your last win
+        {liveCards.length > 0 && (
+          <div className="mt-5 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+              Live for you
             </p>
-            <p className="mt-3 font-display text-xl font-bold leading-snug tracking-tightish md:text-2xl">
-              You saved {formatKes(tip.savingsCents)} at {tip.merchantName}.
-            </p>
-            <p className="mt-2 max-w-md text-sm text-white/75">
-              Run another list before you shop — Savr ranks the real total again.
-            </p>
-            <Link
-              href="/basket"
-              className="mt-5 inline-flex rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-savr-accent transition duration-soft hover:bg-white/90"
-            >
-              Compare again →
-            </Link>
-          </section>
-        ) : (
-          <section className="animate-rise mt-5 glass-card border-savr-accent/15 p-6 md:p-7">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-accent">
-              Start here
-            </p>
-            <p className="mt-3 font-display text-xl font-bold tracking-tightish text-savr-ink md:text-2xl">
-              Build a grocery basket. See who wins on total cost.
-            </p>
-            <p className="mt-2 text-sm text-savr-mute">
-              One habit. Every shop. That&apos;s how Today&apos;s Savings starts moving.
-            </p>
-            <Link href="/basket" className="btn-primary mt-5 inline-flex">
-              Compare my basket
-            </Link>
-          </section>
+            {liveCards.map((card) => (
+              <Link
+                key={card.key}
+                href={card.href}
+                className={`block overflow-hidden rounded-card-lg p-5 text-white shadow-[0_22px_50px_-28px_rgba(11,18,32,0.45)] transition duration-soft ${
+                  card.tone === "forest"
+                    ? "bg-gradient-to-br from-savr-forest to-[#009624]"
+                    : card.tone === "accent"
+                      ? "bg-gradient-to-br from-savr-accent to-[#1d4ed8]"
+                      : "bg-gradient-to-br from-savr-night to-[#1a1a22]"
+                }`}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                  {card.eyebrow}
+                </p>
+                <p className="mt-2 font-display text-xl font-bold tracking-tightish">{card.title}</p>
+                <p className="mt-1 text-sm text-white/75">{card.body}</p>
+              </Link>
+            ))}
+          </div>
         )}
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <Link
-            href="/check"
-            className="rounded-card border border-savr-ink/[0.06] bg-white/80 p-5 transition duration-soft hover:border-savr-forest/25 hover:shadow-[0_16px_40px_-28px_rgba(11,18,32,0.35)]"
+            href="/map"
+            className="card p-5 hover:border-savr-forest/25"
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">After a shop</p>
-            <p className="mt-1 font-display text-lg font-bold text-savr-ink">Could I have saved?</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Map</p>
+            <p className="mt-1 font-display text-lg font-bold text-savr-ink">Where value is</p>
+            <p className="mt-1 text-xs text-savr-mute">Groceries + fuel on one map</p>
           </Link>
           <Link
-            href="/wallet"
-            className="rounded-card border border-savr-ink/[0.06] bg-white/80 p-5 transition duration-soft hover:border-savr-forest/25 hover:shadow-[0_16px_40px_-28px_rgba(11,18,32,0.35)]"
+            href="/ask"
+            className="card p-5 hover:border-savr-forest/25"
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Rewards</p>
-            <p className="mt-1 font-display text-lg font-bold text-savr-ink">See my wallet</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Decide</p>
+            <p className="mt-1 font-display text-lg font-bold text-savr-ink">Open Ask Savr</p>
+            <p className="mt-1 text-xs text-savr-mute">All compares live here</p>
           </Link>
         </div>
       </div>

@@ -362,8 +362,8 @@ function BasketInner() {
     <PageFrame>
       <PageHero
         theme="basket"
-        title="Beat the weekly shop"
-        subtitle="Your list stays on this phone until you clear it — save to your account for next week’s reopen."
+        title="Feed the family for less"
+        subtitle="One list. Every supermarket. The winner should feel obvious — total cost, not sticker price."
       />
 
       <div className="page-band">
@@ -371,7 +371,7 @@ function BasketInner() {
           <div className="space-y-9">
             {recommended && items.length > 0 && (
               <SavingsMoment
-                amountLabel="You could keep"
+                amountLabel="Great choice — you could keep"
                 amountCents={saved}
                 detail={`vs the priciest basket · earn ${formatKes(recommended.cashbackCents)} at ${recommended.merchantName}${
                   recommended.promoCents > 0
@@ -379,6 +379,14 @@ function BasketInner() {
                     : ""
                 }`}
                 share={share}
+                paidCents={recommended.netCents}
+                averageCents={
+                  results.length
+                    ? Math.round(
+                        results.reduce((s, r) => s + r.netCents, 0) / results.length,
+                      )
+                    : undefined
+                }
               />
             )}
 

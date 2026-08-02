@@ -4,6 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
+const DESKTOP = [
+  { href: "/ask", label: "Ask Savr" },
+  { href: "/wallet", label: "Wallet" },
+  { href: "/saved", label: "Saved" },
+  { href: "/map", label: "Map" },
+  { href: "/merchant", label: "Merchants" },
+];
+
 export function AppNav() {
   const { user, signOut, loading } = useAuth();
   const pathname = usePathname();
@@ -20,17 +28,9 @@ export function AppNav() {
 
         <div className="flex items-center gap-4">
           <nav className="hidden items-center gap-1 text-[13px] font-medium md:flex">
-            {[
-              { href: "/basket", label: "Basket" },
-              { href: "/check", label: "Check" },
-              { href: "/prices", label: "Prices" },
-              { href: "/map", label: "Map" },
-              { href: "/rides", label: "Rides" },
-              { href: "/fuel", label: "Fuel" },
-              { href: "/wallet", label: "Savings" },
-              { href: "/merchant", label: "Merchants" },
-            ].map((l) => {
-              const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href));
+            {DESKTOP.map((l) => {
+              const active =
+                pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href));
               return (
                 <Link
                   key={l.href}
@@ -54,12 +54,12 @@ export function AppNav() {
                   href="/account"
                   className="text-[13px] font-semibold text-savr-forest hover:text-savr-ink"
                 >
-                  Account
+                  You
                 </Link>
                 <button
                   type="button"
                   onClick={() => signOut()}
-                  className="text-[13px] font-semibold text-savr-mute hover:text-savr-ink"
+                  className="hidden text-[13px] font-semibold text-savr-mute hover:text-savr-ink sm:inline"
                 >
                   Sign out
                 </button>
