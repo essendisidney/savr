@@ -4,6 +4,11 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { submitCrowdsourcePrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
+import {
+  hydrateDraftAgainstCatalog,
+  loadBasketDraft,
+  type BasketDraft,
+} from "@/lib/basket-draft";
 import { loadCatalog } from "@/lib/catalog";
 import {
   computeMissedSavings,
@@ -28,16 +33,35 @@ export default function CheckPage() {
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
+  const [draftHint, setDraftHint] = useState<BasketDraft | null>(null);
+  const [listNote, setListNote] = useState<string | null>(null);
 
   useEffect(() => {
     loadCatalog().then((c) => {
       setCatalog(c);
       const grocery = c.merchants.filter((m) => m.category === "grocery");
       if (grocery[0]) setPaidMerchantId(grocery[0].id);
+      const ids = new Set(c.products.map((p) => p.id));
+      const draft = loadBasketDraft();
+      const hydrated = draft ? hydrateDraftAgainstCatalog(draft, ids) : null;
+      setDraftHint(hydrated);
       setLoading(false);
     });
   }, []);
 
+  function useBasketDraft() {
+    if (!catalog || !draftHint) return;
+    const ids = new Set(catalog.products.map((p) => p.id));
+    const hydrated = hydrateDraftAgainstCatalog(draftHint, ids);
+    if (!hydrated?.items.length) {
+      setListNote("Basket draft has no matching products right now.");
+      return;
+    }
+    setItems(hydrated.items);
+    setListNote(`Loaded “${hydrated.name}” from your basket draft.`);
+    setTipProductId(null);
+    setTipStatus(null);
+  }
   const grocery = useMemo(
     () => (catalog ? catalog.merchants.filter((m) => m.category === "grocery") : []),
     [catalog],
@@ -140,7 +164,7 @@ export default function CheckPage() {
       <PageHero
         theme="check"
         title="Could you have saved?"
-        subtitle="Tell us where you shopped and what you bought — we’ll show what you left on the table."
+        subtitle="Pull your basket draft, tip what you paid, and see what you left on the table."
         action={{ href: "/basket", label: "Compare before next shop" }}
       />
 
@@ -193,12 +217,32 @@ export default function CheckPage() {
                 </div>
 
                 <div>
-                  <div className="flex items-baseline justify-between">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h2 className="font-display text-lg font-bold tracking-tightish">What you bought</h2>
-                    <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
-                      {items.length} items
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {draftHint && draftHint.items.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={useBasketDraft}
+                          className="text-xs font-semibold text-savr-forest hover:underline"
+                        >
+                          Use my basket list
+                        </button>
+                      )}
+                      <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
+                        {items.length} items
+                      </span>
+                    </div>
                   </div>
+                  {draftHint && draftHint.items.length > 0 && items.length === 0 && (
+                    <p className="mt-2 text-xs text-savr-mute">
+                      You have “{draftHint.name}” on Basket ({draftHint.items.length} items) — load it
+                      to check the miss in one tap.
+                    </p>
+                  )}
+                  {listNote && (
+                    <p className="mt-2 text-xs font-medium text-savr-forest">{listNote}</p>
+                  )}
 
                   <div className="relative mt-3">
                     <input
