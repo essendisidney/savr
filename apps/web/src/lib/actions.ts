@@ -91,7 +91,8 @@ export async function loadWallet(): Promise<{
   lifetimeSavingsCents: number;
   compareCount: number;
   history: CompareHistoryItem[];
-  ledger: { note: string | null; amountCents: number; when: string }[];
+  ledger: { note: string | null; amountCents: number; when: string; entryType: string }[];
+  pendingRedeems: { id: string; amountCents: number; status: string; when: string; phone: string | null }[];
   error?: string;
 }> {
   const supabase = getSupabase();
@@ -102,6 +103,7 @@ export async function loadWallet(): Promise<{
       compareCount: 0,
       history: [],
       ledger: [],
+      pendingRedeems: [],
       error: "Supabase is not configured.",
     };
   }
@@ -116,11 +118,12 @@ export async function loadWallet(): Promise<{
       compareCount: 0,
       history: [],
       ledger: [],
+      pendingRedeems: [],
       error: "signed_out",
     };
   }
 
-  const [accountRes, comparesRes] = await Promise.all([
+  const [accountRes, comparesRes, redeemRes] = await Promise.all([
     supabase
       .from("wallet_accounts")
       .select("id, cashback_cents")
@@ -134,6 +137,12 @@ export async function loadWallet(): Promise<{
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(30),
+    supabase
+      .from("redeem_requests")
+      .select("id, amount_cents, status, phone, created_at")
+      .eq("profile_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   const account = accountRes.data;
@@ -166,11 +175,11 @@ export async function loadWallet(): Promise<{
     };
   });
 
-  let ledger: { note: string | null; amountCents: number; when: string }[] = [];
+  let ledger: { note: string | null; amountCents: number; when: string; entryType: string }[] = [];
   if (account) {
     const { data: entries } = await supabase
       .from("wallet_ledger")
-      .select("amount_cents, note, created_at")
+      .select("amount_cents, note, created_at, entry_type")
       .eq("account_id", account.id)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -178,6 +187,7 @@ export async function loadWallet(): Promise<{
     ledger = (entries ?? []).map((e) => ({
       note: e.note,
       amountCents: e.amount_cents,
+      entryType: e.entry_type,
       when: new Date(e.created_at).toLocaleDateString("en-KE", {
         weekday: "short",
         month: "short",
@@ -186,15 +196,47 @@ export async function loadWallet(): Promise<{
     }));
   }
 
+  const pendingRedeems = (redeemRes.data ?? []).map((r) => ({
+    id: r.id,
+    amountCents: r.amount_cents,
+    status: r.status,
+    phone: r.phone,
+    when: new Date(r.created_at).toLocaleDateString("en-KE", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }),
+  }));
+
   return {
     balanceCents: account?.cashback_cents ?? 0,
     lifetimeSavingsCents,
     compareCount: compares.length,
     history,
     ledger,
+    pendingRedeems,
   };
 }
 
+export async function requestRedeem(params: {
+  amountCents: number;
+  phone?: string;
+}): Promise<{ requestId: string } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to redeem cashback." };
+
+  const { data, error } = await supabase.rpc("request_redeem", {
+    p_amount_cents: params.amountCents,
+    p_phone: params.phone?.trim() || null,
+  });
+  if (error) return { error: error.message };
+  return { requestId: data as string };
+}
 export type SavedListSummary = {
   id: string;
   name: string;

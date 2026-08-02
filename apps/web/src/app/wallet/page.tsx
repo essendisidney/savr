@@ -1,13 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { loadWallet, type CompareHistoryItem } from "@/lib/actions";
+import { useCallback, useEffect, useState } from "react";
+import {
+  loadProfile,
+  loadWallet,
+  requestRedeem,
+  type CompareHistoryItem,
+} from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { buildLifetimeShare, sharePayload } from "@/lib/share";
+
+type LedgerRow = {
+  note: string | null;
+  amountCents: number;
+  when: string;
+  entryType: string;
+};
+
+type RedeemRow = {
+  id: string;
+  amountCents: number;
+  status: string;
+  when: string;
+  phone: string | null;
+};
 
 export default function WalletPage() {
   const { user, loading: authLoading } = useAuth();
@@ -15,12 +35,29 @@ export default function WalletPage() {
   const [lifetimeSavingsCents, setLifetimeSavingsCents] = useState(0);
   const [compareCount, setCompareCount] = useState(0);
   const [history, setHistory] = useState<CompareHistoryItem[]>([]);
-  const [ledger, setLedger] = useState<{ note: string | null; amountCents: number; when: string }[]>(
-    [],
-  );
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
+  const [pendingRedeems, setPendingRedeems] = useState<RedeemRow[]>([]);
+  const [phone, setPhone] = useState("");
+  const [amountKes, setAmountKes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const w = await loadWallet();
+    setBalanceCents(w.balanceCents);
+    setLifetimeSavingsCents(w.lifetimeSavingsCents);
+    setCompareCount(w.compareCount);
+    setHistory(w.history);
+    setLedger(w.ledger);
+    setPendingRedeems(w.pendingRedeems);
+    setError(w.error === "signed_out" ? "signed_out" : w.error ?? null);
+    if (w.balanceCents > 0) {
+      setAmountKes(String(Math.round(w.balanceCents / 100)));
+    }
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -29,16 +66,34 @@ export default function WalletPage() {
       setError("signed_out");
       return;
     }
-    loadWallet().then((w) => {
-      setBalanceCents(w.balanceCents);
-      setLifetimeSavingsCents(w.lifetimeSavingsCents);
-      setCompareCount(w.compareCount);
-      setHistory(w.history);
-      setLedger(w.ledger);
-      setError(w.error === "signed_out" ? "signed_out" : w.error ?? null);
+    Promise.all([refresh(), loadProfile()]).then(([, profile]) => {
+      if (!("error" in profile) && profile.phone) setPhone(profile.phone);
       setLoading(false);
     });
-  }, [user, authLoading]);
+  }, [user, authLoading, refresh]);
+
+  async function onRedeem() {
+    const kes = Number(amountKes);
+    if (!Number.isFinite(kes) || kes < 50) {
+      setStatus("Minimum redeem is KES 50.");
+      return;
+    }
+    const cents = Math.round(kes * 100);
+    if (cents > balanceCents) {
+      setStatus("Amount is higher than your available cashback.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    const res = await requestRedeem({ amountCents: cents, phone });
+    setBusy(false);
+    if ("error" in res) {
+      setStatus(res.error);
+      return;
+    }
+    setStatus("Redeem requested — marked pending until M-Pesa payouts go live.");
+    await refresh();
+  }
 
   if (loading || authLoading) {
     return (
@@ -63,6 +118,10 @@ export default function WalletPage() {
       </PageFrame>
     );
   }
+
+  const pendingTotal = pendingRedeems
+    .filter((r) => r.status === "pending")
+    .reduce((sum, r) => sum + r.amountCents, 0);
 
   return (
     <PageFrame>
@@ -130,13 +189,93 @@ export default function WalletPage() {
                 style={{ animationDelay: "0.06s" }}
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                  Compares locked in
+                  Pending redeem
                 </p>
                 <p className="mt-2 font-display text-3xl font-bold tracking-tightish tabular-nums text-savr-ink">
-                  {compareCount}
+                  {formatKes(pendingTotal)}
                 </p>
               </div>
             </div>
+
+            <section className="space-y-4 border border-savr-ink/[0.08] bg-white p-4 sm:p-5">
+              <div>
+                <h2 className="font-display text-lg font-bold tracking-tightish">Redeem cashback</h2>
+                <p className="mt-1 text-sm text-savr-mute">
+                  Request a payout now — status stays <span className="font-semibold">pending</span>{" "}
+                  until M-Pesa partners go live. Min KES 50.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                    Amount (KES)
+                  </span>
+                  <input
+                    value={amountKes}
+                    onChange={(e) => setAmountKes(e.target.value)}
+                    className="field mt-1.5"
+                    inputMode="numeric"
+                    disabled={balanceCents < 5000}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                    M-Pesa phone
+                  </span>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="field mt-1.5"
+                    placeholder="07…"
+                    inputMode="tel"
+                    disabled={balanceCents < 5000}
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                disabled={busy || balanceCents < 5000}
+                onClick={onRedeem}
+                className="btn-primary disabled:opacity-50"
+              >
+                {busy ? "Requesting…" : "Request redeem"}
+              </button>
+              {balanceCents < 5000 && (
+                <p className="text-xs text-savr-mute">
+                  Earn at least KES 50 cashback by locking in smarter baskets first.
+                </p>
+              )}
+              {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
+            </section>
+
+            {pendingRedeems.length > 0 && (
+              <section>
+                <h2 className="font-display text-lg font-bold tracking-tightish">Redeem requests</h2>
+                <ul className="mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                  {pendingRedeems.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3.5"
+                    >
+                      <div>
+                        <p className="text-[15px] font-medium">{formatKes(r.amountCents)}</p>
+                        <p className="text-xs text-savr-mute">
+                          {r.when}
+                          {r.phone ? ` · ${r.phone}` : ""}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-[11px] font-bold uppercase tracking-wider ${
+                          r.status === "pending" ? "text-savr-forest" : "text-savr-mute"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <section className="animate-rise-delay">
               <div className="flex items-baseline justify-between gap-3">
@@ -227,20 +366,28 @@ export default function WalletPage() {
                 </p>
               ) : (
                 <ul className="mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
-                  {ledger.map((e, i) => (
-                    <li
-                      key={`${e.when}-${i}`}
-                      className="flex items-center justify-between gap-3 px-4 py-4"
-                    >
-                      <div>
-                        <p className="text-[15px] font-medium">{e.note ?? "Cashback"}</p>
-                        <p className="text-xs text-savr-mute">{e.when}</p>
-                      </div>
-                      <p className="font-display text-xl font-bold text-savr-forest tabular-nums">
-                        +{formatKes(e.amountCents)}
-                      </p>
-                    </li>
-                  ))}
+                  {ledger.map((e, i) => {
+                    const credit = e.amountCents >= 0;
+                    return (
+                      <li
+                        key={`${e.when}-${i}`}
+                        className="flex items-center justify-between gap-3 px-4 py-4"
+                      >
+                        <div>
+                          <p className="text-[15px] font-medium">{e.note ?? "Cashback"}</p>
+                          <p className="text-xs text-savr-mute">{e.when}</p>
+                        </div>
+                        <p
+                          className={`font-display text-xl font-bold tabular-nums ${
+                            credit ? "text-savr-forest" : "text-savr-ink"
+                          }`}
+                        >
+                          {credit ? "+" : "−"}
+                          {formatKes(Math.abs(e.amountCents))}
+                        </p>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>
