@@ -502,74 +502,65 @@ function PricesInner() {
                   <p className="mt-1 text-sm text-savr-mute">
                     Tip what you paid for {selected.name} at a specific branch — raises confidence for that shelf.
                   </p>
-                  {!user ? (
-                    <p className="mt-4 text-sm text-savr-mute">
-                      <Link href="/login" className="font-semibold text-savr-forest hover:underline">
-                        Sign in
-                      </Link>{" "}
-                      to submit a tip.
-                    </p>
-                  ) : (
-                    <form
-                      className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
-                      onSubmit={async (e: FormEvent) => {
-                        e.preventDefault();
-                        if (!selectedId || !tipBranchKey) return;
-                        const branch = tipBranches.find((b) => b.key === tipBranchKey);
-                        if (!branch) return;
-                        setTipBusy(true);
-                        setTipStatus(null);
-                        const res = await submitCrowdsourcePrice({
-                          merchantId: branch.merchantId,
-                          locationId: branch.locationId,
-                          productId: selectedId,
-                          priceKes: Number(tipPrice),
-                        });
-                        setTipBusy(false);
-                        if ("error" in res) {
-                          setTipStatus(res.error);
-                          return;
-                        }
-                        setTipStatus("Thanks — tip saved for that branch. Confidence should rise.");
-                        setTipPrice("");
-                        const c = await loadCatalog();
-                        setCatalog(c);
-                      }}
-                    >
-                      <label className="block space-y-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                          Branch
-                        </span>
-                        <select
-                          value={tipBranchKey}
-                          onChange={(e) => setTipBranchKey(e.target.value)}
-                          className="field"
-                        >
-                          {tipBranches.map((b) => (
-                            <option key={b.key} value={b.key}>
-                              {b.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="block space-y-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                          Price (KES)
-                        </span>
-                        <input
-                          required
-                          inputMode="decimal"
-                          value={tipPrice}
-                          onChange={(e) => setTipPrice(e.target.value)}
-                          placeholder="e.g. 185"
-                          className="field w-full sm:w-28"
-                        />
-                      </label>
-                      <button type="submit" disabled={tipBusy} className="btn-primary h-[46px]">
-                        {tipBusy ? "Saving…" : "Tip price"}
-                      </button>
-                    </form>
-                  )}
+                  <form
+                    className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+                    onSubmit={async (e: FormEvent) => {
+                      e.preventDefault();
+                      if (!selectedId || !tipBranchKey) return;
+                      const branch = tipBranches.find((b) => b.key === tipBranchKey);
+                      if (!branch) return;
+                      setTipBusy(true);
+                      setTipStatus(null);
+                      const res = await submitCrowdsourcePrice({
+                        merchantId: branch.merchantId,
+                        locationId: branch.locationId,
+                        productId: selectedId,
+                        priceKes: Number(tipPrice),
+                      });
+                      setTipBusy(false);
+                      if ("error" in res) {
+                        setTipStatus(res.error);
+                        return;
+                      }
+                      setTipStatus("Thanks — tip saved for that branch. Confidence should rise.");
+                      setTipPrice("");
+                      const c = await loadCatalog();
+                      setCatalog(c);
+                    }}
+                  >
+                    <label className="block space-y-1.5">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                        Branch
+                      </span>
+                      <select
+                        value={tipBranchKey}
+                        onChange={(e) => setTipBranchKey(e.target.value)}
+                        className="field"
+                      >
+                        {tipBranches.map((b) => (
+                          <option key={b.key} value={b.key}>
+                            {b.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block space-y-1.5">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                        Price (KES)
+                      </span>
+                      <input
+                        required
+                        inputMode="decimal"
+                        value={tipPrice}
+                        onChange={(e) => setTipPrice(e.target.value)}
+                        placeholder="e.g. 185"
+                        className="field w-full sm:w-28"
+                      />
+                    </label>
+                    <button type="submit" disabled={tipBusy} className="btn-primary h-[46px]">
+                      {tipBusy ? "Saving…" : "Tip price"}
+                    </button>
+                  </form>
                   {tipStatus && (
                     <p
                       className={`mt-3 text-sm font-medium ${
@@ -589,7 +580,7 @@ function PricesInner() {
                   title="No prices yet"
                   body="Tip the shelf price you saw — it helps the next shopper."
                 />
-                {user && selectedId && (
+                {selectedId && (
                   <form
                     className="grid gap-3 card px-4 py-5 sm:grid-cols-[1fr_auto_auto] sm:items-end"
                     onSubmit={async (e: FormEvent) => {

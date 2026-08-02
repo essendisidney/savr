@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { submitCrowdsourceFuelPrice } from "@/lib/actions";
-import { useAuth } from "@/lib/auth";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import { loadFuelPrefsDraft, saveFuelPrefsDraft } from "@/lib/fuel-draft";
@@ -21,7 +19,6 @@ import { LoadingBlock } from "@/components/LoadingBlock";
 type SortMode = "price" | "distance" | "value";
 
 export default function FuelPage() {
-  const { user } = useAuth();
   const [stations, setStations] = useState<FuelStation[]>([]);
   const [source, setSource] = useState("…");
   const [loading, setLoading] = useState(true);
@@ -309,14 +306,7 @@ export default function FuelPage() {
               <p className="mt-1 text-sm text-savr-mute">
                 Tip the {fuelLabel} KES/L you just paid — keeps nearby ranks fresh.
               </p>
-              {!user ? (
-                <p className="mt-4 text-sm text-savr-mute">
-                  <Link href="/login" className="font-semibold text-savr-forest hover:underline">
-                    Sign in
-                  </Link>{" "}
-                  to submit a tip.
-                </p>
-              ) : tippableStations.length === 0 ? (
+              {tippableStations.length === 0 ? (
                 <p className="mt-4 text-sm text-savr-mute">
                   Live stations unavailable — tips open when the catalog is online.
                 </p>

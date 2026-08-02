@@ -691,11 +691,6 @@ export async function submitCrowdsourcePrice(params: {
   const supabase = getSupabase();
   if (!supabase) return { error: "Supabase is not configured." };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sign in to tip a price you saw in store." };
-
   const kes = Number(params.priceKes);
   if (!Number.isFinite(kes) || kes < 1 || kes > 500000) {
     return { error: "Enter a valid price in KES." };
@@ -725,11 +720,6 @@ export async function submitCrowdsourceFuelPrice(params: {
 }): Promise<{ ok: true } | { error: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Supabase is not configured." };
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sign in to tip a pump price." };
 
   if (params.stationId.startsWith("fallback-")) {
     return { error: "Live stations unavailable — try again when catalog is online." };

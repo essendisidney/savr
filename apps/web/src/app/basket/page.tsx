@@ -530,7 +530,7 @@ function BasketInner() {
                         : `Shop ${name} · no cashback`
                     }
                     preferredMerchantIds={preferredMerchantIds}
-                    canTip={Boolean(user)}
+                    canTip
                     onPriceTipped={async () => {
                       const c = await loadCatalog();
                       setCatalog(c);

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { submitCrowdsourcePrice } from "@/lib/actions";
 import { formatKes } from "@/lib/compare";
@@ -16,7 +15,7 @@ export function RankList({
   chooseLabel,
   getLineItems,
   preferredMerchantIds = [],
-  canTip = false,
+  canTip = true,
   onPriceTipped,
 }: {
   results: BasketResult[];
@@ -400,68 +399,63 @@ export function RankList({
                             ) : null}
                           </span>
                         </div>
-                        <div className="mt-2">
-                          {!canTip ? (
-                            <Link
-                              href="/login?next=/basket"
-                              className="text-xs font-semibold text-savr-forest hover:underline"
-                            >
-                              Sign in to tip
-                            </Link>
-                          ) : !tipping ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setTipKey(lineKey);
-                                setTipPrice(
-                                  missingLine || line.unitCents == null
-                                    ? ""
-                                    : String(Math.round(line.unitCents / 100)),
-                                );
-                                setTipStatus(null);
-                              }}
-                              className={`text-xs font-semibold hover:underline ${
-                                needsHelp ? "text-savr-forest" : "text-savr-mute"
-                              }`}
-                            >
-                              {tipLabel}
-                            </button>
-                          ) : (
-                            <form
-                              className="mt-1 flex flex-wrap items-center gap-2"
-                              onSubmit={(e) =>
-                                onTip(e, r.merchantId, r.locationId, line.productId)
-                              }
-                            >
-                              <input
-                                value={tipPrice}
-                                onChange={(ev) => setTipPrice(ev.target.value)}
-                                inputMode="numeric"
-                                placeholder="KES"
-                                aria-label={`Tip price for ${line.name}`}
-                                className="w-24 rounded-xl border border-savr-ink/15 bg-white px-2 py-1.5 text-sm text-savr-ink outline-none"
-                                autoFocus
-                              />
-                              <button
-                                type="submit"
-                                disabled={tipBusy || !tipPrice.trim()}
-                                className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50"
-                              >
-                                {tipBusy ? "…" : "Submit"}
-                              </button>
+                        {canTip && (
+                          <div className="mt-2">
+                            {!tipping ? (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setTipKey(null);
+                                  setTipKey(lineKey);
+                                  setTipPrice(
+                                    missingLine || line.unitCents == null
+                                      ? ""
+                                      : String(Math.round(line.unitCents / 100)),
+                                  );
                                   setTipStatus(null);
                                 }}
-                                className="text-xs font-semibold text-savr-mute"
+                                className={`text-xs font-semibold hover:underline ${
+                                  needsHelp ? "text-savr-forest" : "text-savr-mute"
+                                }`}
                               >
-                                Cancel
+                                {tipLabel}
                               </button>
-                            </form>
-                          )}
-                        </div>
+                            ) : (
+                              <form
+                                className="mt-1 flex flex-wrap items-center gap-2"
+                                onSubmit={(e) =>
+                                  onTip(e, r.merchantId, r.locationId, line.productId)
+                                }
+                              >
+                                <input
+                                  value={tipPrice}
+                                  onChange={(ev) => setTipPrice(ev.target.value)}
+                                  inputMode="numeric"
+                                  placeholder="KES"
+                                  aria-label={`Tip price for ${line.name}`}
+                                  className="w-24 rounded-xl border border-savr-ink/15 bg-white px-2 py-1.5 text-sm text-savr-ink outline-none"
+                                  autoFocus
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={tipBusy || !tipPrice.trim()}
+                                  className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50"
+                                >
+                                  {tipBusy ? "…" : "Submit"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTipKey(null);
+                                    setTipStatus(null);
+                                  }}
+                                  className="text-xs font-semibold text-savr-mute"
+                                >
+                                  Cancel
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        )}
                       </li>
                     );
                   })}
