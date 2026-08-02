@@ -36,7 +36,7 @@ export const SPEND_INTENTS: SpendIntent[] = [
     id: "map",
     label: "See nearby value",
     href: "/map",
-    hint: "Map of groceries and fuel",
+    hint: "Green / yellow / red — where Nairobi saves",
   },
   {
     id: "phone",

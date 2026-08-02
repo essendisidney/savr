@@ -331,9 +331,9 @@ export function HomeDecision() {
             href="/map"
             className="card p-5 hover:border-savr-forest/25"
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Map</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-savr-mute">Value map</p>
             <p className="mt-1 font-display text-lg font-bold text-savr-ink">Where value is</p>
-            <p className="mt-1 text-xs text-savr-mute">Groceries + fuel on one map</p>
+            <p className="mt-1 text-xs text-savr-mute">Green best · yellow mid · red expensive</p>
           </Link>
           <Link
             href="/ask"

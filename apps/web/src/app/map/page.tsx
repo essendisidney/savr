@@ -1,49 +1,98 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { PageFrame, PageShell } from "@/components/PageShell";
-import { PageHero } from "@/components/PageHero";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
-import { formatKes } from "@/lib/compare";
-import dynamic from "next/dynamic";
-import type { MapPoint } from "@/components/NairobiMap";
+import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
+import type { MapPoint, ValueTier } from "@/components/NairobiMap";
 
 const NairobiMap = dynamic(() => import("@/components/NairobiMap").then((m) => m.NairobiMap), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[min(70vh,520px)] items-center justify-center border border-savr-ink/[0.08] bg-savr-fog text-sm text-savr-mute">
-      Loading map…
+    <div className="flex h-[min(72vh,560px)] items-center justify-center rounded-card border border-savr-ink/[0.06] bg-savr-fog text-sm text-savr-mute">
+      Loading value map…
     </div>
   ),
 });
+
+function tierFromRank(index: number, n: number): ValueTier {
+  if (n <= 1) return "good";
+  if (index === 0) return "good";
+  if (index >= n - 1) return "poor";
+  const third = Math.max(1, Math.floor(n / 3));
+  if (index < third) return "good";
+  if (index >= n - third) return "poor";
+  return "mid";
+}
 
 export default function MapPage() {
   const [points, setPoints] = useState<MapPoint[]>([]);
   const [selected, setSelected] = useState<MapPoint | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "grocery" | "fuel">("all");
+
+  const onSelect = useCallback((p: MapPoint) => setSelected(p), []);
 
   useEffect(() => {
     void (async () => {
       const [catalog, fuel] = await Promise.all([loadCatalog(), loadFuelStations("petrol")]);
+      const staples = defaultListFromCatalog(catalog);
+      const basketRanks = staples.length ? compareBasket(catalog, staples) : [];
+      const byMerchant = new Map(basketRanks.map((r) => [r.merchantId, r]));
+      const worstNet = basketRanks.length
+        ? Math.max(...basketRanks.map((r) => r.netCents))
+        : 0;
+      const sortedGrocery = [...basketRanks].sort((a, b) => a.netCents - b.netCents);
+
       const grocery: MapPoint[] = catalog.merchants
-        .filter((m) => m.location?.lat != null && m.location?.lng != null)
-        .map((m) => ({
-          id: `m-${m.id}`,
-          kind: "grocery" as const,
-          name: m.name,
-          subtitle: m.location?.name ?? m.location?.address ?? "Grocery",
-          lat: m.location!.lat!,
-          lng: m.location!.lng!,
-          mapsUrl:
-            m.location!.lat != null && m.location!.lng != null
-              ? `https://www.google.com/maps/dir/?api=1&destination=${m.location!.lat},${m.location!.lng}`
-              : null,
-        }));
-      const stations: MapPoint[] = fuel.stations
+        .filter((m) => m.category === "grocery" && m.location?.lat != null && m.location?.lng != null)
+        .map((m) => {
+          const rank = byMerchant.get(m.id);
+          const rankIndex = sortedGrocery.findIndex((r) => r.merchantId === m.id);
+          const tier: ValueTier =
+            rankIndex >= 0 ? tierFromRank(rankIndex, sortedGrocery.length) : "neutral";
+          const saveCents = rank ? Math.max(0, worstNet - rank.netCents) : 0;
+          const valueLabel =
+            rank && saveCents > 0
+              ? `Save ${formatKes(saveCents)}`
+              : rank
+                ? `Basket ${formatKes(rank.netCents)}`
+                : null;
+          return {
+            id: `m-${m.id}`,
+            kind: "grocery" as const,
+            name: m.name,
+            subtitle: [
+              m.location?.name ?? m.location?.address ?? "Grocery",
+              rank ? `Weekly staples net ${formatKes(rank.netCents)}` : null,
+              rank?.cashbackCents ? `Cashback ${formatKes(rank.cashbackCents)}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            lat: m.location!.lat!,
+            lng: m.location!.lng!,
+            mapsUrl: `https://www.google.com/maps/dir/?api=1&destination=${m.location!.lat},${m.location!.lng}`,
+            valueTier: tier,
+            valueLabel,
+            metricCents: rank?.netCents ?? null,
+          };
+        });
+
+      const fuelSorted = [...fuel.stations]
         .filter((s) => s.lat != null && s.lng != null)
-        .map((s) => ({
+        .sort((a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre);
+      const dearest = fuelSorted.length
+        ? fuelSorted[fuelSorted.length - 1].priceCentsPerLitre
+        : 0;
+
+      const stations: MapPoint[] = fuelSorted.map((s, index) => {
+        const saveCents = Math.max(0, dearest - s.priceCentsPerLitre);
+        const tier = tierFromRank(index, fuelSorted.length);
+        return {
           id: `f-${s.id}`,
           kind: "fuel" as const,
           name: s.name,
@@ -51,19 +100,44 @@ export default function MapPage() {
           lat: s.lat!,
           lng: s.lng!,
           mapsUrl: s.mapsUrl,
-        }));
-      setPoints([...grocery, ...stations]);
+          valueTier: tier,
+          valueLabel:
+            saveCents > 0
+              ? `${formatKes(s.priceCentsPerLitre)}/L · save ${formatKes(saveCents)}/L vs highest`
+              : `${formatKes(s.priceCentsPerLitre)}/L`,
+          metricCents: s.priceCentsPerLitre,
+        };
+      });
+
+      const all = [...grocery, ...stations].sort((a, b) => {
+        const order = { good: 0, mid: 1, poor: 2, neutral: 3 };
+        return (order[a.valueTier ?? "neutral"] ?? 3) - (order[b.valueTier ?? "neutral"] ?? 3);
+      });
+      setPoints(all);
+      setSelected(all.find((p) => p.valueTier === "good") ?? all[0] ?? null);
       setLoading(false);
     })();
   }, []);
 
+  const visible = points.filter((p) => (filter === "all" ? true : p.kind === filter));
+
   return (
     <PageFrame>
-      <PageHero
-        theme="fuel"
-        title="Nairobi on the map"
-        subtitle="Groceries and fuel stations — tap a pin, then open directions."
-      />
+      <div className="border-b border-savr-ink/[0.05]">
+        <div className="mx-auto max-w-5xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
+            Value map
+          </p>
+          <h1 className="mt-2 max-w-2xl font-display text-[clamp(1.85rem,4.5vw,2.75rem)] font-extrabold tracking-tightish text-savr-ink">
+            Where Nairobi saves money
+          </h1>
+          <p className="mt-3 max-w-lg text-[15px] text-savr-mute">
+            Green = best value. Yellow = middle. Red = expensive. Grocery pins use a weekly staples
+            basket; fuel pins use petrol per litre.
+          </p>
+        </div>
+      </div>
+
       <div className="page-band">
         <PageShell>
           {loading ? (
@@ -75,35 +149,120 @@ export default function MapPage() {
             />
           ) : (
             <div className="space-y-4">
-              <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wide text-savr-mute">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-savr-forest" /> Grocery
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-600" /> Fuel
-                </span>
-                <span>{points.length} places</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {(
+                  [
+                    ["all", "All"],
+                    ["grocery", "Groceries"],
+                    ["fuel", "Fuel"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setFilter(id)}
+                    className={filter === id ? "chip-active" : "chip"}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <NairobiMap points={points} onSelect={setSelected} />
+
+              <div className="flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wide text-savr-mute">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-savr-forest" /> Best value
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-savr-signal" /> Average
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Expensive
+                </span>
+                <span className="text-savr-mute/80 normal-case tracking-normal">
+                  Dashed ring = fuel · {visible.length} places
+                </span>
+              </div>
+
+              <NairobiMap points={visible} onSelect={onSelect} />
+
               {selected && (
-                <div className="card px-4 py-4">
+                <div
+                  className={`relative overflow-hidden px-5 py-5 ${
+                    selected.valueTier === "good"
+                      ? "card-winner"
+                      : selected.valueTier === "poor"
+                        ? "card border-red-200"
+                        : "card"
+                  }`}
+                >
+                  {selected.valueTier === "good" && (
+                    <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-forest" />
+                  )}
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
                     {selected.kind === "fuel" ? "Fuel" : "Grocery"}
+                    {selected.valueTier === "good"
+                      ? " · Best value"
+                      : selected.valueTier === "poor"
+                        ? " · Expensive"
+                        : selected.valueTier === "mid"
+                          ? " · Mid pack"
+                          : ""}
                   </p>
-                  <p className="mt-1 font-display text-xl font-bold">{selected.name}</p>
-                  <p className="text-sm text-savr-mute">{selected.subtitle}</p>
-                  {selected.mapsUrl && (
-                    <a
-                      href={selected.mapsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 inline-block text-sm font-semibold text-savr-forest hover:underline"
-                    >
-                      Directions →
-                    </a>
+                  <p className="mt-1 font-display text-2xl font-bold tracking-tightish text-savr-ink">
+                    {selected.name}
+                  </p>
+                  <p className="mt-1 text-sm text-savr-mute">{selected.subtitle}</p>
+                  {selected.valueLabel && (
+                    <p className="mt-3 font-display text-xl font-bold text-savr-forest">
+                      {selected.valueLabel}
+                    </p>
                   )}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {selected.mapsUrl && (
+                      <a
+                        href={selected.mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-primary px-4 py-2.5 text-sm"
+                      >
+                        Directions
+                      </a>
+                    )}
+                    {selected.kind === "grocery" ? (
+                      <Link href="/basket" className="btn-ghost px-4 py-2.5 text-sm">
+                        Compare basket
+                      </Link>
+                    ) : (
+                      <Link href="/fuel" className="btn-ghost px-4 py-2.5 text-sm">
+                        Rank fuel
+                      </Link>
+                    )}
+                  </div>
                 </div>
               )}
+
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {visible
+                  .filter((p) => p.valueTier === "good")
+                  .slice(0, 6)
+                  .map((p) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelected(p)}
+                        className="card w-full px-4 py-3 text-left hover:border-savr-forest/30"
+                      >
+                        <p className="text-xs font-semibold uppercase tracking-wide text-savr-forest">
+                          Best value
+                        </p>
+                        <p className="mt-0.5 font-semibold text-savr-ink">{p.name}</p>
+                        {p.valueLabel && (
+                          <p className="text-sm text-savr-mute">{p.valueLabel}</p>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
             </div>
           )}
         </PageShell>
