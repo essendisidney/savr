@@ -233,6 +233,8 @@ export function compareProduct(
         distanceKm: distanceForMerchant(merchant, origin),
         observedAt: price.observedAt ?? null,
         source: price.source ?? null,
+        prevPriceCents: price.prevPriceCents ?? null,
+        prevObservedAt: price.prevObservedAt ?? null,
       };
     })
     .filter(
@@ -251,6 +253,8 @@ export function compareProduct(
         distanceKm: number | null;
         observedAt: string | null;
         source: string | null;
+        prevPriceCents: number | null;
+        prevObservedAt: string | null;
       } => row !== null,
     )
     .sort((a, b) => a.priceCents - b.priceCents);
@@ -295,6 +299,8 @@ export function lineItemsForMerchant(
       promoCents: promo.cents,
       observedAt: price?.observedAt ?? null,
       source: price?.source ?? null,
+      prevPriceCents: price?.prevPriceCents ?? null,
+      prevObservedAt: price?.prevObservedAt ?? null,
     };
   });
 }
@@ -317,6 +323,8 @@ export function compareBasket(
     let total = 0;
     let matched = 0;
     let linePromoTotal = 0;
+    let weekDelta = 0;
+    let weekN = 0;
     const labels = new Set<string>();
 
     for (const item of items) {
@@ -327,6 +335,10 @@ export function compareBasket(
       const line = price.priceCents * item.quantity;
       total += line;
       matched += 1;
+      if (price.prevPriceCents != null && Number.isFinite(price.prevPriceCents)) {
+        weekDelta += (price.priceCents - price.prevPriceCents) * item.quantity;
+        weekN += 1;
+      }
       const product = catalog.products.find((p) => p.id === item.productId);
       const linePromo = linePromoDiscount(promos, product, line);
       linePromoTotal += linePromo.cents;
@@ -344,6 +356,8 @@ export function compareBasket(
         : labels.size === 1
           ? Array.from(labels)[0]
           : `${labels.size} promos`;
+    const weekDeltaCents =
+      matched > 0 && weekN >= Math.max(1, Math.ceil(matched * 0.5)) ? weekDelta : null;
 
     return {
       merchantId: merchant.id,
@@ -358,6 +372,7 @@ export function compareBasket(
       isRecommended: false,
       mapsUrl: mapsUrlForMerchant(merchant, origin),
       distanceKm: distanceForMerchant(merchant, origin),
+      weekDeltaCents,
     };
   });
 

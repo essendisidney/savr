@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { submitCrowdsourcePrice } from "@/lib/actions";
 import { formatKes } from "@/lib/compare";
-import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
+import { formatPriceFreshness, freshnessClassName, formatBasketTrend, formatPriceTrend, trendClassName } from "@/lib/freshness";
 import { formatDistanceKm } from "@/lib/geo";
 import { track } from "@/lib/track";
 import type { BasketResult, LineItemPrice } from "@/lib/types";
@@ -189,6 +189,21 @@ export function RankList({
                 )}
               </p>
 
+              {(() => {
+                const basketTrend = formatBasketTrend(r.weekDeltaCents);
+                if (!basketTrend.label) return null;
+                return (
+                  <p
+                    className={`mt-1.5 text-xs font-semibold ${trendClassName(
+                      basketTrend.direction,
+                      r.isRecommended ? "dark" : "light",
+                    )}`}
+                  >
+                    {basketTrend.label}
+                  </p>
+                );
+              })()}
+
               {r.coverage < 1 && (
                 <p
                   className={`mt-2 text-xs font-medium ${
@@ -231,6 +246,14 @@ export function RankList({
                       !missingLine && line.observedAt
                         ? formatPriceFreshness(line.observedAt, line.source)
                         : null;
+                    const trend =
+                      !missingLine && line.unitCents != null
+                        ? formatPriceTrend(
+                            line.unitCents,
+                            line.prevPriceCents,
+                            line.prevObservedAt,
+                          )
+                        : null;
                     return (
                       <li key={line.productId} className="px-3 py-2.5 text-sm">
                         <div className="flex items-center justify-between gap-3">
@@ -247,6 +270,16 @@ export function RankList({
                                 )}`}
                               >
                                 {fresh.label}
+                              </span>
+                            ) : null}
+                            {trend?.label ? (
+                              <span
+                                className={`mt-0.5 block text-[11px] font-semibold ${trendClassName(
+                                  trend.direction,
+                                  r.isRecommended ? "dark" : "light",
+                                )}`}
+                              >
+                                {trend.label}
                               </span>
                             ) : null}
                           </span>

@@ -71,38 +71,46 @@ const fallbackCatalog: Catalog = {
     { id: "p-soda", name: "Soda 2L", brand: "Coca-Cola", category: "beverages", unit: "piece" },
     { id: "p-noodles", name: "Instant Noodles 5-pack", brand: "Indomie", category: "staples", unit: "piece" },
   ],
-  prices: [
-    { merchantId: "m-naivas", productId: "p-milk", priceCents: 7500 },
-    { merchantId: "m-naivas", productId: "p-bread", priceCents: 7000 },
-    { merchantId: "m-naivas", productId: "p-rice", priceCents: 145000 },
-    { merchantId: "m-naivas", productId: "p-sugar", priceCents: 18000 },
-    { merchantId: "m-naivas", productId: "p-soap", priceCents: 22000 },
-    { merchantId: "m-naivas", productId: "p-oil", priceCents: 159000 },
-    { merchantId: "m-naivas", productId: "p-eggs", priceCents: 52000 },
-    { merchantId: "m-naivas", productId: "p-bananas", priceCents: 8500 },
-    { merchantId: "m-naivas", productId: "p-soda", priceCents: 19500 },
-    { merchantId: "m-naivas", productId: "p-noodles", priceCents: 16500 },
-    { merchantId: "m-quickmart", productId: "p-milk", priceCents: 7200 },
-    { merchantId: "m-quickmart", productId: "p-bread", priceCents: 6800 },
-    { merchantId: "m-quickmart", productId: "p-rice", priceCents: 138000 },
-    { merchantId: "m-quickmart", productId: "p-sugar", priceCents: 17500 },
-    { merchantId: "m-quickmart", productId: "p-soap", priceCents: 21000 },
-    { merchantId: "m-quickmart", productId: "p-oil", priceCents: 148500 },
-    { merchantId: "m-quickmart", productId: "p-eggs", priceCents: 50500 },
-    { merchantId: "m-quickmart", productId: "p-bananas", priceCents: 8000 },
-    { merchantId: "m-quickmart", productId: "p-soda", priceCents: 18800 },
-    { merchantId: "m-quickmart", productId: "p-noodles", priceCents: 15800 },
-    { merchantId: "m-carrefour", productId: "p-milk", priceCents: 7000 },
-    { merchantId: "m-carrefour", productId: "p-bread", priceCents: 6500 },
-    { merchantId: "m-carrefour", productId: "p-rice", priceCents: 135000 },
-    { merchantId: "m-carrefour", productId: "p-sugar", priceCents: 17000 },
-    { merchantId: "m-carrefour", productId: "p-soap", priceCents: 20500 },
-    { merchantId: "m-carrefour", productId: "p-oil", priceCents: 144000 },
-    { merchantId: "m-carrefour", productId: "p-eggs", priceCents: 49500 },
-    { merchantId: "m-carrefour", productId: "p-bananas", priceCents: 7800 },
-    { merchantId: "m-carrefour", productId: "p-soda", priceCents: 18200 },
-    { merchantId: "m-carrefour", productId: "p-noodles", priceCents: 15200 },
-  ],
+  prices: (() => {
+    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    const rows: { merchantId: string; productId: string; priceCents: number }[] = [
+      { merchantId: "m-naivas", productId: "p-milk", priceCents: 7500 },
+      { merchantId: "m-naivas", productId: "p-bread", priceCents: 7000 },
+      { merchantId: "m-naivas", productId: "p-rice", priceCents: 145000 },
+      { merchantId: "m-naivas", productId: "p-sugar", priceCents: 18000 },
+      { merchantId: "m-naivas", productId: "p-soap", priceCents: 22000 },
+      { merchantId: "m-naivas", productId: "p-oil", priceCents: 159000 },
+      { merchantId: "m-naivas", productId: "p-eggs", priceCents: 52000 },
+      { merchantId: "m-naivas", productId: "p-bananas", priceCents: 8500 },
+      { merchantId: "m-naivas", productId: "p-soda", priceCents: 19500 },
+      { merchantId: "m-naivas", productId: "p-noodles", priceCents: 16500 },
+      { merchantId: "m-quickmart", productId: "p-milk", priceCents: 7200 },
+      { merchantId: "m-quickmart", productId: "p-bread", priceCents: 6800 },
+      { merchantId: "m-quickmart", productId: "p-rice", priceCents: 138000 },
+      { merchantId: "m-quickmart", productId: "p-sugar", priceCents: 17500 },
+      { merchantId: "m-quickmart", productId: "p-soap", priceCents: 21000 },
+      { merchantId: "m-quickmart", productId: "p-oil", priceCents: 148500 },
+      { merchantId: "m-quickmart", productId: "p-eggs", priceCents: 50500 },
+      { merchantId: "m-quickmart", productId: "p-bananas", priceCents: 8000 },
+      { merchantId: "m-quickmart", productId: "p-soda", priceCents: 18800 },
+      { merchantId: "m-quickmart", productId: "p-noodles", priceCents: 15800 },
+      { merchantId: "m-carrefour", productId: "p-milk", priceCents: 7000 },
+      { merchantId: "m-carrefour", productId: "p-bread", priceCents: 6500 },
+      { merchantId: "m-carrefour", productId: "p-rice", priceCents: 135000 },
+      { merchantId: "m-carrefour", productId: "p-sugar", priceCents: 17000 },
+      { merchantId: "m-carrefour", productId: "p-soap", priceCents: 20500 },
+      { merchantId: "m-carrefour", productId: "p-oil", priceCents: 144000 },
+      { merchantId: "m-carrefour", productId: "p-eggs", priceCents: 49500 },
+      { merchantId: "m-carrefour", productId: "p-bananas", priceCents: 7800 },
+      { merchantId: "m-carrefour", productId: "p-soda", priceCents: 18200 },
+      { merchantId: "m-carrefour", productId: "p-noodles", priceCents: 15200 },
+    ];
+    return rows.map((row, i) => ({
+      ...row,
+      prevPriceCents: i % 5 === 0 ? Math.round(row.priceCents * 0.94) : Math.round(row.priceCents * 1.06),
+      prevObservedAt: weekAgo,
+    }));
+  })(),
   cashbackRules: [
     { merchantId: "m-naivas", flatCents: 2000, minBasketCents: 200000 },
     { merchantId: "m-quickmart", flatCents: 3000, minBasketCents: 200000 },
@@ -152,7 +160,9 @@ export async function loadCatalog(): Promise<Catalog> {
       supabase.from("products").select("id, name, brand, category, unit").order("name"),
       supabase
         .from("merchant_prices")
-        .select("merchant_id, product_id, price_cents, observed_at, source"),
+        .select(
+          "merchant_id, product_id, price_cents, observed_at, source, prev_price_cents, prev_observed_at",
+        ),
       supabase
         .from("cashback_rules")
         .select("merchant_id, flat_cents, min_basket_cents")
@@ -203,6 +213,8 @@ export async function loadCatalog(): Promise<Catalog> {
     priceCents: row.price_cents,
     observedAt: (row as { observed_at?: string | null }).observed_at ?? null,
     source: (row as { source?: string | null }).source ?? null,
+    prevPriceCents: (row as { prev_price_cents?: number | null }).prev_price_cents ?? null,
+    prevObservedAt: (row as { prev_observed_at?: string | null }).prev_observed_at ?? null,
   }));
   const cashbackRules: CashbackRule[] = (rulesRes.data ?? []).map((row) => ({
     merchantId: row.merchant_id,

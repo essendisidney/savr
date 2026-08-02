@@ -7,7 +7,7 @@ import { submitCrowdsourcePrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { compareProduct, formatKes } from "@/lib/compare";
-import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
+import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
 import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -319,16 +319,35 @@ function PricesInner() {
                                 </p>
                                 {(() => {
                                   const fresh = formatPriceFreshness(r.observedAt, r.source);
-                                  if (!fresh.label) return null;
+                                  const trend = formatPriceTrend(
+                                    r.listCents,
+                                    r.prevPriceCents,
+                                    r.prevObservedAt,
+                                  );
+                                  if (!fresh.label && !trend.label) return null;
                                   return (
-                                    <p
-                                      className={`mt-0.5 text-[11px] ${freshnessClassName(
-                                        fresh.stale,
-                                        r.isCheapest ? "dark" : "light",
-                                      )}`}
-                                    >
-                                      {fresh.label}
-                                    </p>
+                                    <>
+                                      {fresh.label ? (
+                                        <p
+                                          className={`mt-0.5 text-[11px] ${freshnessClassName(
+                                            fresh.stale,
+                                            r.isCheapest ? "dark" : "light",
+                                          )}`}
+                                        >
+                                          {fresh.label}
+                                        </p>
+                                      ) : null}
+                                      {trend.label ? (
+                                        <p
+                                          className={`mt-0.5 text-[11px] font-semibold ${trendClassName(
+                                            trend.direction,
+                                            r.isCheapest ? "dark" : "light",
+                                          )}`}
+                                        >
+                                          {trend.label}
+                                        </p>
+                                      ) : null}
+                                    </>
                                   );
                                 })()}
                               </div>

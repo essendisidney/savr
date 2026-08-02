@@ -36,6 +36,8 @@ export type MerchantPrice = {
   priceCents: number;
   observedAt?: string | null;
   source?: string | null;
+  prevPriceCents?: number | null;
+  prevObservedAt?: string | null;
 };
 
 export type CashbackRule = {
@@ -83,6 +85,8 @@ export type BasketResult = {
   isRecommended: boolean;
   mapsUrl: string;
   distanceKm: number | null;
+  /** Sum of (current − prev) × qty when enough lines have history; null otherwise. */
+  weekDeltaCents?: number | null;
 };
 
 export type MissedSavingsResult = {
@@ -110,6 +114,8 @@ export type LineItemPrice = {
   promoCents?: number;
   observedAt?: string | null;
   source?: string | null;
+  prevPriceCents?: number | null;
+  prevObservedAt?: string | null;
 };
 
 export type RideQuote = {
@@ -156,4 +162,6 @@ export type ProductPriceResult = {
   distanceKm: number | null;
   observedAt?: string | null;
   source?: string | null;
+  prevPriceCents?: number | null;
+  prevObservedAt?: string | null;
 };
