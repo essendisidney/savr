@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { submitCrowdsourcePrice } from "@/lib/actions";
+import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import {
   computeMissedSavings,
@@ -16,11 +18,16 @@ import { SavingsMoment } from "@/components/SavingsMoment";
 import { buildMissedShare } from "@/lib/share";
 
 export default function CheckPage() {
+  const { user } = useAuth();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [paidMerchantId, setPaidMerchantId] = useState("");
   const [items, setItems] = useState<ListItem[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [tipProductId, setTipProductId] = useState<string | null>(null);
+  const [tipPrice, setTipPrice] = useState("");
+  const [tipBusy, setTipBusy] = useState(false);
+  const [tipStatus, setTipStatus] = useState<string | null>(null);
 
   useEffect(() => {
     loadCatalog().then((c) => {
@@ -90,6 +97,28 @@ export default function CheckPage() {
       return [...prev, { productId, freeText: name, quantity: 1 }];
     });
     setQuery("");
+  }
+
+  async function onTipPrice(e: FormEvent) {
+    e.preventDefault();
+    if (!tipProductId || !paidMerchantId) return;
+    setTipBusy(true);
+    setTipStatus(null);
+    const res = await submitCrowdsourcePrice({
+      merchantId: paidMerchantId,
+      productId: tipProductId,
+      priceKes: Number(tipPrice),
+    });
+    setTipBusy(false);
+    if ("error" in res) {
+      setTipStatus(res.error);
+      return;
+    }
+    setTipStatus("Thanks — tip saved. Miss recalculates with fresher prices.");
+    setTipPrice("");
+    setTipProductId(null);
+    const c = await loadCatalog();
+    setCatalog(c);
   }
 
   if (loading || !catalog) {
@@ -210,43 +239,108 @@ export default function CheckPage() {
                     <ul className="mt-4 divide-y divide-savr-ink/[0.06] border-y border-savr-ink/[0.06]">
                       {items.map((item) => {
                         const line = paidLines.find((l) => l.productId === item.productId);
+                        const tipping = tipProductId === item.productId;
                         return (
-                          <li key={item.productId} className="flex items-center justify-between gap-3 py-3">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-savr-ink">
-                                {item.freeText}
-                              </p>
-                              <p className="text-xs text-savr-mute">
-                                {line?.unitCents != null
-                                  ? `${formatKes(line.unitCents)} each`
-                                  : "No price at this store"}
-                              </p>
+                          <li key={item.productId} className="py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-savr-ink">
+                                  {item.freeText}
+                                </p>
+                                <p className="text-xs text-savr-mute">
+                                  {line?.unitCents != null
+                                    ? `${formatKes(line.unitCents)} each on Savr`
+                                    : "No price at this store"}
+                                  {" · "}
+                                  {!user ? (
+                                    <Link
+                                      href="/login"
+                                      className="font-semibold text-savr-forest hover:underline"
+                                    >
+                                      Sign in to tip
+                                    </Link>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="font-semibold text-savr-forest hover:underline"
+                                      onClick={() => {
+                                        setTipProductId(tipping ? null : item.productId);
+                                        setTipPrice(
+                                          line?.unitCents != null
+                                            ? String(Math.round(line.unitCents / 100))
+                                            : "",
+                                        );
+                                        setTipStatus(null);
+                                      }}
+                                    >
+                                      {tipping ? "Cancel" : "Tip what you paid"}
+                                    </button>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  className="h-8 w-8 bg-savr-fog text-sm font-bold"
+                                  onClick={() => setQty(item.productId, item.quantity - 1)}
+                                  aria-label="Decrease quantity"
+                                >
+                                  −
+                                </button>
+                                <span className="w-6 text-center text-sm font-semibold tabular-nums">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="h-8 w-8 bg-savr-fog text-sm font-bold"
+                                  onClick={() => setQty(item.productId, item.quantity + 1)}
+                                  aria-label="Increase quantity"
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                className="h-8 w-8 bg-savr-fog text-sm font-bold"
-                                onClick={() => setQty(item.productId, item.quantity - 1)}
-                                aria-label="Decrease quantity"
+                            {tipping && user && (
+                              <form
+                                onSubmit={onTipPrice}
+                                className="mt-3 flex flex-wrap items-end gap-2"
                               >
-                                −
-                              </button>
-                              <span className="w-6 text-center text-sm font-semibold tabular-nums">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                className="h-8 w-8 bg-savr-fog text-sm font-bold"
-                                onClick={() => setQty(item.productId, item.quantity + 1)}
-                                aria-label="Increase quantity"
-                              >
-                                +
-                              </button>
-                            </div>
+                                <label className="block min-w-[7rem] flex-1 space-y-1">
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                                    You paid (KES)
+                                  </span>
+                                  <input
+                                    required
+                                    inputMode="decimal"
+                                    value={tipPrice}
+                                    onChange={(e) => setTipPrice(e.target.value)}
+                                    placeholder="e.g. 185"
+                                    className="field py-2"
+                                    autoFocus
+                                  />
+                                </label>
+                                <button
+                                  type="submit"
+                                  disabled={tipBusy}
+                                  className="btn-primary h-[42px] px-4"
+                                >
+                                  {tipBusy ? "Saving…" : "Save tip"}
+                                </button>
+                              </form>
+                            )}
                           </li>
                         );
                       })}
                     </ul>
+                  )}
+                  {tipStatus && (
+                    <p
+                      className={`mt-3 text-sm font-medium ${
+                        tipStatus.startsWith("Thanks") ? "text-savr-forest" : "text-red-700"
+                      }`}
+                    >
+                      {tipStatus}
+                    </p>
                   )}
                 </div>
               </section>
