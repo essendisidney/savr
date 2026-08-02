@@ -38,7 +38,7 @@ import { RankList } from "@/components/RankList";
 import { SavingsMoment } from "@/components/SavingsMoment";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
-import { buildBasketShare, sharePayload } from "@/lib/share";
+import { buildBasketShare, buildListShare, sharePayload, whatsAppShareUrl } from "@/lib/share";
 import { track } from "@/lib/track";
 
 export default function BasketPage() {
@@ -292,7 +292,7 @@ function BasketInner() {
     setStatus(`Loaded “${outcome.name}”.`);
   }
 
-  async function onShareList(listId: string) {
+  async function onShareList(listId: string, viaWhatsApp = false) {
     setSharingId(listId);
     setStatus(null);
     const outcome = await enableListShare(listId);
@@ -301,18 +301,27 @@ function BasketInner() {
       setStatus(outcome.error);
       return;
     }
-    const result = await sharePayload({
-      title: "Savr shopping list",
-      text: "Our weekly shop on Savr — open the link to add items, then compare stores.",
+    const list = savedLists.find((l) => l.id === listId);
+    const payload = buildListShare({
+      listName: list?.name ?? "Weekly shop",
       url: outcome.url,
+      itemCount: list?.itemCount ?? items.length,
     });
+    track("list_share", { via: viaWhatsApp ? "whatsapp_saved" : "sheet_saved" });
+    if (viaWhatsApp) {
+      window.open(whatsAppShareUrl(payload), "_blank", "noopener,noreferrer");
+      await refreshLists();
+      setStatus("Opening WhatsApp — household can add items on the link.");
+      return;
+    }
+    const result = await sharePayload(payload);
     await refreshLists();
     if (result === "shared") setStatus("List shared — household can add items on the link.");
     else if (result === "copied") setStatus("Share link copied — they can add items too.");
     else setStatus(`Share link: ${outcome.url}`);
   }
 
-  async function onShareCurrent() {
+  async function onShareCurrent(viaWhatsApp = false) {
     if (!items.length) return;
     setSharingDraft(true);
     setStatus(null);
@@ -322,15 +331,24 @@ function BasketInner() {
       setStatus("Could not build a share link for this list.");
       return;
     }
-    const result = await sharePayload({
-      title: "Savr shopping list",
-      text: `Here's “${listName}” on Savr — open it, compare, and pick the smarter store.`,
+    const payload = buildListShare({
+      listName,
       url,
+      itemCount: items.length,
     });
+    track("list_share", {
+      via: viaWhatsApp ? "whatsapp_draft" : "draft",
+      items: items.length,
+    });
+    if (viaWhatsApp) {
+      window.open(whatsAppShareUrl(payload), "_blank", "noopener,noreferrer");
+      setStatus("Opening WhatsApp — they can open the list with no sign-in.");
+      return;
+    }
+    const result = await sharePayload(payload);
     if (result === "shared") setStatus("List shared — no sign-in needed for them to open it.");
     else if (result === "copied") setStatus("Share link copied.");
     else setStatus(`Share link: ${url}`);
-    track("list_share", { via: "draft", items: items.length });
   }
 
   async function choose(merchantId: string) {
@@ -571,14 +589,22 @@ function BasketInner() {
                     placeholder="List name"
                     aria-label="List name"
                   />
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={sharingDraft || items.length === 0}
-                      onClick={onShareCurrent}
+                      onClick={() => onShareCurrent(true)}
+                      className="btn-primary flex-1 disabled:opacity-50 sm:flex-none"
+                    >
+                      {sharingDraft ? "…" : "WhatsApp list"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={sharingDraft || items.length === 0}
+                      onClick={() => onShareCurrent(false)}
                       className="btn-ghost flex-1 disabled:opacity-50 sm:flex-none"
                     >
-                      {sharingDraft ? "…" : "Share"}
+                      Share
                     </button>
                     <button
                       type="button"
@@ -590,6 +616,9 @@ function BasketInner() {
                     </button>
                   </div>
                 </div>
+                <p className="text-xs text-savr-mute">
+                  WhatsApp the list home — they add items on the link, you compare before anyone shops.
+                </p>
 
                 {user && savedLists.length > 0 && (
                   <div className="space-y-2">
@@ -610,15 +639,15 @@ function BasketInner() {
                             <button
                               type="button"
                               disabled={sharingId === list.id}
-                              onClick={() => onShareList(list.id)}
-                              className="text-sm font-semibold text-savr-ink hover:underline disabled:opacity-50"
+                              onClick={() => onShareList(list.id, true)}
+                              className="text-sm font-semibold text-savr-forest hover:underline disabled:opacity-50"
                             >
-                              {sharingId === list.id ? "…" : "Share"}
+                              {sharingId === list.id ? "…" : "WhatsApp"}
                             </button>
                             <button
                               type="button"
                               onClick={() => onLoadList(list.id)}
-                              className="text-sm font-semibold text-savr-forest hover:underline"
+                              className="text-sm font-semibold text-savr-ink hover:underline"
                             >
                               Load
                             </button>

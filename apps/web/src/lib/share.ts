@@ -91,6 +91,20 @@ export function buildWinShare(params: {
   };
 }
 
+export function buildListShare(params: {
+  listName: string;
+  url: string;
+  itemCount: number;
+}): SharePayload {
+  const count =
+    params.itemCount === 1 ? "1 item" : `${params.itemCount} items`;
+  return {
+    title: "Savr shopping list",
+    text: `Our “${params.listName}” on Savr (${count}) — open the link, add what we need, then compare stores before we shop.`,
+    url: params.url,
+  };
+}
+
 export function buildRideShare(params: {
   savingsCents: number;
   partner: string;
