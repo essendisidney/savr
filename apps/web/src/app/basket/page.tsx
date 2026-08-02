@@ -290,12 +290,12 @@ function BasketInner() {
     }
     const result = await sharePayload({
       title: "Savr shopping list",
-      text: "Here's our weekly shop on Savr — open it, compare, and pick the smarter store.",
+      text: "Our weekly shop on Savr — open the link to add items, then compare stores.",
       url: outcome.url,
     });
     await refreshLists();
-    if (result === "shared") setStatus("List shared with your household.");
-    else if (result === "copied") setStatus("Share link copied.");
+    if (result === "shared") setStatus("List shared — household can add items on the link.");
+    else if (result === "copied") setStatus("Share link copied — they can add items too.");
     else setStatus(`Share link: ${outcome.url}`);
   }
 

@@ -405,6 +405,40 @@ export async function loadSharedList(
   };
 }
 
+function mapSharedListPayload(data: unknown): { name: string; items: ListItem[] } {
+  const row = (data ?? {}) as {
+    name?: string;
+    items?: { product_id: string; free_text: string; quantity: number }[];
+  };
+  return {
+    name: row.name ?? "Shared list",
+    items: (row.items ?? [])
+      .filter((i) => i.product_id)
+      .map((i) => ({
+        productId: i.product_id,
+        freeText: i.free_text,
+        quantity: Number(i.quantity) || 1,
+      })),
+  };
+}
+
+export async function appendSharedListItem(params: {
+  token: string;
+  productId: string;
+  quantity?: number;
+}): Promise<{ name: string; items: ListItem[] } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const { data, error } = await supabase.rpc("append_shared_list_item", {
+    p_token: params.token,
+    p_product_id: params.productId,
+    p_quantity: params.quantity ?? 1,
+  });
+  if (error) return { error: error.message };
+  return mapSharedListPayload(data);
+}
+
 export type UserProfile = {
   fullName: string;
   phone: string;
