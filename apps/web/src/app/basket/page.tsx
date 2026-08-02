@@ -279,13 +279,19 @@ function BasketInner() {
     setStatus(null);
   }
 
+  function resolvedListName() {
+    return listName.trim() || "Weekly shop";
+  }
+
   async function onSaveList() {
     if (!user) {
       setStatus("Sign in to save this list.");
       return;
     }
     setSaving(true);
-    const outcome = await saveShoppingList({ name: listName, items });
+    const name = resolvedListName();
+    if (name !== listName) setListName(name);
+    const outcome = await saveShoppingList({ name, items });
     setSaving(false);
     if ("error" in outcome) {
       setStatus(outcome.error);
@@ -302,7 +308,7 @@ function BasketInner() {
       return;
     }
     setItems(outcome.items);
-    setListName(outcome.name);
+    setListName(outcome.name.trim() || "Weekly shop");
     setStatus(`Loaded “${outcome.name}”.`);
   }
 
@@ -339,14 +345,16 @@ function BasketInner() {
     if (!items.length) return;
     setSharingDraft(true);
     setStatus(null);
-    const url = buildListShareUrl(listName, items);
+    const name = resolvedListName();
+    if (name !== listName) setListName(name);
+    const url = buildListShareUrl(name, items);
     setSharingDraft(false);
     if (!url) {
       setStatus("Could not build a share link for this list.");
       return;
     }
     const payload = buildListShare({
-      listName,
+      listName: name,
       url,
       itemCount: items.length,
     });
@@ -595,15 +603,23 @@ function BasketInner() {
                   )}
                 </ul>
 
-                <div className="flex flex-col gap-2 card p-3 sm:flex-row sm:items-center">
-                  <input
-                    value={listName}
-                    onChange={(e) => setListName(e.target.value)}
-                    className="field py-2.5"
-                    placeholder="List name"
-                    aria-label="List name"
-                  />
-                  <div className="flex shrink-0 flex-wrap gap-2">
+                <div className="space-y-2 card p-3">
+                  <label className="block">
+                    <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                      List name
+                    </span>
+                    <input
+                      value={listName}
+                      onChange={(e) => setListName(e.target.value)}
+                      onBlur={() => {
+                        if (!listName.trim()) setListName("Weekly shop");
+                      }}
+                      className="field py-2.5"
+                      placeholder="Weekly shop"
+                      aria-label="List name"
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={sharingDraft || items.length === 0}
