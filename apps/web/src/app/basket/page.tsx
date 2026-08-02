@@ -23,6 +23,12 @@ import {
   searchProducts,
 } from "@/lib/compare";
 import { useShopperOrigin } from "@/lib/geo";
+import {
+  clearBasketDraft,
+  hydrateDraftAgainstCatalog,
+  loadBasketDraft,
+  saveBasketDraft,
+} from "@/lib/basket-draft";
 import type { Catalog, ListItem } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -65,6 +71,7 @@ function BasketInner() {
   const [preferredMerchantIds, setPreferredMerchantIds] = useState<string[]>([]);
   const [preferredOnly, setPreferredOnly] = useState(false);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
   const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
     useShopperOrigin();
 
@@ -80,6 +87,7 @@ function BasketInner() {
   useEffect(() => {
     loadCatalog().then((c) => {
       setCatalog(c);
+      const ids = new Set(c.products.map((p) => p.id));
       const sharedFlag = searchParams.get("shared");
       let appliedShared = false;
       if (sharedFlag && typeof window !== "undefined") {
@@ -88,10 +96,13 @@ function BasketInner() {
           if (raw) {
             const parsed = JSON.parse(raw) as { name?: string; items?: ListItem[] };
             if (parsed.items?.length) {
-              setItems(parsed.items);
-              setListName(parsed.name ?? "Shared list");
-              setStatus(`Loaded shared list “${parsed.name ?? "list"}”.`);
-              appliedShared = true;
+              const kept = parsed.items.filter((i) => ids.has(i.productId));
+              if (kept.length) {
+                setItems(kept);
+                setListName(parsed.name ?? "Shared list");
+                setStatus(`Loaded shared list “${parsed.name ?? "list"}”.`);
+                appliedShared = true;
+              }
               sessionStorage.removeItem("savr_shared_list");
             }
           }
@@ -99,11 +110,25 @@ function BasketInner() {
           /* ignore */
         }
       }
-      if (!appliedShared) setItems(defaultListFromCatalog(c));
+      if (!appliedShared) {
+        const draft = loadBasketDraft();
+        const hydrated = draft ? hydrateDraftAgainstCatalog(draft, ids) : null;
+        if (hydrated) {
+          setItems(hydrated.items);
+          setListName(hydrated.name);
+        } else {
+          setItems(defaultListFromCatalog(c));
+        }
+      }
       setLoading(false);
+      setDraftReady(true);
     });
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!draftReady || loading) return;
+    saveBasketDraft(listName, items);
+  }, [draftReady, loading, listName, items]);
   useEffect(() => {
     refreshLists();
   }, [refreshLists]);
@@ -277,7 +302,7 @@ function BasketInner() {
       <PageHero
         theme="basket"
         title="Beat the weekly shop"
-        subtitle="Start from weekly staples, save your list, and reopen it next week — ranked by total value."
+        subtitle="Your list stays on this phone until you clear it — save to your account for next week’s reopen."
       />
 
       <div className="page-band">
@@ -308,6 +333,19 @@ function BasketInner() {
                     >
                       Weekly staples
                     </button>
+                    {items.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setItems([]);
+                          clearBasketDraft();
+                          setStatus("List cleared — search or tap Weekly staples to start again.");
+                        }}
+                        className="text-xs font-semibold text-savr-mute hover:text-savr-ink hover:underline"
+                      >
+                        Clear
+                      </button>
+                    )}
                     <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
                       {items.length} items
                     </span>
@@ -465,10 +503,11 @@ function BasketInner() {
 
                 {!user && (
                   <p className="text-xs text-savr-mute">
+                    Draft saved on this device.{" "}
                     <Link href="/login" className="font-semibold text-savr-forest hover:underline">
                       Sign in
                     </Link>{" "}
-                    to save lists for next week.
+                    to keep lists across phones.
                   </p>
                 )}
 
