@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { compareRidesForRoute, formatKes } from "@/lib/compare";
+import { loadRideRouteDraft, saveRideRouteDraft } from "@/lib/ride-draft";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
@@ -21,6 +22,22 @@ const PRESETS = [
 export default function RidesPage() {
   const [pickup, setPickup] = useState("Westlands");
   const [destination, setDestination] = useState("Airport");
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const draft = loadRideRouteDraft();
+    if (draft) {
+      setPickup(draft.pickup);
+      setDestination(draft.destination);
+    }
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    saveRideRouteDraft(pickup, destination);
+  }, [ready, pickup, destination]);
+
   const quotes = useMemo(
     () => compareRidesForRoute(pickup, destination),
     [pickup, destination],
@@ -48,7 +65,7 @@ export default function RidesPage() {
       <PageHero
         theme="rides"
         title="Who gets you there for less?"
-        subtitle="Bolt, Uber, Little — ranked before you request. Quotes are estimated until partner APIs go live."
+        subtitle="Bolt, Uber, Little — ranked before you request. Your last route stays on this phone."
       />
 
       <div className="page-band">
@@ -141,7 +158,7 @@ export default function RidesPage() {
             </div>
 
             <p className="rounded-sm bg-savr-fog px-3 py-2 text-xs font-semibold text-savr-mute">
-              Estimated quotes · not live partner fares · cashback applied to net rank
+              Estimated quotes · not live partner fares · route remembered on this device
             </p>
 
             {best && (
