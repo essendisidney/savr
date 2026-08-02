@@ -11,7 +11,6 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabase } from "./supabase";
-import { toE164Kenya } from "./phone";
 
 type AuthState = {
   user: User | null;
@@ -104,35 +103,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sendPhoneOtp = useCallback(async (phone: string) => {
-    const supabase = getSupabase();
-    if (!supabase) return "Supabase is not configured.";
-    const e164 = toE164Kenya(phone);
-    if (!e164) return "Enter a valid Kenya mobile (e.g. 0712 345 678).";
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: e164,
-      options: { shouldCreateUser: true },
-    });
-    if (error?.message) {
-      const msg = error.message.toLowerCase();
-      if (msg.includes("sms") || msg.includes("provider") || msg.includes("phone")) {
-        return `${error.message} Enable Phone under Auth → Providers and connect an SMS provider.`;
+    try {
+      const res = await fetch("/api/auth/phone/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = (await res.json()) as { error?: string; detail?: string };
+      if (!res.ok) {
+        return data.detail ? `${data.error ?? "Failed"}: ${data.detail}` : data.error ?? "Failed to send code";
       }
-      return error.message;
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Failed to send code";
     }
-    return null;
   }, []);
 
   const verifyPhoneOtp = useCallback(async (phone: string, token: string) => {
     const supabase = getSupabase();
     if (!supabase) return "Supabase is not configured.";
-    const e164 = toE164Kenya(phone);
-    if (!e164) return "Enter a valid Kenya mobile.";
-    const { error } = await supabase.auth.verifyOtp({
-      phone: e164,
-      token: token.trim(),
-      type: "sms",
-    });
-    return error?.message ?? null;
+    try {
+      const res = await fetch("/api/auth/phone/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, otp: token }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        access_token?: string;
+        refresh_token?: string;
+      };
+      if (!res.ok || !data.access_token || !data.refresh_token) {
+        return data.error ?? "Invalid or expired code";
+      }
+      const { error } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+      return error?.message ?? null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Verification failed";
+    }
   }, []);
 
   const signOut = useCallback(async () => {

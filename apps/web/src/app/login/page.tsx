@@ -169,7 +169,7 @@ export default function LoginPage() {
                     className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
                   />
                   <p className="text-xs text-savr-mute">
-                    Kenya mobiles only for now · we send a one-time SMS code.
+                    Kenya mobiles only · SMS from SIDNET via Taifa Mobile.
                   </p>
                   <button type="submit" disabled={busy} className="btn-primary w-full">
                     {busy ? "Sending…" : "Send code"}
