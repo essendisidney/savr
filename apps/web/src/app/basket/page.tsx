@@ -19,6 +19,7 @@ import {
   defaultListFromCatalog,
   formatKes,
   lineItemsForMerchant,
+  quickAddChips,
   searchProducts,
 } from "@/lib/compare";
 import { useShopperOrigin } from "@/lib/geo";
@@ -151,6 +152,14 @@ function BasketInner() {
       items.map((i) => i.productId),
     );
   }, [catalog, query, items]);
+
+  const chips = useMemo(() => {
+    if (!catalog) return [];
+    return quickAddChips(
+      catalog,
+      items.map((i) => i.productId),
+    );
+  }, [catalog, items]);
 
   function setQty(productId: string, next: number) {
     setStatus(null);
@@ -335,6 +344,21 @@ function BasketInner() {
                     </ul>
                   )}
                 </div>
+
+                {chips.length > 0 && !query.trim() && (
+                  <div className="flex flex-wrap gap-2">
+                    {chips.map((c) => (
+                      <button
+                        key={c.productId}
+                        type="button"
+                        onClick={() => addProduct(c.productId, c.name)}
+                        className="border border-savr-ink/[0.1] bg-white px-3 py-1.5 text-xs font-semibold text-savr-ink transition hover:border-savr-forest/40 hover:text-savr-forest"
+                      >
+                        + {c.chip}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
                   {items.map((item) => (

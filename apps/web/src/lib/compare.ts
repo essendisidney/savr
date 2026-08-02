@@ -22,6 +22,22 @@ const WEEKLY_STAPLE_MATCHERS: { label: string; match: RegExp }[] = [
   { label: "Maize Flour 2kg", match: /maize flour 2kg/i },
 ];
 
+/** One-tap adds beyond the default weekly set — short labels for the chip row. */
+const QUICK_ADD_MATCHERS: { chip: string; match: RegExp }[] = [
+  { chip: "Eggs", match: /eggs tray/i },
+  { chip: "Tea", match: /tea leaves/i },
+  { chip: "Ugali flour", match: /maize flour 2kg/i },
+  { chip: "Sukuma", match: /sukuma wiki/i },
+  { chip: "Tomatoes", match: /^tomatoes 1kg$/i },
+  { chip: "Onions", match: /^onions 1kg$/i },
+  { chip: "Bananas", match: /^bananas 1kg$/i },
+  { chip: "Chicken", match: /chicken pieces/i },
+  { chip: "Yoghurt", match: /yoghurt/i },
+  { chip: "Detergent", match: /laundry detergent/i },
+  { chip: "Tissue", match: /tissue paper/i },
+  { chip: "Noodles", match: /instant noodles/i },
+];
+
 export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
   const picked: ListItem[] = [];
   const used = new Set<string>();
@@ -44,6 +60,27 @@ export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
     freeText: p.name,
     quantity: 1,
   }));
+}
+
+export function quickAddChips(
+  catalog: Catalog,
+  excludeIds: string[] = [],
+  limit = 8,
+): { productId: string; name: string; chip: string }[] {
+  const excluded = new Set(excludeIds);
+  const chips: { productId: string; name: string; chip: string }[] = [];
+
+  for (const entry of QUICK_ADD_MATCHERS) {
+    const product = catalog.products.find(
+      (p) => !excluded.has(p.id) && entry.match.test(p.name),
+    );
+    if (!product) continue;
+    excluded.add(product.id);
+    chips.push({ productId: product.id, name: product.name, chip: entry.chip });
+    if (chips.length >= limit) break;
+  }
+
+  return chips;
 }
 
 export function searchProducts(
