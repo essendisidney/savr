@@ -68,6 +68,22 @@ export type BasketResult = {
   mapsUrl: string;
 };
 
+export type MissedSavingsResult = {
+  paidMerchantId: string;
+  paidMerchantName: string;
+  paidTotalCents: number;
+  paidCashbackCents: number;
+  paidNetCents: number;
+  paidCoverage: number;
+  bestMerchantId: string;
+  bestMerchantName: string;
+  bestTotalCents: number;
+  bestCashbackCents: number;
+  bestNetCents: number;
+  missedCents: number;
+  alreadyOptimal: boolean;
+};
+
 export type LineItemPrice = {
   productId: string;
   name: string;

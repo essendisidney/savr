@@ -280,9 +280,14 @@ export default function WalletPage() {
             <section className="animate-rise-delay">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-display text-lg font-bold tracking-tightish">Shopping history</h2>
-                <Link href="/basket" className="text-sm font-semibold text-savr-forest hover:underline">
-                  New compare →
-                </Link>
+                <div className="flex gap-3">
+                  <Link href="/check" className="text-sm font-semibold text-savr-mute hover:text-savr-forest hover:underline">
+                    Could have saved?
+                  </Link>
+                  <Link href="/basket" className="text-sm font-semibold text-savr-forest hover:underline">
+                    New compare →
+                  </Link>
+                </div>
               </div>
               {history.length === 0 ? (
                 <div className="mt-4 border border-dashed border-savr-forest/40 bg-white px-5 py-8 text-center">

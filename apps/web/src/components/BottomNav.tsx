@@ -39,6 +39,27 @@ const tabs = [
     ),
   },
   {
+    href: "/check",
+    label: "Check",
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M9 11.5 11 13.5 15.5 9"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Z"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/prices",
     label: "Prices",
     icon: (active: boolean) => (
@@ -55,21 +76,6 @@ const tabs = [
           strokeWidth={active ? 2.2 : 1.7}
           strokeLinecap="round"
         />
-      </svg>
-    ),
-  },
-  {
-    href: "/rides",
-    label: "Rides",
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M3 13h18l-1.5-5.5A3 3 0 0 0 16.6 5H7.4a3 3 0 0 0-2.9 2.5L3 13Z"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
-        />
-        <path d="M5 17h.01M19 17h.01M3 13v3a2 2 0 0 0 2 2h1m12 0h1a2 2 0 0 0 2-2v-3" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" />
       </svg>
     ),
   },

@@ -4,6 +4,7 @@ import type {
   LineItemPrice,
   ListItem,
   Merchant,
+  MissedSavingsResult,
   ProductPriceResult,
   RideQuote,
 } from "./types";
@@ -158,6 +159,39 @@ export function compareRides(destination: string): RideQuote[] {
   ].sort((a, b) => a.priceCents - a.cashbackCents - (b.priceCents - b.cashbackCents));
 }
 
+/** What you paid at one store vs the best basket total elsewhere. */
+export function computeMissedSavings(
+  catalog: Catalog,
+  items: ListItem[],
+  paidMerchantId: string,
+): MissedSavingsResult | null {
+  if (!items.length || !paidMerchantId) return null;
+
+  const ranks = compareBasket(catalog, items);
+  const paid = ranks.find((r) => r.merchantId === paidMerchantId);
+  const best = ranks.find((r) => r.isRecommended) ?? ranks[0];
+  if (!paid || !best || paid.coverage === 0) return null;
+
+  const missedCents = Math.max(0, paid.netCents - best.netCents);
+  const alreadyOptimal = best.merchantId === paid.merchantId || missedCents === 0;
+
+  return {
+    paidMerchantId: paid.merchantId,
+    paidMerchantName: paid.merchantName,
+    paidTotalCents: paid.totalCents,
+    paidCashbackCents: paid.cashbackCents,
+    paidNetCents: paid.netCents,
+    paidCoverage: paid.coverage,
+    bestMerchantId: best.merchantId,
+    bestMerchantName: best.merchantName,
+    bestTotalCents: best.totalCents,
+    bestCashbackCents: best.cashbackCents,
+    bestNetCents: best.netCents,
+    missedCents: alreadyOptimal ? 0 : missedCents,
+    alreadyOptimal,
+  };
+}
+
 export { formatKes } from "./types";
 export type {
   ListItem,
@@ -167,4 +201,5 @@ export type {
   Catalog,
   LineItemPrice,
   ProductPriceResult,
+  MissedSavingsResult,
 } from "./types";

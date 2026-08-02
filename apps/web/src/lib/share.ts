@@ -45,6 +45,20 @@ export function buildLifetimeShare(lifetimeSavingsCents: number): SharePayload {
   };
 }
 
+export function buildMissedShare(params: {
+  missedCents: number;
+  paidMerchantName: string;
+  bestMerchantName: string;
+}): SharePayload {
+  const amount = formatKes(params.missedCents);
+  const url = inviteUrl(params.missedCents / 100, params.bestMerchantName);
+  return {
+    title: "Could have saved with Savr",
+    text: `I just found ${amount} I left on the table shopping at ${params.paidMerchantName} — ${params.bestMerchantName} was cheaper on Savr. Next time I'm checking first.`,
+    url,
+  };
+}
+
 export async function sharePayload(payload: SharePayload): Promise<"shared" | "copied" | "failed"> {
   const full = `${payload.text}\n${payload.url}`;
   try {

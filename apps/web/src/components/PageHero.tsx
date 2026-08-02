@@ -36,6 +36,11 @@ const themes = {
     image:
       "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1800&q=80",
   },
+  check: {
+    label: "After the shop",
+    image:
+      "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80",
+  },
 } as const;
 
 export type PageTheme = keyof typeof themes;
