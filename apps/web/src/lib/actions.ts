@@ -1,3 +1,4 @@
+import { loadCatalog } from "./catalog";
 import { getSupabase } from "./supabase";
 import type { BasketResult, ListItem } from "./types";
 
@@ -591,4 +592,151 @@ export async function submitCrowdsourceFuelPrice(params: {
 
   if (error) return { error: error.message };
   return { ok: true };
+}
+
+export type WatchItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  brand: string | null;
+  baselineCents: number | null;
+  currentCents: number | null;
+  merchantName: string | null;
+  /** Positive when current cheapest is below the watch baseline. */
+  dropCents: number;
+  weekTrendLabel: string | null;
+  href: string;
+  createdAt: string;
+};
+
+export async function loadWatchlist(): Promise<{
+  items: WatchItem[];
+  drops: WatchItem[];
+  error?: string;
+}> {
+  const empty = { items: [] as WatchItem[], drops: [] as WatchItem[] };
+  const supabase = getSupabase();
+  if (!supabase) return { ...empty, error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ...empty, error: "signed_out" };
+
+  const { data: rows, error } = await supabase
+    .from("product_watches")
+    .select("id, product_id, baseline_cents, created_at")
+    .eq("profile_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) return { ...empty, error: error.message };
+  if (!rows?.length) return empty;
+
+  const catalog = await loadCatalog();
+  const { compareProduct } = await import("./compare");
+  const { formatPriceTrend } = await import("./freshness");
+
+  const items: WatchItem[] = rows.map((row) => {
+    const product = catalog.products.find((p) => p.id === row.product_id);
+    const ranks = compareProduct(catalog, row.product_id);
+    const best = ranks[0];
+    const baseline = row.baseline_cents as number | null;
+    const current = best?.priceCents ?? null;
+    const dropCents =
+      baseline != null && current != null && current < baseline ? baseline - current : 0;
+
+    let weekTrendLabel: string | null = null;
+    if (best) {
+      const trend = formatPriceTrend(best.listCents, best.prevPriceCents, best.prevObservedAt);
+      if (trend.direction === "down" && trend.label) weekTrendLabel = trend.label;
+    }
+
+    return {
+      id: row.id as string,
+      productId: row.product_id as string,
+      productName: product?.name ?? "Product",
+      brand: product?.brand ?? null,
+      baselineCents: baseline,
+      currentCents: current,
+      merchantName: best?.merchantName ?? null,
+      dropCents,
+      weekTrendLabel,
+      href: `/prices?id=${row.product_id}&q=${encodeURIComponent(product?.name ?? "")}`,
+      createdAt: new Date(row.created_at as string).toLocaleDateString("en-KE", {
+        month: "short",
+        day: "numeric",
+      }),
+    };
+  });
+
+  const drops = items
+    .filter((i) => i.dropCents > 0 || i.weekTrendLabel)
+    .sort((a, b) => b.dropCents - a.dropCents);
+
+  return { items, drops };
+}
+
+export async function watchProduct(params: {
+  productId: string;
+  baselineCents: number | null;
+}): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to watch a price." };
+
+  const { error } = await supabase.from("product_watches").upsert(
+    {
+      profile_id: user.id,
+      product_id: params.productId,
+      baseline_cents: params.baselineCents,
+    },
+    { onConflict: "profile_id,product_id" },
+  );
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function unwatchProduct(
+  productId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to update watches." };
+
+  const { error } = await supabase
+    .from("product_watches")
+    .delete()
+    .eq("profile_id", user.id)
+    .eq("product_id", productId);
+
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function isWatchingProduct(productId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data } = await supabase
+    .from("product_watches")
+    .select("id")
+    .eq("profile_id", user.id)
+    .eq("product_id", productId)
+    .maybeSingle();
+
+  return Boolean(data?.id);
 }

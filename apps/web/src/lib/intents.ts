@@ -33,6 +33,12 @@ export const SPEND_INTENTS: SpendIntent[] = [
     hint: "Find the best shelf price",
   },
   {
+    id: "watch",
+    label: "Watch a price",
+    href: "/saved",
+    hint: "Catch drops on staples you care about",
+  },
+  {
     id: "map",
     label: "See nearby value",
     href: "/map",
@@ -76,6 +82,9 @@ export function routeAskQuery(raw: string): string {
   }
   if (/\b(fuel|petrol|diesel|fill\s*up|station)\b/.test(q)) {
     return "/fuel";
+  }
+  if (/\b(watch|wishlist|alert|drop|notify)\b/.test(q)) {
+    return "/saved";
   }
   if (/\b(map|nearby|near me|directions)\b/.test(q)) {
     return "/map";

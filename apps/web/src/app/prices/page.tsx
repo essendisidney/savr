@@ -3,10 +3,16 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
-import { submitCrowdsourcePrice } from "@/lib/actions";
+import {
+  isWatchingProduct,
+  submitCrowdsourcePrice,
+  unwatchProduct,
+  watchProduct,
+} from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { compareProduct, formatKes } from "@/lib/compare";
+import { track } from "@/lib/track";
 import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
 import type { Catalog, Product } from "@/lib/types";
@@ -28,6 +34,8 @@ function PricesInner() {
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
+  const [watching, setWatching] = useState(false);
+  const [watchBusy, setWatchBusy] = useState(false);
   const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
     useShopperOrigin();
 
@@ -48,6 +56,14 @@ function PricesInner() {
     setTipStatus(null);
     setTipPrice("");
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!user || !selectedId) {
+      setWatching(false);
+      return;
+    }
+    void isWatchingProduct(selectedId).then(setWatching);
+  }, [user, selectedId]);
 
   const selected: Product | null = useMemo(() => {
     if (!catalog || !selectedId) return null;
@@ -210,15 +226,63 @@ function PricesInner() {
 
             {selected && results.length > 0 && (
               <>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
-                    Comparing
-                  </p>
-                  <h2 className="mt-1 font-display text-2xl font-bold tracking-tightish text-savr-ink md:text-3xl">
-                    {selected.name}
-                  </h2>
-                  {selected.brand && (
-                    <p className="mt-1 text-sm text-savr-mute">{selected.brand}</p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
+                      Comparing
+                    </p>
+                    <h2 className="mt-1 font-display text-2xl font-bold tracking-tightish text-savr-ink md:text-3xl">
+                      {selected.name}
+                    </h2>
+                    {selected.brand && (
+                      <p className="mt-1 text-sm text-savr-mute">{selected.brand}</p>
+                    )}
+                  </div>
+                  {user ? (
+                    <button
+                      type="button"
+                      disabled={watchBusy || !selectedId}
+                      onClick={async () => {
+                        if (!selectedId) return;
+                        setWatchBusy(true);
+                        if (watching) {
+                          const res = await unwatchProduct(selectedId);
+                          setWatchBusy(false);
+                          if ("error" in res) {
+                            setTipStatus(res.error);
+                            return;
+                          }
+                          setWatching(false);
+                          track("unwatch_product", { productId: selectedId });
+                          return;
+                        }
+                        const res = await watchProduct({
+                          productId: selectedId,
+                          baselineCents: cheapest?.priceCents ?? null,
+                        });
+                        setWatchBusy(false);
+                        if ("error" in res) {
+                          setTipStatus(res.error);
+                          return;
+                        }
+                        setWatching(true);
+                        track("watch_product", { productId: selectedId });
+                      }}
+                      className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition duration-soft disabled:opacity-60 ${
+                        watching
+                          ? "border-savr-forest/40 bg-savr-forest/10 text-savr-forest"
+                          : "border-savr-ink/[0.08] bg-white text-savr-ink hover:border-savr-forest/30"
+                      }`}
+                    >
+                      {watchBusy ? "…" : watching ? "Watching" : "Watch for drop"}
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/login?next=${encodeURIComponent(`/prices?id=${selectedId}`)}`}
+                      className="shrink-0 rounded-full border border-savr-ink/[0.08] bg-white px-4 py-2 text-sm font-semibold text-savr-ink hover:border-savr-forest/30"
+                    >
+                      Watch for drop
+                    </Link>
                   )}
                 </div>
 

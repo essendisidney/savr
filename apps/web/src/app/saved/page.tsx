@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchSavedLists, loadWallet, type SavedListSummary } from "@/lib/actions";
+import {
+  fetchSavedLists,
+  loadWallet,
+  loadWatchlist,
+  unwatchProduct,
+  type SavedListSummary,
+  type WatchItem,
+} from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
 import { EmptyState } from "@/components/EmptyState";
@@ -15,6 +22,7 @@ export default function SavedPage() {
   const [history, setHistory] = useState<
     { id: string; listId: string; when: string; savingsCents: number; chosenMerchant: string }[]
   >([]);
+  const [watches, setWatches] = useState<WatchItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +32,11 @@ export default function SavedPage() {
       return;
     }
     void (async () => {
-      const [listsRes, wallet] = await Promise.all([fetchSavedLists(), loadWallet()]);
+      const [listsRes, wallet, watchRes] = await Promise.all([
+        fetchSavedLists(),
+        loadWallet(),
+        loadWatchlist(),
+      ]);
       setLists(listsRes.lists ?? []);
       setHistory(
         (wallet.history ?? []).map((h) => ({
@@ -35,6 +47,7 @@ export default function SavedPage() {
           chosenMerchant: h.chosenMerchant,
         })),
       );
+      setWatches(watchRes.items ?? []);
       setLoading(false);
     })();
   }, [user, authLoading]);
@@ -66,7 +79,7 @@ export default function SavedPage() {
         <PageShell>
           <EmptyState
             title="Sign in to keep lists"
-            body="Saved baskets and shop-again history live here."
+            body="Saved baskets, watchlist drops, and shop-again history live here."
             action={
               <Link href="/login?next=/saved" className="btn-primary">
                 Sign in
@@ -86,16 +99,66 @@ export default function SavedPage() {
             Saved
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tightish text-savr-ink">
-            Lists & smarter shops
+            Lists, watches & wins
           </h1>
           <p className="mt-2 text-sm text-savr-mute">
-            Reopen a list or shop again from a locked-in basket.
+            Reopen a list, catch a drop, or shop again from a locked-in basket.
           </p>
         </div>
       </div>
 
       <PageShell narrow>
         <section className="space-y-3">
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="font-display text-lg font-bold text-savr-ink">Watching for drops</h2>
+            <Link href="/prices" className="text-sm font-semibold text-savr-forest hover:underline">
+              Find staples →
+            </Link>
+          </div>
+          {watches.length === 0 ? (
+            <EmptyState
+              title="No watches yet"
+              body="On any price compare, tap Watch for drop — Savr flags when it gets cheaper than when you started watching."
+              action={
+                <Link href="/prices?q=oil" className="btn-primary">
+                  Watch cooking oil
+                </Link>
+              }
+            />
+          ) : (
+            <ul className="space-y-2">
+              {watches.map((w) => (
+                <li key={w.id} className="card flex items-center justify-between gap-3 px-4 py-3.5">
+                  <Link href={w.href} className="min-w-0 flex-1 hover:opacity-90">
+                    <span className="block font-semibold text-savr-ink">{w.productName}</span>
+                    <span className="text-xs text-savr-mute">
+                      {w.currentCents != null
+                        ? `${formatKes(w.currentCents)}${w.merchantName ? ` · ${w.merchantName}` : ""}`
+                        : "No live price yet"}
+                      {w.dropCents > 0
+                        ? ` · ↓ ${formatKes(w.dropCents)} since watch`
+                        : w.weekTrendLabel
+                          ? ` · ${w.weekTrendLabel}`
+                          : ` · since ${w.createdAt}`}
+                    </span>
+                  </Link>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs font-semibold text-savr-mute hover:text-savr-forest"
+                    onClick={async () => {
+                      await unwatchProduct(w.productId);
+                      setWatches((prev) => prev.filter((x) => x.id !== w.id));
+                    }}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-10 space-y-3">
           <h2 className="font-display text-lg font-bold text-savr-ink">Shopping lists</h2>
           {lists.length === 0 ? (
             <EmptyState

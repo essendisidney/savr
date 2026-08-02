@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { loadProfile, loadWallet } from "@/lib/actions";
+import { loadProfile, loadWallet, loadWatchlist } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
@@ -147,7 +147,11 @@ export function HomeDecision() {
         setReady(true);
         return;
       }
-      const [profile, wallet] = await Promise.all([loadProfile(), loadWallet()]);
+      const [profile, wallet, watchRes] = await Promise.all([
+        loadProfile(),
+        loadWallet(),
+        loadWatchlist(),
+      ]);
       if (cancelled) return;
       const full =
         "error" in profile ? (user.user_metadata?.full_name as string | undefined) : profile.fullName;
@@ -156,6 +160,20 @@ export function HomeDecision() {
       setYesterdayCents(wallet.yesterdaySavingsCents ?? 0);
       setLifetimeCents(wallet.lifetimeSavingsCents ?? 0);
       setTip(wallet.lastTip ?? null);
+
+      const personal = watchRes.drops?.[0];
+      if (personal) {
+        setDrop({
+          productName: personal.productName,
+          merchantName: personal.merchantName ?? "Nairobi",
+          label:
+            personal.dropCents > 0
+              ? `↓ ${formatKes(personal.dropCents)} since you watched`
+              : personal.weekTrendLabel ?? "Price moved",
+          href: personal.href,
+        });
+      }
+
       setReady(true);
     })();
     return () => {
@@ -179,7 +197,9 @@ export function HomeDecision() {
     drop
       ? {
           key: "drop",
-          eyebrow: "Price move",
+          eyebrow: drop.href.includes("prices") && drop.label.includes("watched")
+            ? "On your watchlist"
+            : "Price move",
           title: `${drop.productName} is cheaper`,
           body: `${drop.label} at ${drop.merchantName}`,
           href: drop.href,
