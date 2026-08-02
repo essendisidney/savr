@@ -435,20 +435,20 @@ function BasketInner() {
     <PageFrame>
       <PageHero
         theme="basket"
-        title="Feed the family for less"
-        subtitle="One list. Every supermarket. The winner should feel obvious — total cost, not sticker price."
+        title="Where should you shop?"
+        subtitle="One list. Branches ranked by total cost — then share or lock."
       />
 
       <div className="page-band">
         <PageShell>
-          <div className="space-y-9">
+          <div className="space-y-8">
             {recommended && items.length > 0 && (
               <SavingsMoment
-                amountLabel="Great choice — you could keep"
+                amountLabel="You could keep"
                 amountCents={saved}
-                detail={`vs the priciest basket · earn ${formatKes(recommended.cashbackCents)} at ${recommended.merchantName}${
-                  recommended.promoCents > 0
-                    ? ` · promo −${formatKes(recommended.promoCents)}`
+                detail={`vs the priciest basket · ${recommended.merchantName}${
+                  recommended.cashbackCents > 0
+                    ? ` · earn ${formatKes(recommended.cashbackCents)}`
                     : ""
                 }`}
                 share={share}
@@ -463,8 +463,100 @@ function BasketInner() {
               />
             )}
 
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-12">
-              <section className="animate-rise-delay space-y-4">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
+              <section className="order-1 space-y-3">
+                <h2 className="font-display text-lg font-bold tracking-tightish">
+                  Where to shop
+                </h2>
+                <ShopperOriginBar
+                  label={geoLabel}
+                  source={geoSource}
+                  busy={geoBusy}
+                  error={geoError}
+                  useMyLocation={useMyLocation}
+                  setEstate={setEstate}
+                />
+                {preferredMerchantIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreferredOnly(false)}
+                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                        !preferredOnly
+                          ? "chip-active"
+                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                      }`}
+                    >
+                      All stores
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreferredOnly(true)}
+                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                        preferredOnly
+                          ? "bg-savr-forest text-white"
+                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                      }`}
+                    >
+                      Preferred only
+                    </button>
+                  </div>
+                )}
+                {items.length === 0 ? (
+                  <EmptyState
+                    title="Add items to rank stores"
+                    body="Load staples or search below — all branches rank here."
+                  />
+                ) : results.length === 0 ? (
+                  <EmptyState
+                    title="No preferred stores in range"
+                    body="Widen the filter or update which stores you prefer."
+                    action={
+                      <Link href="/account" className="btn-ghost">
+                        Update Account
+                      </Link>
+                    }
+                  />
+                ) : (
+                  <RankList
+                    results={results}
+                    busy={busy}
+                    onChoose={choose}
+                    chooseLabel={(name, isRecommended, cashbackCents) =>
+                      isRecommended
+                        ? cashbackCents > 0
+                          ? `Lock ${name} · earn ${formatKes(cashbackCents)}`
+                          : `Lock ${name} · best value`
+                        : `Shop ${name} · no cashback`
+                    }
+                    preferredMerchantIds={preferredMerchantIds}
+                    canTip={Boolean(user)}
+                    onPriceTipped={async () => {
+                      const c = await loadCatalog();
+                      setCatalog(c);
+                      setStatus("Price tip saved — ranks refreshed.");
+                    }}
+                    getLineItems={(merchantId, locationId) =>
+                      lineItemsForMerchant(catalog, items, merchantId, locationId)
+                    }
+                  />
+                )}
+
+                {!user && items.length > 0 && (
+                  <p className="text-sm text-savr-mute">
+                    <Link
+                      href="/login?next=/basket"
+                      className="font-semibold text-savr-forest hover:underline"
+                    >
+                      Sign in
+                    </Link>{" "}
+                    to lock the winner and earn cashback.
+                  </p>
+                )}
+                {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
+              </section>
+
+              <section className="order-2 animate-rise-delay space-y-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <h2 className="font-display text-lg font-bold tracking-tightish">Your list</h2>
                   <div className="flex items-center gap-2">
@@ -473,14 +565,12 @@ function BasketInner() {
                       onClick={() => {
                         setItems(defaultListFromCatalog(catalog));
                         setListName("Weekly shop");
-                        setStatus(
-                          "Loaded weekly staples — milk, bread, rice, sugar, soap, oil, eggs, ugali…",
-                        );
+                        setStatus("Loaded weekly staples.");
                         track("starter_basket", { items: 10, via: "chip" });
                       }}
                       className="text-xs font-semibold text-savr-forest hover:underline"
                     >
-                      Weekly staples
+                      Staples
                     </button>
                     {items.length > 0 && (
                       <button
@@ -488,15 +578,15 @@ function BasketInner() {
                         onClick={() => {
                           setItems([]);
                           clearBasketDraft();
-                          setStatus("List cleared — search or tap Weekly staples to start again.");
+                          setStatus("List cleared.");
                         }}
                         className="text-xs font-semibold text-savr-mute hover:text-savr-ink hover:underline"
                       >
                         Clear
                       </button>
                     )}
-                    <span className="rounded-full bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
-                      {items.length} items
+                    <span className="text-xs font-semibold tabular-nums text-savr-mute">
+                      {items.length}
                     </span>
                   </div>
                 </div>
@@ -551,19 +641,11 @@ function BasketInner() {
                   {items.map((item) => (
                     <li
                       key={item.productId}
-                      className="flex items-center justify-between gap-3 px-4 py-3.5"
+                      className="flex items-center justify-between gap-3 px-4 py-3"
                     >
-                      <div className="min-w-0">
-                        <span className="block text-[15px] font-medium leading-snug">
-                          {item.freeText}
-                        </span>
-                        <Link
-                          href={`/prices?id=${item.productId}`}
-                          className="text-xs font-semibold text-savr-forest hover:underline"
-                        >
-                          Price alone →
-                        </Link>
-                      </div>
+                      <span className="min-w-0 text-[15px] font-medium leading-snug">
+                        {item.freeText}
+                      </span>
                       <div className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
@@ -591,16 +673,14 @@ function BasketInner() {
                     <li className="list-none">
                       <EmptyState
                         title="Your list is empty"
-                        body="Search staples above, or load a weekly set to compare stores in seconds."
+                        body="Load staples or search — ranks appear above."
                         action={
                           <button
                             type="button"
                             onClick={() => {
                               setItems(defaultListFromCatalog(catalog));
                               setListName("Weekly shop");
-                              setStatus(
-                                "Loaded weekly staples — milk, bread, rice, sugar, soap, oil, eggs, ugali…",
-                              );
+                              setStatus("Loaded weekly staples.");
                               track("starter_basket", { items: 10, via: "empty" });
                             }}
                             className="btn-primary"
@@ -613,65 +693,59 @@ function BasketInner() {
                   )}
                 </ul>
 
-                <div className="space-y-2 card p-3">
-                  <label className="block">
-                    <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                      List name
-                    </span>
-                    <input
-                      value={listName}
-                      onChange={(e) => setListName(e.target.value)}
-                      onBlur={() => {
-                        if (!listName.trim()) setListName("Weekly shop");
-                      }}
-                      className="field py-2.5"
-                      placeholder="Weekly shop"
-                      aria-label="List name"
-                    />
-                  </label>
-                  <div className="flex flex-wrap gap-2">
+                {items.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <button
                       type="button"
-                      disabled={sharingDraft || items.length === 0}
+                      disabled={sharingDraft}
                       onClick={() => onShareCurrent(true)}
-                      className="btn-primary flex-1 disabled:opacity-50 sm:flex-none"
+                      className="font-semibold text-savr-forest hover:underline disabled:opacity-50"
                     >
                       {sharingDraft ? "…" : "WhatsApp list"}
                     </button>
                     <button
                       type="button"
-                      disabled={sharingDraft || items.length === 0}
+                      disabled={sharingDraft}
                       onClick={() => onShareCurrent(false)}
-                      className="btn-ghost flex-1 disabled:opacity-50 sm:flex-none"
+                      className="font-semibold text-savr-mute hover:text-savr-ink hover:underline disabled:opacity-50"
                     >
-                      Share
+                      Copy link
                     </button>
-                    <button
-                      type="button"
-                      disabled={saving || items.length === 0}
-                      onClick={onSaveList}
-                      className="btn-dark flex-1 disabled:opacity-50 sm:flex-none"
-                    >
-                      {saving ? "Saving…" : "Save list"}
-                    </button>
+                    {user ? (
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={onSaveList}
+                        className="font-semibold text-savr-mute hover:text-savr-ink hover:underline disabled:opacity-50"
+                      >
+                        {saving ? "…" : "Save"}
+                      </button>
+                    ) : (
+                      <Link
+                        href="/login?next=/basket"
+                        className="font-semibold text-savr-mute hover:text-savr-forest hover:underline"
+                      >
+                        Sign in to save
+                      </Link>
+                    )}
                   </div>
-                </div>
-                <p className="text-xs text-savr-mute">
-                  WhatsApp the list home — they add items on the link, you compare before anyone shops.
-                </p>
+                )}
 
                 {user && savedLists.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                      Saved lists
-                    </p>
-                    <ul className="divide-y divide-savr-ink/[0.06] card">
+                  <details className="text-sm">
+                    <summary className="cursor-pointer font-semibold text-savr-mute hover:text-savr-ink">
+                      Saved lists ({savedLists.length})
+                    </summary>
+                    <ul className="mt-2 divide-y divide-savr-ink/[0.06] card">
                       {savedLists.map((list) => (
-                        <li key={list.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                        <li
+                          key={list.id}
+                          className="flex items-center justify-between gap-3 px-3 py-2.5"
+                        >
                           <div className="min-w-0">
                             <p className="text-sm font-medium">{list.name}</p>
                             <p className="text-xs text-savr-mute">
-                              {list.itemCount} items · {list.updatedAt}
+                              {list.itemCount} items
                               {list.shareToken ? " · shared" : ""}
                             </p>
                           </div>
@@ -695,134 +769,8 @@ function BasketInner() {
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </details>
                 )}
-
-                {!user && (
-                  <p className="text-xs text-savr-mute">
-                    Draft saved on this device.{" "}
-                    <Link href="/login?next=/basket" className="font-semibold text-savr-forest hover:underline">
-                      Sign in
-                    </Link>{" "}
-                    to keep lists across phones.
-                  </p>
-                )}
-
-                {user && (
-                  <p className="text-xs text-savr-mute">
-                    Prefer certain stores?{" "}
-                    <Link href="/account" className="font-semibold text-savr-forest hover:underline">
-                      Set them in Account
-                    </Link>
-                    , then filter ranks below.
-                  </p>
-                )}
-
-                <p className="text-xs text-savr-mute">
-                  Catalog · {catalog.products.length} products
-                </p>
-              </section>
-
-              <section className="space-y-3">
-                <h2 className="font-display text-lg font-bold tracking-tightish">Live ranking</h2>
-                <ShopperOriginBar
-                  label={geoLabel}
-                  source={geoSource}
-                  busy={geoBusy}
-                  error={geoError}
-                  useMyLocation={useMyLocation}
-                  setEstate={setEstate}
-                />
-                {preferredMerchantIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPreferredOnly(false)}
-                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                        !preferredOnly
-                          ? "chip-active"
-                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
-                      }`}
-                    >
-                      All stores
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreferredOnly(true)}
-                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                        preferredOnly
-                          ? "bg-savr-forest text-white"
-                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
-                      }`}
-                    >
-                      Preferred only
-                    </button>
-                  </div>
-                )}
-                {preferredOnly && preferredMerchantIds.length > 0 && (
-                  <p className="text-xs text-savr-mute">
-                    Ranking among your preferred stores — best total value still wins.
-                  </p>
-                )}
-                {items.length === 0 ? (
-                  <EmptyState
-                    title="Add items to rank stores"
-                    body="Build your list on the left — Savr ranks who is cheapest after cashback."
-                  />
-                ) : results.length === 0 ? (
-                  <EmptyState
-                    title="No preferred stores in range"
-                    body="Widen the filter or update which stores you prefer."
-                    action={
-                      <Link href="/account" className="btn-ghost">
-                        Update Account
-                      </Link>
-                    }
-                  />
-                ) : (
-                  <RankList
-                    results={results}
-                    busy={busy}
-                    onChoose={choose}
-                    chooseLabel={(name, isRecommended, cashbackCents) =>
-                      isRecommended
-                        ? cashbackCents > 0
-                          ? `Lock ${name} · earn ${formatKes(cashbackCents)}`
-                          : `Lock ${name} · best value`
-                        : `Shop ${name} · no cashback`
-                    }
-                    preferredMerchantIds={preferredMerchantIds}
-                    canTip={Boolean(user)}
-                    onPriceTipped={async () => {
-                      const c = await loadCatalog();
-                      setCatalog(c);
-                      setStatus("Price tip saved — ranks refreshed.");
-                    }}
-                    getLineItems={(merchantId, locationId) =>
-                      lineItemsForMerchant(catalog, items, merchantId, locationId)
-                    }
-                  />
-                )}
-
-                {!user && items.length > 0 && (
-                  <p className="text-sm text-savr-mute">
-                    <Link href="/login?next=/basket" className="font-semibold text-savr-forest hover:underline">
-                      Sign in
-                    </Link>{" "}
-                    and lock the recommended store to earn wallet cashback.
-                  </p>
-                )}
-                {user && items.length > 0 && recommended && (
-                  <p className="text-sm text-savr-mute">
-                    Cashback pays only when you lock{" "}
-                    <span className="font-semibold text-savr-ink">{recommended.merchantName}</span>
-                    {recommended.cashbackCents > 0
-                      ? ` (${formatKes(recommended.cashbackCents)})`
-                      : ""}
-                    — other stores save the trip, not the wallet.
-                  </p>
-                )}
-                {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
               </section>
             </div>
           </div>
