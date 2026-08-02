@@ -293,13 +293,11 @@ export function RankList({
                 );
               })()}
 
-              {r.coverage < 1 && (
-                <p
-                  className={`mt-2 text-xs font-medium ${
-                    r.isRecommended ? "text-amber-800" : "text-amber-800"
-                  }`}
-                >
-                  Incomplete prices weaken this rank — tip shelf prices you saw.
+              {(r.coverage < 1 || r.confidenceLevel === "low") && (
+                <p className="mt-2 text-xs font-medium text-amber-800">
+                  {r.coverage < 1
+                    ? "Incomplete prices weaken this rank — tip shelf prices you saw."
+                    : "Low confidence prices — tip what you see on the shelf to tighten this rank."}
                 </p>
               )}
 
@@ -307,15 +305,9 @@ export function RankList({
                 <button
                   type="button"
                   onClick={() => setOpenId(open ? null : key)}
-                  className={`mt-3 text-sm font-semibold ${
-                    "text-savr-forest"
-                  }`}
+                  className="mt-3 text-sm font-semibold text-savr-forest"
                 >
-                  {open
-                    ? "Hide items ▲"
-                    : r.coverage < 1
-                      ? "Tip missing prices ▼"
-                      : "See item prices ▼"}
+                  {open ? "Hide items ▲" : "See prices & tip ▼"}
                 </button>
               )}
 
@@ -328,8 +320,8 @@ export function RankList({
                   }`}
                 >
                   {lines.map((line) => {
-                    const key = `${r.merchantId}:${line.productId}`;
-                    const tipping = tipKey === key;
+                    const lineKey = `${r.merchantId}:${line.productId}`;
+                    const tipping = tipKey === lineKey;
                     const missingLine = line.lineCents == null;
                     const fresh =
                       !missingLine && line.observedAt
@@ -343,10 +335,19 @@ export function RankList({
                             line.prevObservedAt,
                           )
                         : null;
+                    const needsHelp =
+                      missingLine ||
+                      Boolean(fresh?.stale) ||
+                      line.confidenceLevel === "low";
+                    const tipLabel = missingLine
+                      ? "Tip shelf price"
+                      : needsHelp
+                        ? "Update this price"
+                        : "Correct price";
                     return (
                       <li key={line.productId} className="px-3 py-2.5 text-sm">
                         <div className="flex items-center justify-between gap-3">
-                          <span className={r.isRecommended ? "text-savr-ink" : "text-savr-ink"}>
+                          <span className="text-savr-ink">
                             {line.name}
                             {line.quantity > 1 ? (
                               <span className="opacity-60"> ×{line.quantity}</span>
@@ -359,6 +360,16 @@ export function RankList({
                                 )}`}
                               >
                                 {fresh.label}
+                              </span>
+                            ) : null}
+                            {line.confidenceLabel ? (
+                              <span
+                                className={`mt-0.5 block text-[11px] font-medium ${confidenceClassName(
+                                  line.confidenceLevel ?? "medium",
+                                  "light",
+                                )}`}
+                              >
+                                {line.confidenceLabel}
                               </span>
                             ) : null}
                             {trend?.label ? (
@@ -374,7 +385,7 @@ export function RankList({
                           </span>
                           <span
                             className={`shrink-0 font-semibold tabular-nums ${
-                              missingLine ? "text-amber-800" : "text-savr-ink"
+                              missingLine || needsHelp ? "text-amber-800" : "text-savr-ink"
                             }`}
                           >
                             {missingLine
@@ -383,78 +394,74 @@ export function RankList({
                                 ? `${formatKes(line.lineCents! - line.promoCents)}`
                                 : formatKes(line.lineCents!)}
                             {line.promoCents && line.promoCents > 0 ? (
-                              <span
-                                className={`ml-1.5 text-xs font-medium ${
-                                  "text-savr-forest"
-                                }`}
-                              >
+                              <span className="ml-1.5 text-xs font-medium text-savr-forest">
                                 −{formatKes(line.promoCents)}
                               </span>
                             ) : null}
                           </span>
                         </div>
-                        {missingLine && (
-                          <div className="mt-2">
-                            {!canTip ? (
-                              <Link
-                                href="/login?next=/basket"
-                                className={`text-xs font-semibold ${
-                                  "text-savr-forest"
-                                } hover:underline`}
+                        <div className="mt-2">
+                          {!canTip ? (
+                            <Link
+                              href="/login?next=/basket"
+                              className="text-xs font-semibold text-savr-forest hover:underline"
+                            >
+                              Sign in to tip
+                            </Link>
+                          ) : !tipping ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTipKey(lineKey);
+                                setTipPrice(
+                                  missingLine || line.unitCents == null
+                                    ? ""
+                                    : String(Math.round(line.unitCents / 100)),
+                                );
+                                setTipStatus(null);
+                              }}
+                              className={`text-xs font-semibold hover:underline ${
+                                needsHelp ? "text-savr-forest" : "text-savr-mute"
+                              }`}
+                            >
+                              {tipLabel}
+                            </button>
+                          ) : (
+                            <form
+                              className="mt-1 flex flex-wrap items-center gap-2"
+                              onSubmit={(e) =>
+                                onTip(e, r.merchantId, r.locationId, line.productId)
+                              }
+                            >
+                              <input
+                                value={tipPrice}
+                                onChange={(ev) => setTipPrice(ev.target.value)}
+                                inputMode="numeric"
+                                placeholder="KES"
+                                aria-label={`Tip price for ${line.name}`}
+                                className="w-24 rounded-xl border border-savr-ink/15 bg-white px-2 py-1.5 text-sm text-savr-ink outline-none"
+                                autoFocus
+                              />
+                              <button
+                                type="submit"
+                                disabled={tipBusy || !tipPrice.trim()}
+                                className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50"
                               >
-                                Sign in to tip this price
-                              </Link>
-                            ) : !tipping ? (
+                                {tipBusy ? "…" : "Submit"}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setTipKey(key);
-                                  setTipPrice("");
+                                  setTipKey(null);
                                   setTipStatus(null);
                                 }}
-                                className={`text-xs font-semibold ${
-                                  "text-savr-forest"
-                                } hover:underline`}
+                                className="text-xs font-semibold text-savr-mute"
                               >
-                                Tip shelf price
+                                Cancel
                               </button>
-                            ) : (
-                              <form
-                                className="mt-1 flex flex-wrap items-center gap-2"
-                                onSubmit={(e) => onTip(e, r.merchantId, r.locationId, line.productId)}
-                              >
-                                <input
-                                  value={tipPrice}
-                                  onChange={(ev) => setTipPrice(ev.target.value)}
-                                  inputMode="numeric"
-                                  placeholder="KES"
-                                  aria-label={`Tip price for ${line.name}`}
-                                  className="w-24 rounded-xl border border-savr-ink/15 bg-white px-2 py-1.5 text-sm text-savr-ink outline-none"
-                                  autoFocus
-                                />
-                                <button
-                                  type="submit"
-                                  disabled={tipBusy || !tipPrice.trim()}
-                                  className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50"
-                                >
-                                  {tipBusy ? "…" : "Submit"}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTipKey(null);
-                                    setTipStatus(null);
-                                  }}
-                                  className={`text-xs font-semibold ${
-                                    r.isRecommended ? "text-savr-mute" : "text-savr-mute"
-                                  }`}
-                                >
-                                  Cancel
-                                </button>
-                              </form>
-                            )}
-                          </div>
-                        )}
+                            </form>
+                          )}
+                        </div>
                       </li>
                     );
                   })}
@@ -464,25 +471,18 @@ export function RankList({
               {open && tipStatus && (
                 <p
                   className={`mt-2 text-xs font-medium ${
-                    tipStatus.startsWith("Thanks")
-                      ? r.isRecommended
-                        ? "text-savr-signal"
-                        : "text-savr-forest"
-                      : "text-red-600"
+                    tipStatus.startsWith("Thanks") ? "text-savr-forest" : "text-red-600"
                   }`}
                 >
                   {tipStatus}
                 </p>
               )}
 
-              {open && missing.length > 0 && canTip && tipKey == null && (
-                <p
-                  className={`mt-2 text-xs ${
-                    r.isRecommended ? "text-savr-mute" : "text-savr-mute"
-                  }`}
-                >
-                  {missing.length} item{missing.length === 1 ? "" : "s"} without a price — tip any
-                  shelf tag you remember.
+              {open && tipKey == null && (
+                <p className="mt-2 text-xs text-savr-mute">
+                  {missing.length > 0
+                    ? `${missing.length} item${missing.length === 1 ? "" : "s"} without a price — tip any shelf tag you saw.`
+                    : "Saw a different shelf price? Tip it — ranks refresh from what shoppers report."}
                 </p>
               )}
 

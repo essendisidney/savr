@@ -324,6 +324,9 @@ export function lineItemsForMerchant(
     const lineCents = price ? price.priceCents * item.quantity : null;
     const promo =
       lineCents != null ? linePromoDiscount(promos, product, lineCents) : { cents: 0, title: null };
+    const conf = price
+      ? priceConfidence(price.observedAt, price.source)
+      : null;
     return {
       productId: item.productId,
       name: item.freeText,
@@ -335,6 +338,9 @@ export function lineItemsForMerchant(
       source: price?.source ?? null,
       prevPriceCents: price?.prevPriceCents ?? null,
       prevObservedAt: price?.prevObservedAt ?? null,
+      confidenceScore: conf?.score ?? null,
+      confidenceLevel: conf?.level ?? null,
+      confidenceLabel: conf?.shortLabel ?? null,
     };
   });
 }

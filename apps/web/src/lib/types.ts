@@ -123,6 +123,9 @@ export type LineItemPrice = {
   source?: string | null;
   prevPriceCents?: number | null;
   prevObservedAt?: string | null;
+  confidenceScore?: number | null;
+  confidenceLevel?: "high" | "medium" | "low" | null;
+  confidenceLabel?: string | null;
 };
 
 export type RideQuote = {
