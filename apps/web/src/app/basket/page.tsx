@@ -24,7 +24,9 @@ import {
 } from "@/lib/compare";
 import { useShopperOrigin } from "@/lib/geo";
 import {
+  buildListShareUrl,
   clearBasketDraft,
+  decodeListShare,
   hydrateDraftAgainstCatalog,
   loadBasketDraft,
   saveBasketDraft,
@@ -71,6 +73,7 @@ function BasketInner() {
   const [preferredMerchantIds, setPreferredMerchantIds] = useState<string[]>([]);
   const [preferredOnly, setPreferredOnly] = useState(false);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [sharingDraft, setSharingDraft] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
     useShopperOrigin();
@@ -108,6 +111,19 @@ function BasketInner() {
           }
         } catch {
           /* ignore */
+        }
+      }
+      if (!appliedShared) {
+        const listParam = searchParams.get("list");
+        const fromLink = listParam ? decodeListShare(listParam) : null;
+        if (fromLink) {
+          const kept = fromLink.items.filter((i) => ids.has(i.productId));
+          if (kept.length) {
+            setItems(kept);
+            setListName(fromLink.name);
+            setStatus(`Opened shared list “${fromLink.name}”.`);
+            appliedShared = true;
+          }
         }
       }
       if (!appliedShared) {
@@ -255,6 +271,26 @@ function BasketInner() {
     if (result === "shared") setStatus("List shared with your household.");
     else if (result === "copied") setStatus("Share link copied.");
     else setStatus(`Share link: ${outcome.url}`);
+  }
+
+  async function onShareCurrent() {
+    if (!items.length) return;
+    setSharingDraft(true);
+    setStatus(null);
+    const url = buildListShareUrl(listName, items);
+    setSharingDraft(false);
+    if (!url) {
+      setStatus("Could not build a share link for this list.");
+      return;
+    }
+    const result = await sharePayload({
+      title: "Savr shopping list",
+      text: `Here's “${listName}” on Savr — open it, compare, and pick the smarter store.`,
+      url,
+    });
+    if (result === "shared") setStatus("List shared — no sign-in needed for them to open it.");
+    else if (result === "copied") setStatus("Share link copied.");
+    else setStatus(`Share link: ${url}`);
   }
 
   async function choose(merchantId: string) {
@@ -453,14 +489,24 @@ function BasketInner() {
                     placeholder="List name"
                     aria-label="List name"
                   />
-                  <button
-                    type="button"
-                    disabled={saving || items.length === 0}
-                    onClick={onSaveList}
-                    className="btn-dark shrink-0 disabled:opacity-50"
-                  >
-                    {saving ? "Saving…" : "Save list"}
-                  </button>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      disabled={sharingDraft || items.length === 0}
+                      onClick={onShareCurrent}
+                      className="btn-ghost flex-1 disabled:opacity-50 sm:flex-none"
+                    >
+                      {sharingDraft ? "…" : "Share"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving || items.length === 0}
+                      onClick={onSaveList}
+                      className="btn-dark flex-1 disabled:opacity-50 sm:flex-none"
+                    >
+                      {saving ? "Saving…" : "Save list"}
+                    </button>
+                  </div>
                 </div>
 
                 {user && savedLists.length > 0 && (
