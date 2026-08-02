@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { PwaRegister } from "@/components/PwaRegister";
 import { Providers } from "@/components/Providers";
+import { ScrollUnlock } from "@/components/ScrollUnlock";
 import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <SiteFooter />
             <BottomNav />
             <InstallPrompt />
+            <ScrollUnlock />
             <PwaRegister />
           </div>
         </Providers>

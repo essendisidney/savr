@@ -37,7 +37,7 @@ function wasDismissedRecently(): boolean {
 
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [mode, setMode] = useState<"native" | "ios" | "manual" | null>(null);
+  const [mode, setMode] = useState<"native" | "ios" | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function InstallPrompt() {
     if (wasDismissedRecently()) return;
 
     if (isIos()) {
-      const t = window.setTimeout(() => setMode("ios"), 800);
+      const t = window.setTimeout(() => setMode("ios"), 2500);
       return () => window.clearTimeout(t);
     }
 
@@ -56,24 +56,10 @@ export function InstallPrompt() {
     };
     window.addEventListener("beforeinstallprompt", onBip);
 
-    const fallback = window.setTimeout(() => {
-      setMode((prev) => prev ?? "manual");
-    }, 1800);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", onBip);
-      window.clearTimeout(fallback);
     };
   }, []);
-
-  useEffect(() => {
-    if (!mode) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [mode]);
 
   function dismiss() {
     setMode(null);
@@ -101,54 +87,41 @@ export function InstallPrompt() {
 
   const detail =
     mode === "ios"
-      ? "Tap Share, then Add to Home Screen — Savr opens like an app."
-      : mode === "native"
-        ? "Install Savr for one-tap basket checks before you spend."
-        : "Open your browser menu and choose Install app or Add to Home screen.";
+      ? "Share → Add to Home Screen for one-tap checks before you spend."
+      : "Install Savr for one-tap basket checks before you spend.";
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-savr-night/55 px-4 backdrop-blur-[2px]"
+      className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-[60] px-3 pb-2 md:bottom-4 md:px-4"
       role="dialog"
-      aria-modal="true"
       aria-labelledby="savr-install-title"
-      onClick={dismiss}
     >
-      <div
-        className="animate-rise w-full max-w-sm border border-white/10 bg-white p-6 shadow-[0_24px_60px_-28px_rgba(1,20,14,0.7)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-          Savr
-        </p>
-        <h2
-          id="savr-install-title"
-          className="mt-2 font-display text-2xl font-bold tracking-tightish text-savr-ink"
-        >
-          Install Savr?
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-savr-mute">{detail}</p>
-
-        <div className="mt-6 flex flex-col gap-2">
+      <div className="animate-rise mx-auto flex max-w-lg flex-col gap-3 border border-savr-ink/[0.08] bg-white p-4 shadow-[0_18px_50px_-28px_rgba(1,20,14,0.55)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p
+            id="savr-install-title"
+            className="font-display text-base font-bold tracking-tightish text-savr-ink"
+          >
+            Add Savr to your home screen
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-savr-mute">{detail}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           {mode === "native" && deferred ? (
             <button
               type="button"
               onClick={install}
               disabled={busy}
-              className="btn-primary w-full disabled:opacity-60"
+              className="btn-primary px-4 py-2.5 text-sm disabled:opacity-60"
             >
               {busy ? "Opening…" : "Install"}
             </button>
-          ) : mode === "ios" ? (
-            <p className="rounded-sm bg-savr-fog px-3 py-2.5 text-center text-xs font-semibold text-savr-ink">
-              Share → Add to Home Screen
-            </p>
-          ) : (
-            <p className="rounded-sm bg-savr-fog px-3 py-2.5 text-center text-xs font-semibold text-savr-ink">
-              Menu ⋮ → Install app
-            </p>
-          )}
-          <button type="button" onClick={dismiss} className="btn-ghost w-full">
+          ) : null}
+          <button
+            type="button"
+            onClick={dismiss}
+            className="border border-savr-ink/[0.1] bg-white px-4 py-2.5 text-sm font-semibold text-savr-mute transition hover:text-savr-ink"
+          >
             Not now
           </button>
         </div>
