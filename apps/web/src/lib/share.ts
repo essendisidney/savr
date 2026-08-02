@@ -6,14 +6,21 @@ export type SharePayload = {
   url: string;
 };
 
+/** Soft landing for shared punches — open product, not an invite wall. */
 export function inviteUrl(savingsKes: number, store: string): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
   const params = new URLSearchParams({
     save: String(Math.max(0, Math.round(savingsKes))),
     store: store || "Savr",
+    next: "/basket?staples=1",
   });
   return `${origin}/invite?${params.toString()}`;
+}
+
+export function whatsAppShareUrl(payload: SharePayload): string {
+  const full = `${payload.text}\n${payload.url}`;
+  return `https://wa.me/?text=${encodeURIComponent(full)}`;
 }
 
 export function buildBasketShare(params: {
@@ -41,7 +48,7 @@ export function buildLifetimeShare(lifetimeSavingsCents: number): SharePayload {
   return {
     title: "Saved with Savr",
     text: `I've kept ${amount} with Savr by checking before I spend. Try it before your next shop.`,
-    url: `${origin}/invite?save=${Math.round(lifetimeSavingsCents / 100)}&store=Savr`,
+    url: `${origin}/invite?save=${Math.round(lifetimeSavingsCents / 100)}&store=Savr&next=${encodeURIComponent("/basket?staples=1")}`,
   };
 }
 
@@ -54,7 +61,32 @@ export function buildMissedShare(params: {
   const url = inviteUrl(params.missedCents / 100, params.bestMerchantName);
   return {
     title: "Could have saved with Savr",
-    text: `I just found ${amount} I left on the table shopping at ${params.paidMerchantName} — ${params.bestMerchantName} was cheaper on Savr. Next time I'm checking first.`,
+    text: `I just found ${amount} I left on the table at ${params.paidMerchantName} — ${params.bestMerchantName} was cheaper on Savr. Next time I'm checking first.`,
+    url,
+  };
+}
+
+/** Shared when they already picked the smart store. */
+export function buildWinShare(params: {
+  merchantName: string;
+  cashbackCents?: number;
+  paidCents?: number;
+}): SharePayload {
+  const url = inviteUrl(
+    params.cashbackCents && params.cashbackCents > 0
+      ? params.cashbackCents / 100
+      : params.paidCents
+        ? params.paidCents / 100
+        : 0,
+    params.merchantName,
+  );
+  const cb =
+    params.cashbackCents && params.cashbackCents > 0
+      ? ` Earned ${formatKes(params.cashbackCents)} cashback.`
+      : "";
+  return {
+    title: "Saved with Savr",
+    text: `Savr said ${params.merchantName} was the smart pick — and it was.${cb} Before you spend, Savr it.`,
     url,
   };
 }

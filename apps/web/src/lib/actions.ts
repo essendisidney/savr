@@ -50,6 +50,8 @@ const ACTIVITY_LABELS: Record<string, string> = {
   unwatch_product: "Stopped watching",
   alert_seen: "Opened a drop alert",
   list_share: "Shared a list",
+  share_save: "Shared a save",
+  shop_receipt_saved: "Logged a shop",
   redeem_request: "Requested redeem",
   basket_confirm: "Locked a basket",
   basket_coverage_tip: "Tipped a shelf price",

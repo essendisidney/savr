@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { formatKes } from "@/lib/compare";
 import { savingsBuys } from "@/lib/intents";
-import { sharePayload, type SharePayload } from "@/lib/share";
+import { sharePayload, whatsAppShareUrl, type SharePayload } from "@/lib/share";
+import { track } from "@/lib/track";
 
 export function SavingsMoment({
   amountLabel,
@@ -12,6 +13,8 @@ export function SavingsMoment({
   share,
   paidCents,
   averageCents,
+  shareLabel = "Share this save",
+  emphasizeShare = false,
 }: {
   amountLabel: string;
   amountCents: number;
@@ -21,6 +24,9 @@ export function SavingsMoment({
   paidCents?: number;
   /** Average net across compared stores. */
   averageCents?: number;
+  shareLabel?: string;
+  /** Make WhatsApp the primary action (post-shop viral loop). */
+  emphasizeShare?: boolean;
 }) {
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const buys = savingsBuys(amountCents);
@@ -29,13 +35,22 @@ export function SavingsMoment({
     averageCents != null &&
     averageCents > paidCents &&
     amountCents > 0;
+  const canShare = Boolean(share);
 
   async function onShare() {
     if (!share) return;
+    track("share_save", { via: "sheet", amountKes: Math.round(amountCents / 100) });
     const result = await sharePayload(share);
     if (result === "shared") setShareStatus("Shared");
     else if (result === "copied") setShareStatus("Link copied");
     else setShareStatus(null);
+  }
+
+  function onWhatsApp() {
+    if (!share) return;
+    track("share_save", { via: "whatsapp", amountKes: Math.round(amountCents / 100) });
+    window.open(whatsAppShareUrl(share), "_blank", "noopener,noreferrer");
+    setShareStatus("Opening WhatsApp…");
   }
 
   return (
@@ -48,9 +63,9 @@ export function SavingsMoment({
               {amountLabel}
             </p>
             <p className="mt-1 font-display text-5xl font-extrabold tracking-tightish tabular-nums text-savr-ink md:text-6xl">
-              {formatKes(amountCents)}
+              {formatKes(Math.max(0, amountCents))}
             </p>
-            {buys && (
+            {buys && amountCents > 0 && (
               <p className="mt-2 text-sm font-semibold text-savr-ink/75">{buys}</p>
             )}
           </div>
@@ -69,10 +84,29 @@ export function SavingsMoment({
           </div>
         )}
 
-        {share && amountCents > 0 && (
+        {canShare && (
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={onShare} className="btn-dark px-4 py-2.5 text-sm">
-              Share this save
+            <button
+              type="button"
+              onClick={onWhatsApp}
+              className={
+                emphasizeShare
+                  ? "btn-primary px-4 py-2.5 text-sm"
+                  : "btn-dark px-4 py-2.5 text-sm"
+              }
+            >
+              WhatsApp this
+            </button>
+            <button
+              type="button"
+              onClick={onShare}
+              className={
+                emphasizeShare
+                  ? "btn-dark px-4 py-2.5 text-sm"
+                  : "btn-ghost px-4 py-2.5 text-sm"
+              }
+            >
+              {shareLabel}
             </button>
             {shareStatus && (
               <span className="text-sm font-semibold text-savr-ink/70">{shareStatus}</span>

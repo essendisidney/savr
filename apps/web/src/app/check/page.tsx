@@ -22,7 +22,8 @@ import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
-import { buildMissedShare } from "@/lib/share";
+import { buildMissedShare, buildWinShare } from "@/lib/share";
+import { track } from "@/lib/track";
 
 export default function CheckPage() {
   const { user } = useAuth();
@@ -39,6 +40,7 @@ export default function CheckPage() {
   const [listNote, setListNote] = useState<string | null>(null);
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [savedShareReady, setSavedShareReady] = useState(false);
 
   useEffect(() => {
     loadCatalog().then((c) => {
@@ -99,7 +101,14 @@ export default function CheckPage() {
   );
 
   const share = useMemo(() => {
-    if (!missed || missed.alreadyOptimal || missed.missedCents <= 0) return undefined;
+    if (!missed) return undefined;
+    if (missed.alreadyOptimal || missed.missedCents <= 0) {
+      return buildWinShare({
+        merchantName: missed.paidMerchantName,
+        cashbackCents: missed.paidCashbackCents,
+        paidCents: missed.paidNetCents,
+      });
+    }
     return buildMissedShare({
       missedCents: missed.missedCents,
       paidMerchantName: missed.paidMerchantName,
@@ -137,6 +146,7 @@ export default function CheckPage() {
     });
     setQuery("");
     setSaveStatus(null);
+    setSavedShareReady(false);
   }
 
   async function onTipPrice(e: FormEvent) {
@@ -193,11 +203,16 @@ export default function CheckPage() {
       setSaveStatus(res.error);
       return;
     }
+    setSavedShareReady(true);
     setSaveStatus(
       missed.alreadyOptimal
-        ? "Shop saved — you already picked the smart total."
-        : `Shop saved — ${formatKes(missed.missedCents)} left on the table this trip.`,
+        ? "Shop saved — WhatsApp your win so someone else checks before they spend."
+        : `Shop saved — ${formatKes(missed.missedCents)} left on the table. Share it before you forget.`,
     );
+    track("shop_receipt_saved", {
+      missedCents: missed.missedCents,
+      alreadyOptimal: missed.alreadyOptimal,
+    });
   }
 
   if (loading || !catalog) {
@@ -233,6 +248,10 @@ export default function CheckPage() {
                     : `Shopping at ${missed.bestMerchantName} instead of ${missed.paidMerchantName} — before you spend next time.`
                 }
                 share={share}
+                shareLabel={missed.alreadyOptimal ? "Share this win" : "Share this miss"}
+                emphasizeShare={
+                  savedShareReady || (!missed.alreadyOptimal && missed.missedCents > 0)
+                }
               />
             )}
 
@@ -253,6 +272,7 @@ export default function CheckPage() {
                           onClick={() => {
                             setPaidKey(key);
                             setSaveStatus(null);
+                            setSavedShareReady(false);
                           }}
                           className={`px-3.5 py-2 text-sm font-semibold transition ${
                             active

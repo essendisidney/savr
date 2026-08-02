@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { formatKes } from "@/lib/compare";
@@ -12,11 +13,13 @@ function InviteInner() {
   const router = useRouter();
   const saveKes = Math.max(0, Number(params.get("save") ?? "0") || 0);
   const store = (params.get("store") ?? "Savr").slice(0, 40);
-  const nextPath = params.get("next") || "/basket";
+  const nextPath = params.get("next") || "/basket?staples=1";
+  const safeNext = nextPath.startsWith("/") ? nextPath : "/basket?staples=1";
   const cents = Math.round(saveKes * 100);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCode, setShowCode] = useState(false);
 
   async function redeemCode(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +37,7 @@ function InviteInner() {
         setBusy(false);
         return;
       }
-      router.replace(nextPath.startsWith("/") ? nextPath : "/basket");
+      router.replace(safeNext);
       router.refresh();
     } catch {
       setError("Network error — try again");
@@ -46,51 +49,90 @@ function InviteInner() {
     <PageFrame>
       <PageHero
         theme="wallet"
-        title="Welcome to Savr"
-        subtitle="Enter your invite code to unlock Nairobi shopping, rides, and fuel."
+        title="Before you spend, Savr it"
+        subtitle="A friend shared what they kept — or left on the table — by checking first."
       />
 
       <div className="page-band">
         <PageShell>
           <div className="mx-auto max-w-lg space-y-8">
-            {cents > 0 && (
+            {cents > 0 ? (
               <SavingsMoment
                 amountLabel={store === "Savr" ? "Kept with Savr" : `Smarter at ${store}`}
                 amountCents={cents}
-                detail="Price savings vs the priciest option on their list"
+                detail="Real Nairobi basket math — compare staples before your next shop."
               />
-            )}
-
-            <form onSubmit={redeemCode} className="panel space-y-4 p-5 sm:p-6">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-                  Invite code
+            ) : (
+              <div className="card px-5 py-6">
+                <p className="font-display text-xl font-bold text-savr-ink">
+                  Nairobi&apos;s spending check
                 </p>
-                <p className="mt-1 text-sm text-savr-mute">
-                  One code unlocks the full product on this device.
+                <p className="mt-2 text-sm text-savr-mute">
+                  Compare grocery baskets across branches, tip shelf prices, and see what you keep.
                 </p>
               </div>
-              <label className="block">
-                <span className="sr-only">Invite code</span>
-                <input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  className="field font-display text-lg tracking-[0.12em]"
-                  placeholder="YOUR CODE"
-                  autoComplete="off"
-                  autoFocus
-                  required
-                />
-              </label>
-              {error && <p className="text-sm font-medium text-red-700">{error}</p>}
-              <button
-                type="submit"
-                disabled={busy || !code.trim()}
-                className="btn-primary w-full disabled:opacity-50"
+            )}
+
+            <div className="space-y-3">
+              <Link href={safeNext} className="btn-primary flex w-full justify-center">
+                Compare this week&apos;s staples
+              </Link>
+              <Link
+                href="/check"
+                className="btn-ghost flex w-full justify-center text-sm"
               >
-                {busy ? "Checking…" : "Continue"}
-              </button>
-            </form>
+                Or check a shop you already did
+              </Link>
+            </div>
+
+            <div className="border-t border-savr-ink/[0.06] pt-6">
+              {!showCode ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCode(true)}
+                  className="text-sm font-semibold text-savr-mute hover:text-savr-forest hover:underline"
+                >
+                  Have an invite code?
+                </button>
+              ) : (
+                <form onSubmit={redeemCode} className="space-y-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                      Invite code
+                    </p>
+                    <p className="mt-1 text-sm text-savr-mute">
+                      Optional — the app is open. Codes matter only if we re-enable the wall.
+                    </p>
+                  </div>
+                  <label className="block">
+                    <span className="sr-only">Invite code</span>
+                    <input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      className="field font-display text-lg tracking-[0.12em]"
+                      placeholder="YOUR CODE"
+                      autoComplete="off"
+                      autoFocus
+                    />
+                  </label>
+                  {error && <p className="text-sm font-medium text-red-700">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={busy || !code.trim()}
+                    className="btn-dark w-full disabled:opacity-50"
+                  >
+                    {busy ? "Checking…" : "Redeem code"}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {cents > 0 && (
+              <p className="text-center text-xs text-savr-mute">
+                Their save was about {formatKes(cents)}
+                {store !== "Savr" ? ` toward ${store}` : ""}. Yours will be your own basket.
+              </p>
+            )}
           </div>
         </PageShell>
       </div>
