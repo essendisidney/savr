@@ -5,13 +5,17 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { appendSharedListItem, loadSharedList } from "@/lib/actions";
 import { loadCatalog } from "@/lib/catalog";
-import { searchProducts } from "@/lib/compare";
+import {
+  compareBasket,
+  formatKes,
+  quickAddChips,
+  searchProducts,
+} from "@/lib/compare";
 import { track } from "@/lib/track";
 import type { Catalog, ListItem } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { PageFrame, PageShell } from "@/components/PageShell";
-import { PageHero } from "@/components/PageHero";
 
 export default function SharedListPage() {
   const params = useParams<{ token: string }>();
@@ -35,6 +39,7 @@ export default function SharedListPage() {
       } else {
         setName(res.name);
         setItems(res.items);
+        track("shared_list_open", { items: res.items.length });
       }
       setLoading(false);
     });
@@ -46,6 +51,28 @@ export default function SharedListPage() {
     return searchProducts(catalog, query, exclude, 8);
   }, [catalog, query, items]);
 
+  const chips = useMemo(() => {
+    if (!catalog) return [];
+    return quickAddChips(
+      catalog,
+      items.map((i) => i.productId),
+      6,
+    );
+  }, [catalog, items]);
+
+  const tease = useMemo(() => {
+    if (!catalog || items.length < 2) return null;
+    const ranks = compareBasket(catalog, items).filter((r) => r.coverage > 0);
+    if (ranks.length < 2) return null;
+    const best = ranks.find((r) => r.isRecommended) ?? ranks[0];
+    const worst = ranks[ranks.length - 1];
+    const delta = Math.max(0, worst.netCents - best.netCents);
+    if (delta < 500) return null;
+    const branch =
+      best.branchName != null ? `${best.merchantName} · ${best.branchName}` : best.merchantName;
+    return { delta, branch, bestNet: best.netCents };
+  }, [catalog, items]);
+
   function openInBasket() {
     if (typeof window !== "undefined") {
       sessionStorage.setItem(
@@ -53,6 +80,7 @@ export default function SharedListPage() {
         JSON.stringify({ name, items, token }),
       );
     }
+    track("shared_list_compare", { items: items.length });
     router.push("/basket?shared=1");
   }
 
@@ -69,7 +97,7 @@ export default function SharedListPage() {
     setName(res.name);
     setItems(res.items);
     setQuery("");
-    setStatus(`Added ${productName} to the household list.`);
+    setStatus(`Added ${productName}.`);
     track("shared_list_append", { productId });
   }
 
@@ -87,29 +115,64 @@ export default function SharedListPage() {
   if (error) {
     return (
       <PageFrame>
-        <PageHero
-          theme="basket"
-          title="List not found"
-          subtitle={error}
-          action={{ href: "/basket", label: "Build my own list" }}
-        />
+        <div className="border-b border-savr-ink/[0.05]">
+          <div className="mx-auto max-w-lg px-4 py-10 md:px-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
+              Savr
+            </p>
+            <h1 className="mt-2 font-display text-3xl font-bold tracking-tightish text-savr-ink">
+              List not found
+            </h1>
+            <p className="mt-2 text-sm text-savr-mute">{error}</p>
+            <Link href="/basket?staples=1" className="btn-primary mt-6 inline-flex">
+              Start a weekly staples list
+            </Link>
+          </div>
+        </div>
       </PageFrame>
     );
   }
 
   return (
     <PageFrame>
-      <PageHero
-        theme="basket"
-        title={name}
-        subtitle="Household list — add what you’re out of, then compare once."
-      />
+      <div className="relative overflow-hidden border-b border-savr-ink/[0.05] bg-gradient-to-br from-savr-mist via-white to-savr-fog/80">
+        <div
+          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-savr-forest/15 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative mx-auto max-w-lg px-4 py-10 md:px-6 md:py-14">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
+            Savr · household list
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tightish text-savr-ink md:text-4xl">
+            {name}
+          </h1>
+          <p className="mt-2 max-w-md text-sm text-savr-mute">
+            Add what you&apos;re out of. One person compares branches before anyone shops.
+          </p>
+          {tease && (
+            <p className="mt-4 inline-flex rounded-full bg-savr-forest/10 px-3 py-1.5 text-xs font-semibold text-savr-forest">
+              This list could keep ~{formatKes(tease.delta)} at {tease.branch}
+            </p>
+          )}
+        </div>
+      </div>
 
       <div className="page-band">
         <PageShell>
-          <div className="mx-auto max-w-lg space-y-6">
+          <div className="mx-auto max-w-lg space-y-7">
+            {items.length > 0 && (
+              <button
+                type="button"
+                onClick={openInBasket}
+                className="btn-primary w-full py-3.5 text-base"
+              >
+                Compare where to shop
+              </button>
+            )}
+
             <section className="space-y-3">
-              <h2 className="font-display text-lg font-bold tracking-tightish">Add to this list</h2>
+              <h2 className="font-display text-lg font-bold tracking-tightish">Add to the list</h2>
               <div className="relative">
                 <input
                   value={query}
@@ -117,6 +180,7 @@ export default function SharedListPage() {
                   placeholder="Milk, bread, avocados…"
                   className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
                   aria-label="Search products to add"
+                  autoFocus
                 />
                 {suggestions.length > 0 && (
                   <ul className="absolute z-20 mt-1 w-full border border-savr-ink/10 bg-white shadow-[0_16px_40px_-20px_rgba(4,36,25,0.55)]">
@@ -143,6 +207,23 @@ export default function SharedListPage() {
                   </ul>
                 )}
               </div>
+
+              {chips.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {chips.map((c) => (
+                    <button
+                      key={c.productId}
+                      type="button"
+                      disabled={addingId === c.productId}
+                      onClick={() => addProduct(c.productId, c.name)}
+                      className="rounded-full border border-savr-ink/10 bg-white px-3 py-1.5 text-xs font-semibold text-savr-ink transition hover:border-savr-forest/40 hover:text-savr-forest disabled:opacity-50"
+                    >
+                      {addingId === c.productId ? "…" : `+ ${c.chip}`}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {status && (
                 <p
                   className={`text-sm font-semibold ${
@@ -156,8 +237,8 @@ export default function SharedListPage() {
 
             {items.length === 0 ? (
               <EmptyState
-                title="List is empty"
-                body="Search above to add the first staple — everyone with the link can add."
+                title="Nothing on the list yet"
+                body="Tap a chip or search — everyone with this link can add."
               />
             ) : (
               <ul className="divide-y divide-savr-ink/[0.06] card">
@@ -175,21 +256,17 @@ export default function SharedListPage() {
               </ul>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={openInBasket}
-                disabled={items.length === 0}
-                className="btn-primary disabled:opacity-50"
-              >
-                Open in basket
+            {items.length > 0 && (
+              <button type="button" onClick={openInBasket} className="btn-primary w-full">
+                Compare where to shop
               </button>
-              <Link href="/basket" className="btn-ghost text-center">
-                Start fresh
+            )}
+
+            <p className="text-center text-xs text-savr-mute">
+              {items.length} item{items.length === 1 ? "" : "s"} · no account needed to add ·{" "}
+              <Link href="/basket?staples=1" className="font-semibold text-savr-forest hover:underline">
+                or start your own
               </Link>
-            </div>
-            <p className="text-xs text-savr-mute">
-              {items.length} item{items.length === 1 ? "" : "s"} · anyone with this link can add
             </p>
           </div>
         </PageShell>
