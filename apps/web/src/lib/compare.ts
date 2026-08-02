@@ -162,10 +162,15 @@ export function compareBasket(
   catalog: Catalog,
   items: ListItem[],
   origin?: GeoPoint | null,
+  merchantIds?: string[] | null,
 ): BasketResult[] {
   if (!items.length) return [];
 
-  const grocery = catalog.merchants.filter((m) => m.category === "grocery");
+  let grocery = catalog.merchants.filter((m) => m.category === "grocery");
+  if (merchantIds?.length) {
+    const allow = new Set(merchantIds);
+    grocery = grocery.filter((m) => allow.has(m.id));
+  }
   const results = grocery.map((merchant) => {
     let total = 0;
     let matched = 0;

@@ -147,7 +147,8 @@ export default function AccountPage() {
               <div>
                 <h2 className="font-display text-lg font-bold tracking-tightish">Preferred stores</h2>
                 <p className="mt-1 text-sm text-savr-mute">
-                  Marked on basket ranks — ranking still picks best total value, never silent reorder.
+                  Marked on basket ranks. Use “Preferred only” there to narrow compare — Savr still
+                  picks best total value, never silent reorder.
                 </p>
               </div>
               <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">

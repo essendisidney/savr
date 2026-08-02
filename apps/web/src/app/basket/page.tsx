@@ -62,6 +62,7 @@ function BasketInner() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [preferredMerchantIds, setPreferredMerchantIds] = useState<string[]>([]);
+  const [preferredOnly, setPreferredOnly] = useState(false);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const { origin, source: geoSource, busy: geoBusy, error: geoError, useMyLocation } =
     useShopperOrigin();
@@ -117,8 +118,18 @@ function BasketInner() {
   }, [user]);
 
   const results = useMemo(
-    () => (catalog ? compareBasket(catalog, items, origin) : []),
-    [catalog, items, origin],
+    () =>
+      catalog
+        ? compareBasket(
+            catalog,
+            items,
+            origin,
+            preferredOnly && preferredMerchantIds.length > 0
+              ? preferredMerchantIds
+              : null,
+          )
+        : [],
+    [catalog, items, origin, preferredOnly, preferredMerchantIds],
   );
   const recommended = results.find((r) => r.isRecommended);
   const worst = results[results.length - 1];
@@ -443,7 +454,7 @@ function BasketInner() {
                     <Link href="/account" className="font-semibold text-savr-forest hover:underline">
                       Set them in Account
                     </Link>
-                    .
+                    , then filter ranks below.
                   </p>
                 )}
 
@@ -468,6 +479,37 @@ function BasketInner() {
                         : "Use my location"}
                   </button>
                 </div>
+                {preferredMerchantIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreferredOnly(false)}
+                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                        !preferredOnly
+                          ? "bg-savr-night text-white"
+                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                      }`}
+                    >
+                      All stores
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreferredOnly(true)}
+                      className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                        preferredOnly
+                          ? "bg-savr-forest text-white"
+                          : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                      }`}
+                    >
+                      Preferred only
+                    </button>
+                  </div>
+                )}
+                {preferredOnly && preferredMerchantIds.length > 0 && (
+                  <p className="text-xs text-savr-mute">
+                    Ranking among your preferred stores — best total value still wins.
+                  </p>
+                )}
                 {geoSource === "default" && (
                   <p className="text-xs text-savr-mute">
                     Distances from Westlands · share location for your trip.
@@ -477,6 +519,14 @@ function BasketInner() {
                 {items.length === 0 ? (
                   <p className="border border-dashed border-savr-forest/35 bg-white px-4 py-8 text-center text-sm text-savr-mute">
                     Add items to see who is cheapest.
+                  </p>
+                ) : results.length === 0 ? (
+                  <p className="border border-dashed border-savr-forest/35 bg-white px-4 py-8 text-center text-sm text-savr-mute">
+                    No preferred stores in range.{" "}
+                    <Link href="/account" className="font-semibold text-savr-forest hover:underline">
+                      Update Account
+                    </Link>{" "}
+                    or show all stores.
                   </p>
                 ) : (
                   <RankList
