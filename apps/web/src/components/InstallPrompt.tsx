@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-const DISMISS_KEY = "savr-install-dismissed";
+const DISMISS_KEY = "savr-install-dismissed-at";
+const DISMISS_MS = 7 * 24 * 60 * 60 * 1000; // show again after a week
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -14,48 +15,68 @@ function isIos(): boolean {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /android/i.test(navigator.userAgent);
+}
+
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    // iOS Safari
     ("standalone" in navigator && Boolean((navigator as { standalone?: boolean }).standalone))
   );
 }
 
+function wasDismissedRecently(): boolean {
+  try {
+    const raw = localStorage.getItem(DISMISS_KEY);
+    if (!raw) return false;
+    const at = Number(raw);
+    if (!Number.isFinite(at)) return false;
+    return Date.now() - at < DISMISS_MS;
+  } catch {
+    return false;
+  }
+}
+
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [iosHint, setIosHint] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [mode, setMode] = useState<"native" | "ios" | "manual" | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
-    try {
-      if (localStorage.getItem(DISMISS_KEY) === "1") return;
-    } catch {
-      /* private mode */
-    }
+    if (wasDismissedRecently()) return;
 
     if (isIos()) {
-      setIosHint(true);
-      setVisible(true);
+      setMode("ios");
       return;
     }
 
     const onBip = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      setVisible(true);
+      setMode("native");
     };
     window.addEventListener("beforeinstallprompt", onBip);
-    return () => window.removeEventListener("beforeinstallprompt", onBip);
+
+    // Android/Chrome may delay or skip BIP — still show how to install.
+    const fallback = window.setTimeout(() => {
+      setMode((prev) => prev ?? (isAndroid() ? "manual" : "manual"));
+    }, 2500);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBip);
+      window.clearTimeout(fallback);
+    };
   }, []);
 
   function dismiss() {
-    setVisible(false);
+    setMode(null);
+    setDeferred(null);
     try {
-      localStorage.setItem(DISMISS_KEY, "1");
+      localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {
       /* ignore */
     }
@@ -64,14 +85,24 @@ export function InstallPrompt() {
   async function install() {
     if (!deferred) return;
     setBusy(true);
-    await deferred.prompt();
-    await deferred.userChoice;
-    setDeferred(null);
-    setVisible(false);
-    setBusy(false);
+    try {
+      await deferred.prompt();
+      await deferred.userChoice;
+    } finally {
+      setDeferred(null);
+      setMode(null);
+      setBusy(false);
+    }
   }
 
-  if (!visible) return null;
+  if (!mode) return null;
+
+  const copy =
+    mode === "ios"
+      ? "Share → Add to Home Screen"
+      : mode === "native"
+        ? "Install for one-tap basket checks."
+        : "Browser menu → Install app / Add to Home screen";
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[4.75rem] z-40 px-3 md:bottom-6 md:px-6">
@@ -80,14 +111,10 @@ export function InstallPrompt() {
           <p className="font-display text-base font-bold tracking-tightish text-savr-ink">
             Keep Savr on your phone
           </p>
-          <p className="mt-0.5 text-sm text-savr-mute">
-            {iosHint
-              ? "Safari → Share → Add to Home Screen"
-              : "Install for one-tap basket checks before you spend."}
-          </p>
+          <p className="mt-0.5 text-sm text-savr-mute">{copy}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {!iosHint && deferred && (
+          {mode === "native" && deferred && (
             <button
               type="button"
               onClick={install}

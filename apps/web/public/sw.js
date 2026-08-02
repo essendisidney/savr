@@ -1,5 +1,5 @@
 /* Savr minimal SW — enables installability; network-first for navigations. */
-const CACHE = "savr-shell-v1";
+const CACHE = "savr-shell-v2";
 const PRECACHE = ["/", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

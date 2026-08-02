@@ -14,6 +14,7 @@ const PUBLIC_PREFIXES = [
 
 function isPublic(pathname: string): boolean {
   if (pathname === "/") return true;
+  if (pathname === "/sw.js") return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname.startsWith("/icons")) return true;
   if (pathname === "/favicon.ico") return true;
