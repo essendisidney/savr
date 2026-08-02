@@ -1,0 +1,83 @@
+-- Merchant portal: set / upsert shelf prices on a specific branch.
+
+drop function if exists public.add_merchant_price(uuid, uuid, integer);
+
+create or replace function public.add_merchant_price(
+  p_merchant_id uuid,
+  p_product_id uuid,
+  p_price_cents integer,
+  p_location_id uuid default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_location_id uuid;
+  v_price_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+  if p_price_cents < 0 then
+    raise exception 'invalid price';
+  end if;
+  if not public.is_merchant_member(p_merchant_id) then
+    raise exception 'not a merchant member';
+  end if;
+  if not exists (select 1 from public.products where id = p_product_id) then
+    raise exception 'product not found';
+  end if;
+
+  if p_location_id is not null then
+    select id into v_location_id
+    from public.merchant_locations
+    where id = p_location_id
+      and merchant_id = p_merchant_id
+      and is_active = true;
+    if v_location_id is null then
+      raise exception 'location not found for merchant';
+    end if;
+  else
+    select id into v_location_id
+    from public.merchant_locations
+    where merchant_id = p_merchant_id and is_active = true
+    order by created_at nulls last
+    limit 1;
+  end if;
+
+  if v_location_id is null then
+    insert into public.merchant_locations (merchant_id, name, city, is_active)
+    values (p_merchant_id, 'Main', 'Nairobi', true)
+    returning id into v_location_id;
+  end if;
+
+  insert into public.merchant_prices (
+    merchant_id, location_id, product_id, price_cents, source, observed_at
+  )
+  values (
+    p_merchant_id, v_location_id, p_product_id, p_price_cents, 'merchant', now()
+  )
+  on conflict (merchant_id, location_id, product_id) do update
+    set
+      prev_price_cents = case
+        when public.merchant_prices.price_cents is distinct from excluded.price_cents
+          then public.merchant_prices.price_cents
+        else public.merchant_prices.prev_price_cents
+      end,
+      prev_observed_at = case
+        when public.merchant_prices.price_cents is distinct from excluded.price_cents
+          then public.merchant_prices.observed_at
+        else public.merchant_prices.prev_observed_at
+      end,
+      price_cents = excluded.price_cents,
+      observed_at = now(),
+      source = 'merchant'
+  returning id into v_price_id;
+
+  return v_price_id;
+end;
+$$;
+
+grant execute on function public.add_merchant_price(uuid, uuid, integer, uuid) to authenticated;

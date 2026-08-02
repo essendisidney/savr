@@ -16,6 +16,7 @@ import {
   listMerchants,
   loadCashbackRule,
   loadMerchantAnalytics,
+  loadMerchantLocations,
   loadMerchantPrices,
   loadPromotions,
   saveCashbackRule,
@@ -23,6 +24,7 @@ import {
   type ManagedPrice,
   type MerchantAnalytics,
   type MerchantCashbackRule,
+  type MerchantLocationOption,
   type MerchantPromotion,
   type MerchantSummary,
 } from "@/lib/merchant";
@@ -36,6 +38,8 @@ export default function MerchantPage() {
   const [myIds, setMyIds] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prices, setPrices] = useState<ManagedPrice[]>([]);
+  const [locations, setLocations] = useState<MerchantLocationOption[]>([]);
+  const [branchId, setBranchId] = useState<string>("");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [cashback, setCashback] = useState<MerchantCashbackRule | null>(null);
   const [analytics, setAnalytics] = useState<MerchantAnalytics | null>(null);
@@ -73,6 +77,8 @@ export default function MerchantPage() {
   useEffect(() => {
     if (!selectedId || !myIds.includes(selectedId)) {
       setPrices([]);
+      setLocations([]);
+      setBranchId("");
       setDrafts({});
       setCashback(null);
       setAnalytics(null);
@@ -81,11 +87,17 @@ export default function MerchantPage() {
     }
     Promise.all([
       loadMerchantPrices(selectedId),
+      loadMerchantLocations(selectedId),
       loadCashbackRule(selectedId),
       loadMerchantAnalytics(selectedId),
       loadPromotions(selectedId),
-    ]).then(([rows, rule, stats, promos]) => {
+    ]).then(([rows, locs, rule, stats, promos]) => {
       setPrices(rows);
+      setLocations(locs);
+      setBranchId((prev) => {
+        if (prev && locs.some((l) => l.id === prev)) return prev;
+        return locs[0]?.id ?? "";
+      });
       const next: Record<string, string> = {};
       for (const row of rows) {
         next[row.id] = (row.priceCents / 100).toFixed(2);
@@ -103,7 +115,15 @@ export default function MerchantPage() {
     [merchants, selectedId],
   );
 
-  const pricedIds = useMemo(() => new Set(prices.map((p) => p.productId)), [prices]);
+  const branchPrices = useMemo(() => {
+    if (!branchId) return prices;
+    return prices.filter((p) => p.locationId === branchId);
+  }, [prices, branchId]);
+
+  const pricedIds = useMemo(
+    () => new Set(branchPrices.map((p) => p.productId)),
+    [branchPrices],
+  );
   const pricingGaps = useMemo(
     () =>
       catalogProducts
@@ -184,6 +204,10 @@ export default function MerchantPage() {
 
   async function onAddSku() {
     if (!selectedId || !addProductId) return;
+    if (!branchId) {
+      setStatus("Pick a branch before pricing a SKU.");
+      return;
+    }
     const kes = Number(addPriceKes);
     if (!Number.isFinite(kes) || kes < 0) {
       setStatus("Enter a valid price in KES.");
@@ -195,6 +219,7 @@ export default function MerchantPage() {
       merchantId: selectedId,
       productId: addProductId,
       priceCents: Math.round(kes * 100),
+      locationId: branchId,
     });
     setBusy(false);
     if (res.error) {
@@ -203,7 +228,7 @@ export default function MerchantPage() {
     }
     setAddProductId("");
     setAddPriceKes("");
-    setStatus("SKU priced — shoppers can compare it now.");
+    setStatus("SKU priced on this branch — shoppers can compare it now.");
     const rows = await loadMerchantPrices(selectedId);
     setPrices(rows);
     const next: Record<string, string> = {};
@@ -295,6 +320,10 @@ export default function MerchantPage() {
 
   async function onConfirmCsv() {
     if (!selectedId) return;
+    if (!branchId) {
+      setStatus("Pick a branch before importing CSV.");
+      return;
+    }
     const valid = csvRows.filter((r) => !r.error && r.matchedProduct);
     if (!valid.length) {
       setStatus("No valid CSV rows to import.");
@@ -304,14 +333,21 @@ export default function MerchantPage() {
     setStatus(null);
     let ok = 0;
     let fail = 0;
-    const existing = new Map(prices.map((p) => [p.productId, p]));
+    const existing = new Map(
+      branchPrices.map((p) => [p.productId, p] as const),
+    );
     for (const row of valid) {
       const productId = row.matchedProduct!.id;
       const cents = Math.round(row.priceKes * 100);
       const current = existing.get(productId);
       const res = current
         ? await updateMerchantPrice(current.id, cents)
-        : await addMerchantPrice({ merchantId: selectedId, productId, priceCents: cents });
+        : await addMerchantPrice({
+            merchantId: selectedId,
+            productId,
+            priceCents: cents,
+            locationId: branchId,
+          });
       if (res.error) fail += 1;
       else ok += 1;
     }
@@ -871,17 +907,38 @@ export default function MerchantPage() {
                     Price desk
                   </p>
                   <p className="mt-1 text-sm text-savr-mute">
-                    Add catalog SKUs or edit prices — live on basket compare immediately.
+                    Price each branch separately — merchant updates raise confidence above catalog
+                    seed.
                   </p>
                 </div>
+
+                {locations.length > 0 && (
+                  <label className="block max-w-md">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                      Branch
+                    </span>
+                    <select
+                      value={branchId}
+                      onChange={(e) => setBranchId(e.target.value)}
+                      className="field mt-1.5"
+                    >
+                      {locations.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                          {l.address ? ` · ${l.address}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
                 <div className="space-y-3 card p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-forest">
                     Bulk CSV
                   </p>
                   <p className="text-sm text-savr-mute">
-                    Columns: product_id, sku_name, brand, price_kes — download a template, fill prices,
-                    upload.
+                    Imports apply to the selected branch. Columns: product_id, sku_name, brand,
+                    price_kes.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={downloadCsvTemplate} className="btn-ghost text-sm">
@@ -935,7 +992,7 @@ export default function MerchantPage() {
                     >
                       <option value="">Choose product…</option>
                       {catalogProducts
-                        .filter((p) => !prices.some((row) => row.productId === p.id))
+                        .filter((p) => !pricedIds.has(p.id))
                         .map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
@@ -958,7 +1015,7 @@ export default function MerchantPage() {
                   </label>
                   <button
                     type="button"
-                    disabled={busy || !addProductId}
+                    disabled={busy || !addProductId || !branchId}
                     onClick={onAddSku}
                     className="btn-dark px-4 py-2.5 text-sm disabled:opacity-50"
                   >
@@ -967,7 +1024,7 @@ export default function MerchantPage() {
                 </div>
 
                 <ul className="divide-y divide-savr-ink/[0.06] card">
-                  {prices.map((p) => (
+                  {branchPrices.map((p) => (
                     <li
                       key={p.id}
                       className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
@@ -1000,9 +1057,9 @@ export default function MerchantPage() {
                       </div>
                     </li>
                   ))}
-                  {prices.length === 0 && (
+                  {branchPrices.length === 0 && (
                     <li className="px-4 py-8 text-center text-sm text-savr-mute">
-                      No priced SKUs yet — add from the catalog above.
+                      No priced SKUs on this branch yet — add from the catalog above.
                     </li>
                   )}
                 </ul>

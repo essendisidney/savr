@@ -10,12 +10,19 @@ export type MerchantSummary = {
   cashbackCents: number;
 };
 
+export type MerchantLocationOption = {
+  id: string;
+  name: string;
+  address: string | null;
+};
+
 export type ManagedPrice = {
   id: string;
   productId: string;
   productName: string;
   brand: string | null;
   priceCents: number;
+  locationId: string | null;
   locationName: string | null;
 };
 
@@ -98,10 +105,30 @@ export async function createMerchant(params: {
   return { merchantId: data as string };
 }
 
+export async function loadMerchantLocations(
+  merchantId: string,
+): Promise<MerchantLocationOption[]> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("merchant_locations")
+    .select("id, name, address")
+    .eq("merchant_id", merchantId)
+    .eq("is_active", true)
+    .order("name");
+  if (error || !data) return [];
+  return data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    address: row.address ?? null,
+  }));
+}
+
 export async function addMerchantPrice(params: {
   merchantId: string;
   productId: string;
   priceCents: number;
+  locationId?: string | null;
 }): Promise<{ error?: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Supabase is not configured." };
@@ -109,6 +136,7 @@ export async function addMerchantPrice(params: {
     p_merchant_id: params.merchantId,
     p_product_id: params.productId,
     p_price_cents: params.priceCents,
+    p_location_id: params.locationId ?? null,
   });
   return error ? { error: error.message } : {};
 }
@@ -119,7 +147,9 @@ export async function loadMerchantPrices(merchantId: string): Promise<ManagedPri
 
   const { data, error } = await supabase
     .from("merchant_prices")
-    .select("id, product_id, price_cents, products(name, brand), merchant_locations(name)")
+    .select(
+      "id, product_id, location_id, price_cents, products(name, brand), merchant_locations(name)",
+    )
     .eq("merchant_id", merchantId)
     .order("observed_at", { ascending: false });
 
@@ -141,6 +171,7 @@ export async function loadMerchantPrices(merchantId: string): Promise<ManagedPri
       productName: product?.name ?? "Product",
       brand: product?.brand ?? null,
       priceCents: row.price_cents,
+      locationId: (row as { location_id?: string | null }).location_id ?? null,
       locationName: location?.name ?? null,
     };
   });
