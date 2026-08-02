@@ -79,7 +79,7 @@ Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
 - [ ] M-Pesa: dry-run OK for beta; paste keys + set `MPESA_DRY_RUN=false` for real B2C
 - [x] Terms / Privacy linked
 
-Suggested refresh: weekly (or after any large seed wave). Wave migrations also bump seed `observed_at` when applied.
+Invite gate: currently open (`INVITE_GATE_ENABLED=false`). Seed codes (`NAIROBI`, `SAVRBETA`, `WESTLANDS`) remain if you re-enable the wall.
 
 ## Supabase
 
