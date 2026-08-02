@@ -38,6 +38,7 @@ export default function CheckPage() {
   const [tipStatus, setTipStatus] = useState<string | null>(null);
   const [draftHint, setDraftHint] = useState<BasketDraft | null>(null);
   const [listNote, setListNote] = useState<string | null>(null);
+  const [listName, setListName] = useState("This trip");
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [savedShareReady, setSavedShareReady] = useState(false);
@@ -67,6 +68,7 @@ export default function CheckPage() {
       return;
     }
     setItems(hydrated.items);
+    setListName(hydrated.name.trim() || "This trip");
     setListNote(`Loaded “${hydrated.name}” from your basket draft.`);
     setTipProductId(null);
     setTipStatus(null);
@@ -102,19 +104,22 @@ export default function CheckPage() {
 
   const share = useMemo(() => {
     if (!missed) return undefined;
+    const listPayload = { listName, items };
     if (missed.alreadyOptimal || missed.missedCents <= 0) {
       return buildWinShare({
         merchantName: missed.paidMerchantName,
         cashbackCents: missed.paidCashbackCents,
         paidCents: missed.paidNetCents,
+        ...listPayload,
       });
     }
     return buildMissedShare({
       missedCents: missed.missedCents,
       paidMerchantName: missed.paidMerchantName,
       bestMerchantName: missed.bestMerchantName,
+      ...listPayload,
     });
-  }, [missed]);
+  }, [missed, items, listName]);
 
   const suggestions = useMemo(() => {
     if (!catalog || !query.trim()) return [];

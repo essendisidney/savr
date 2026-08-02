@@ -243,8 +243,10 @@ function BasketInner() {
       savingsCents: saved,
       merchantName: recommended.merchantName,
       cashbackCents: recommended.cashbackCents,
+      listName: listName.trim() || "Weekly shop",
+      items,
     });
-  }, [recommended, saved]);
+  }, [recommended, saved, listName, items]);
 
   const suggestions = useMemo(() => {
     if (!catalog || !query.trim()) return [];

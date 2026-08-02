@@ -15,6 +15,7 @@ function InviteInner() {
   const store = (params.get("store") ?? "Savr").slice(0, 40);
   const nextPath = params.get("next") || "/basket?staples=1";
   const safeNext = nextPath.startsWith("/") ? nextPath : "/basket?staples=1";
+  const carriesBasket = safeNext.includes("list=");
   const cents = Math.round(saveKes * 100);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -60,7 +61,11 @@ function InviteInner() {
               <SavingsMoment
                 amountLabel={store === "Savr" ? "Kept with Savr" : `Smarter at ${store}`}
                 amountCents={cents}
-                detail="Real Nairobi basket math — compare staples before your next shop."
+                detail={
+                  carriesBasket
+                    ? "Same basket they compared — see where you’d shop before you spend."
+                    : "Real Nairobi basket math — compare before your next shop."
+                }
               />
             ) : (
               <div className="card px-5 py-6">
@@ -75,7 +80,11 @@ function InviteInner() {
 
             <div className="space-y-3">
               <Link href={safeNext} className="btn-primary flex w-full justify-center">
-                Compare this week&apos;s staples
+                {carriesBasket
+                  ? "Compare their basket"
+                  : safeNext.includes("staples=1")
+                    ? "Compare this week’s staples"
+                    : "Open Savr"}
               </Link>
               <Link
                 href="/check"

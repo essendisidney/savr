@@ -135,10 +135,17 @@ export function decodeListShare(encoded: string): { name: string; items: ListIte
   }
 }
 
-export function buildListShareUrl(name: string, items: ListItem[]): string | null {
+/** Path-only list handoff for invite `next` and in-app links. */
+export function buildListSharePath(name: string, items: ListItem[]): string | null {
   const payload = encodeListShare(name, items);
   if (!payload) return null;
+  return `/basket?list=${payload}`;
+}
+
+export function buildListShareUrl(name: string, items: ListItem[]): string | null {
+  const path = buildListSharePath(name, items);
+  if (!path) return null;
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
-  return `${origin}/basket?list=${payload}`;
+  return `${origin}${path}`;
 }

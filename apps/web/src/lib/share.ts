@@ -1,4 +1,6 @@
+import { buildListSharePath } from "./basket-draft";
 import { formatKes } from "./types";
+import type { ListItem } from "./types";
 
 export type SharePayload = {
   title: string;
@@ -6,14 +8,33 @@ export type SharePayload = {
   url: string;
 };
 
+const STAPLES_NEXT = "/basket?staples=1";
+
+function resolveNextPath(params?: {
+  nextPath?: string | null;
+  listName?: string;
+  items?: ListItem[];
+}): string {
+  if (params?.nextPath?.startsWith("/")) return params.nextPath;
+  if (params?.items?.length) {
+    const path = buildListSharePath(params.listName ?? "Shared list", params.items);
+    if (path) return path;
+  }
+  return STAPLES_NEXT;
+}
+
 /** Soft landing for shared punches — open product, not an invite wall. */
-export function inviteUrl(savingsKes: number, store: string): string {
+export function inviteUrl(
+  savingsKes: number,
+  store: string,
+  nextPath: string = STAPLES_NEXT,
+): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
   const params = new URLSearchParams({
     save: String(Math.max(0, Math.round(savingsKes))),
     store: store || "Savr",
-    next: "/basket?staples=1",
+    next: nextPath.startsWith("/") ? nextPath : STAPLES_NEXT,
   });
   return `${origin}/invite?${params.toString()}`;
 }
@@ -27,16 +48,24 @@ export function buildBasketShare(params: {
   savingsCents: number;
   merchantName: string;
   cashbackCents?: number;
+  listName?: string;
+  items?: ListItem[];
+  nextPath?: string | null;
 }): SharePayload {
   const amount = formatKes(params.savingsCents);
-  const url = inviteUrl(params.savingsCents / 100, params.merchantName);
+  const next = resolveNextPath(params);
+  const url = inviteUrl(params.savingsCents / 100, params.merchantName, next);
   const cashback =
     params.cashbackCents && params.cashbackCents > 0
       ? ` Plus ${formatKes(params.cashbackCents)} cashback.`
       : "";
+  const listHint =
+    next.includes("list=")
+      ? " Open the link to compare the same basket."
+      : "";
   return {
     title: "Saved with Savr",
-    text: `Look what I saved with Savr — ${amount} by shopping smarter at ${params.merchantName}.${cashback} Before you spend, Savr it.`,
+    text: `Look what I saved with Savr — ${amount} by shopping smarter at ${params.merchantName}.${cashback}${listHint} Before you spend, Savr it.`,
     url,
   };
 }
@@ -48,7 +77,7 @@ export function buildLifetimeShare(lifetimeSavingsCents: number): SharePayload {
   return {
     title: "Saved with Savr",
     text: `I've kept ${amount} with Savr by checking before I spend. Try it before your next shop.`,
-    url: `${origin}/invite?save=${Math.round(lifetimeSavingsCents / 100)}&store=Savr&next=${encodeURIComponent("/basket?staples=1")}`,
+    url: `${origin}/invite?save=${Math.round(lifetimeSavingsCents / 100)}&store=Savr&next=${encodeURIComponent(STAPLES_NEXT)}`,
   };
 }
 
@@ -56,12 +85,20 @@ export function buildMissedShare(params: {
   missedCents: number;
   paidMerchantName: string;
   bestMerchantName: string;
+  listName?: string;
+  items?: ListItem[];
+  nextPath?: string | null;
 }): SharePayload {
   const amount = formatKes(params.missedCents);
-  const url = inviteUrl(params.missedCents / 100, params.bestMerchantName);
+  const next = resolveNextPath(params);
+  const url = inviteUrl(params.missedCents / 100, params.bestMerchantName, next);
+  const listHint =
+    next.includes("list=")
+      ? " Open the link — same basket, smarter store."
+      : "";
   return {
     title: "Could have saved with Savr",
-    text: `I just found ${amount} I left on the table at ${params.paidMerchantName} — ${params.bestMerchantName} was cheaper on Savr. Next time I'm checking first.`,
+    text: `I just found ${amount} I left on the table at ${params.paidMerchantName} — ${params.bestMerchantName} was cheaper on Savr.${listHint} Next time I'm checking first.`,
     url,
   };
 }
@@ -71,7 +108,11 @@ export function buildWinShare(params: {
   merchantName: string;
   cashbackCents?: number;
   paidCents?: number;
+  listName?: string;
+  items?: ListItem[];
+  nextPath?: string | null;
 }): SharePayload {
+  const next = resolveNextPath(params);
   const url = inviteUrl(
     params.cashbackCents && params.cashbackCents > 0
       ? params.cashbackCents / 100
@@ -79,14 +120,19 @@ export function buildWinShare(params: {
         ? params.paidCents / 100
         : 0,
     params.merchantName,
+    next,
   );
   const cb =
     params.cashbackCents && params.cashbackCents > 0
       ? ` Earned ${formatKes(params.cashbackCents)} cashback.`
       : "";
+  const listHint =
+    next.includes("list=")
+      ? " Open the link to compare the same basket."
+      : "";
   return {
     title: "Saved with Savr",
-    text: `Savr said ${params.merchantName} was the smart pick — and it was.${cb} Before you spend, Savr it.`,
+    text: `Savr said ${params.merchantName} was the smart pick — and it was.${cb}${listHint} Before you spend, Savr it.`,
     url,
   };
 }
