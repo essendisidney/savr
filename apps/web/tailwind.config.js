@@ -5,18 +5,23 @@ module.exports = {
     extend: {
       colors: {
         savr: {
-          ink: "#031A12",
-          forest: "#067A4A",
-          leaf: "#0E9F5F",
-          mist: "#F3FAF6",
+          ink: "#0B1220",
+          forest: "#00C853",
+          leaf: "#00E676",
+          mist: "#F8FAFC",
           signal: "#F5C518",
-          night: "#01140E",
-          fog: "#DCEFE5",
-          mute: "#5C7368",
+          accent: "#2563EB",
+          night: "#09090B",
+          fog: "#E8EEF2",
+          mute: "#64748B",
         },
       },
+      borderRadius: {
+        card: "1.25rem",
+        "card-lg": "1.5rem",
+      },
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       letterSpacing: {
@@ -36,6 +41,10 @@ module.exports = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        breathe: {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.015)" },
+        },
       },
       animation: {
         rise: "rise 0.55s cubic-bezier(0.22,1,0.36,1) both",
@@ -43,6 +52,10 @@ module.exports = {
         "rise-delay-2": "rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.2s both",
         barGrow: "barGrow 0.7s cubic-bezier(0.22,1,0.36,1) both",
         fadeIn: "fadeIn 0.4s ease both",
+        breathe: "breathe 3.2s ease-in-out infinite",
+      },
+      transitionDuration: {
+        soft: "250ms",
       },
     },
   },

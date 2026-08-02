@@ -96,38 +96,43 @@ export type CompareHistoryItem = {
 export async function loadWallet(): Promise<{
   balanceCents: number;
   lifetimeSavingsCents: number;
+  todaySavingsCents: number;
+  yesterdaySavingsCents: number;
   compareCount: number;
   history: CompareHistoryItem[];
+  lastTip: { savingsCents: number; merchantName: string } | null;
   ledger: { note: string | null; amountCents: number; when: string; entryType: string }[];
   pendingRedeems: { id: string; amountCents: number; status: string; when: string; phone: string | null }[];
   error?: string;
 }> {
+  const empty = {
+    balanceCents: 0,
+    lifetimeSavingsCents: 0,
+    todaySavingsCents: 0,
+    yesterdaySavingsCents: 0,
+    compareCount: 0,
+    history: [] as CompareHistoryItem[],
+    lastTip: null as { savingsCents: number; merchantName: string } | null,
+    ledger: [] as { note: string | null; amountCents: number; when: string; entryType: string }[],
+    pendingRedeems: [] as {
+      id: string;
+      amountCents: number;
+      status: string;
+      when: string;
+      phone: string | null;
+    }[],
+  };
+
   const supabase = getSupabase();
   if (!supabase) {
-    return {
-      balanceCents: 0,
-      lifetimeSavingsCents: 0,
-      compareCount: 0,
-      history: [],
-      ledger: [],
-      pendingRedeems: [],
-      error: "Supabase is not configured.",
-    };
+    return { ...empty, error: "Supabase is not configured." };
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return {
-      balanceCents: 0,
-      lifetimeSavingsCents: 0,
-      compareCount: 0,
-      history: [],
-      ledger: [],
-      pendingRedeems: [],
-      error: "signed_out",
-    };
+    return { ...empty, error: "signed_out" };
   }
 
   const [accountRes, comparesRes, redeemRes] = await Promise.all([
@@ -160,6 +165,23 @@ export async function loadWallet(): Promise<{
     0,
   );
 
+  const startOfDay = (d: Date) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x.getTime();
+  };
+  const todayStart = startOfDay(new Date());
+  const yesterdayStart = todayStart - 86_400_000;
+
+  let todaySavingsCents = 0;
+  let yesterdaySavingsCents = 0;
+  for (const row of compares) {
+    const t = new Date(row.created_at).getTime();
+    const save = row.savings_cents ?? 0;
+    if (t >= todayStart) todaySavingsCents += save;
+    else if (t >= yesterdayStart && t < todayStart) yesterdaySavingsCents += save;
+  }
+
   const history: CompareHistoryItem[] = compares.map((row) => {
     const chosen = row.chosen as { name: string } | { name: string }[] | null;
     const recommended = row.recommended as { name: string } | { name: string }[] | null;
@@ -182,6 +204,19 @@ export async function loadWallet(): Promise<{
       followedAdvice: row.chosen_merchant_id === row.recommended_merchant_id,
     };
   });
+
+  const tipRow = compares.find((row) => (row.savings_cents ?? 0) > 0);
+  let lastTip: { savingsCents: number; merchantName: string } | null = null;
+  if (tipRow) {
+    const recommended = tipRow.recommended as { name: string } | { name: string }[] | null;
+    const recommendedName = Array.isArray(recommended)
+      ? recommended[0]?.name
+      : recommended?.name;
+    lastTip = {
+      savingsCents: tipRow.savings_cents ?? 0,
+      merchantName: recommendedName ?? "your best store",
+    };
+  }
 
   let ledger: { note: string | null; amountCents: number; when: string; entryType: string }[] = [];
   if (account) {
@@ -219,8 +254,11 @@ export async function loadWallet(): Promise<{
   return {
     balanceCents: account?.cashback_cents ?? 0,
     lifetimeSavingsCents,
+    todaySavingsCents,
+    yesterdaySavingsCents,
     compareCount: compares.length,
     history,
+    lastTip,
     ledger,
     pendingRedeems,
   };

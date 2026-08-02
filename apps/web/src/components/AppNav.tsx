@@ -7,22 +7,13 @@ import { useAuth } from "@/lib/auth";
 export function AppNav() {
   const { user, signOut, loading } = useAuth();
   const pathname = usePathname();
-  const onHero = pathname === "/";
 
   return (
-    <header
-      className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-colors duration-300 ${
-        onHero
-          ? "border-white/10 bg-savr-night/90 text-white"
-          : "border-savr-ink/[0.06] bg-savr-mist/95 text-savr-ink"
-      }`}
-    >
+    <header className="sticky top-0 z-40 border-b border-savr-ink/[0.06] bg-savr-mist/90 text-savr-ink backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:h-16 md:px-6">
         <Link
           href="/"
-          className={`font-display text-[1.65rem] font-extrabold leading-none tracking-brand ${
-            onHero ? "text-white" : "text-savr-ink"
-          }`}
+          className="font-display text-[1.65rem] font-extrabold leading-none tracking-brand text-savr-ink"
         >
           Savr
         </Link>
@@ -44,14 +35,10 @@ export function AppNav() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`rounded-sm px-3 py-1.5 transition ${
-                    onHero
-                      ? active
-                        ? "bg-white/10 text-savr-signal"
-                        : "text-white/80 hover:bg-white/5 hover:text-white"
-                      : active
-                        ? "bg-savr-fog text-savr-forest"
-                        : "text-savr-mute hover:bg-savr-fog/70 hover:text-savr-ink"
+                  className={`rounded-xl px-3 py-1.5 transition duration-soft ${
+                    active
+                      ? "bg-savr-forest/10 text-savr-forest"
+                      : "text-savr-mute hover:bg-savr-fog/80 hover:text-savr-ink"
                   }`}
                 >
                   {l.label}
@@ -65,30 +52,22 @@ export function AppNav() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/account"
-                  className={`text-[13px] font-semibold ${
-                    onHero ? "text-white/90 hover:text-white" : "text-savr-forest"
-                  }`}
+                  className="text-[13px] font-semibold text-savr-forest hover:text-savr-ink"
                 >
                   Account
                 </Link>
                 <button
                   type="button"
                   onClick={() => signOut()}
-                  className={`text-[13px] font-semibold ${
-                    onHero ? "text-white/70 hover:text-white" : "text-savr-mute hover:text-savr-ink"
-                  }`}
+                  className="text-[13px] font-semibold text-savr-mute hover:text-savr-ink"
                 >
                   Sign out
                 </button>
               </div>
             ) : (
               <Link
-                href={`/login?next=${encodeURIComponent(pathname || "/basket")}`}
-                className={`text-[13px] font-semibold ${
-                  onHero
-                    ? "bg-savr-signal px-3 py-1.5 text-savr-ink hover:bg-[#ffd23a]"
-                    : "bg-savr-night px-3 py-1.5 text-white hover:bg-savr-ink"
-                }`}
+                href={`/login?next=${encodeURIComponent(pathname || "/")}`}
+                className="rounded-xl bg-savr-forest px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-[#00b34a]"
               >
                 Sign in
               </Link>

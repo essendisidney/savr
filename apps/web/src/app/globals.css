@@ -5,6 +5,9 @@
 :root {
   color-scheme: light;
   --page-pad-bottom: 5.5rem;
+  --savr-emerald: #00c853;
+  --savr-accent: #2563eb;
+  --savr-bg: #f8fafc;
 }
 
 html {
@@ -16,11 +19,11 @@ html {
 }
 
 body {
-  background-color: #f2f7f4;
+  background-color: var(--savr-bg);
   background-image:
-    radial-gradient(ellipse 90% 55% at 100% -15%, rgba(245, 197, 24, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 45% at -5% 5%, rgba(6, 122, 74, 0.1), transparent 50%),
-    linear-gradient(180deg, #f7fbf8 0%, #f2f7f4 48%, #eef5f1 100%);
+    radial-gradient(ellipse 80% 50% at 100% -10%, rgba(0, 200, 83, 0.1), transparent 55%),
+    radial-gradient(ellipse 60% 40% at -5% 0%, rgba(37, 99, 235, 0.07), transparent 50%),
+    linear-gradient(180deg, #fbfdff 0%, #f8fafc 45%, #f1f5f9 100%);
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
@@ -41,41 +44,45 @@ body {
   position: absolute;
   inset: 0;
   z-index: -1;
-  opacity: 0.035;
+  opacity: 0.028;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .hero-plane {
-  background-color: #01140e;
+  background-color: #09090b;
   background-image:
-    linear-gradient(180deg, rgba(1, 20, 14, 0.55) 0%, rgba(1, 20, 14, 0.45) 28%, rgba(1, 20, 14, 0.78) 62%, rgba(1, 20, 14, 0.94) 100%),
+    linear-gradient(180deg, rgba(9, 9, 11, 0.45) 0%, rgba(9, 9, 11, 0.55) 40%, rgba(9, 9, 11, 0.92) 100%),
     url("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=2000&q=80");
   background-size: cover;
   background-position: center 40%;
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center gap-2 bg-savr-signal px-5 py-3.5 text-[15px] font-semibold tracking-tight text-savr-ink shadow-[0_10px_28px_-16px_rgba(245,197,24,0.85)] transition duration-200 hover:bg-[#ffd23a] hover:shadow-[0_14px_32px_-14px_rgba(245,197,24,0.95)] active:translate-y-px disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-savr-forest px-5 py-3.5 text-[15px] font-semibold tracking-tight text-white shadow-[0_12px_28px_-16px_rgba(0,200,83,0.75)] transition duration-soft hover:bg-[#00b34a] hover:shadow-[0_14px_32px_-14px_rgba(0,200,83,0.85)] active:translate-y-px disabled:opacity-50;
 }
 
 .btn-ghost {
-  @apply inline-flex items-center justify-center gap-2 border border-white/30 bg-white/10 px-5 py-3.5 text-[15px] font-medium text-white backdrop-blur-md transition duration-200 hover:border-white/50 hover:bg-white/20 active:translate-y-px;
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-savr-ink/10 bg-white/70 px-5 py-3.5 text-[15px] font-medium text-savr-ink backdrop-blur-md transition duration-soft hover:border-savr-forest/30 hover:bg-white active:translate-y-px;
+}
+
+.btn-ghost-on-dark {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-5 py-3.5 text-[15px] font-medium text-white backdrop-blur-md transition duration-soft hover:border-white/50 hover:bg-white/20 active:translate-y-px;
 }
 
 .btn-dark {
-  @apply inline-flex items-center justify-center gap-2 bg-savr-night px-5 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_28px_-16px_rgba(1,20,14,0.65)] transition duration-200 hover:bg-savr-ink active:translate-y-px;
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-savr-night px-5 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_28px_-16px_rgba(9,9,11,0.55)] transition duration-soft hover:bg-savr-ink active:translate-y-px;
 }
 
 .field {
-  @apply w-full border border-savr-ink/[0.09] bg-white px-4 py-3.5 text-[15px] text-savr-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] outline-none transition placeholder:text-savr-mute/55 focus:border-savr-forest/50 focus:ring-4 focus:ring-savr-forest/10;
+  @apply w-full rounded-2xl border border-savr-ink/[0.08] bg-white px-4 py-3.5 text-[15px] text-savr-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] outline-none transition duration-soft placeholder:text-savr-mute/55 focus:border-savr-forest/40 focus:ring-4 focus:ring-savr-forest/10;
 }
 
 .surface {
-  @apply border border-savr-ink/[0.06] bg-white/80 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur-md;
+  @apply rounded-card border border-savr-ink/[0.05] bg-white/75 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur-md;
 }
 
 .panel {
-  @apply border border-savr-ink/[0.07] bg-white shadow-[0_18px_50px_-36px_rgba(1,20,14,0.35)];
+  @apply rounded-card border border-savr-ink/[0.06] bg-white shadow-[0_18px_50px_-36px_rgba(11,18,32,0.28)];
 }
 
 .rank-bar {
@@ -83,14 +90,18 @@ body {
 }
 
 .savings-moment {
-  background: linear-gradient(128deg, #0d9a62 0%, #067a4a 40%, #045c3a 72%, #e8b40f 140%);
-  box-shadow: 0 22px 50px -28px rgba(6, 122, 74, 0.55);
+  background: linear-gradient(128deg, #00e676 0%, #00c853 38%, #009624 72%, #2563eb 140%);
+  box-shadow: 0 22px 50px -28px rgba(0, 200, 83, 0.45);
 }
 
 .page-band {
   background:
-    radial-gradient(720px 240px at 100% 0%, rgba(245, 197, 24, 0.12), transparent 62%),
-    radial-gradient(560px 220px at 0% 100%, rgba(6, 122, 74, 0.09), transparent 58%);
+    radial-gradient(720px 240px at 100% 0%, rgba(0, 200, 83, 0.08), transparent 62%),
+    radial-gradient(560px 220px at 0% 100%, rgba(37, 99, 235, 0.06), transparent 58%);
+}
+
+.glass-card {
+  @apply rounded-card-lg border border-white/60 bg-white/70 shadow-[0_20px_50px_-32px_rgba(11,18,32,0.35)] backdrop-blur-xl;
 }
 
 @media (max-width: 767px) {
