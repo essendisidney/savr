@@ -96,6 +96,7 @@ export default function HomePage() {
             </p>
             <p className="mt-2 max-w-md text-[15px] text-white/65">
               Lifetime price savings and cashback from every smarter basket — not any purchase.
+              Add Savr to your home screen for one-tap checks before you spend.
             </p>
           </div>
           <Link href="/wallet" className="btn-primary shrink-0">

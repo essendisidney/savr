@@ -1,7 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
 import { AppNav } from "@/components/AppNav";
 import { BottomNav } from "@/components/BottomNav";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { PwaRegister } from "@/components/PwaRegister";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -20,6 +22,29 @@ const sans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Savr — Before you spend",
   description: "Nairobi’s spending OS. Compare baskets, rides, and fuel — then earn savings cashback.",
+  applicationName: "Savr",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Savr",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#01140E",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AppNav />
             <main>{children}</main>
             <BottomNav />
+            <InstallPrompt />
+            <PwaRegister />
           </div>
         </Providers>
       </body>
