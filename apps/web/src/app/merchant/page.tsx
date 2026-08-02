@@ -103,6 +103,16 @@ export default function MerchantPage() {
     [merchants, selectedId],
   );
 
+  const pricedIds = useMemo(() => new Set(prices.map((p) => p.productId)), [prices]);
+  const pricingGaps = useMemo(
+    () =>
+      catalogProducts
+        .filter((p) => !pricedIds.has(p.id))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .slice(0, 24),
+    [catalogProducts, pricedIds],
+  );
+
   async function onClaim(id: string) {
     if (!user) {
       setStatus("Sign in to claim a merchant dashboard.");
@@ -481,6 +491,54 @@ export default function MerchantPage() {
                   <p className="mt-1 text-sm text-savr-mute">
                     Privacy-safe totals from locked-in basket compares — no shopper identities.
                   </p>
+                </div>
+
+                <div className="border border-savr-ink/[0.08] bg-white px-4 py-5 sm:px-5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="font-display text-lg font-bold tracking-tightish">
+                      Pricing gaps
+                    </h3>
+                    <span className="text-xs font-semibold text-savr-mute">
+                      {pricingGaps.length
+                        ? `${pricingGaps.length} of ${catalogProducts.length} unpriced`
+                        : "Full coverage"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    SKUs shoppers can tip as missing — price them to lift your list coverage.
+                  </p>
+                  {pricingGaps.length === 0 ? (
+                    <p className="mt-3 text-sm font-medium text-savr-forest">
+                      You have a price on every catalog staple.
+                    </p>
+                  ) : (
+                    <ul className="mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08]">
+                      {pricingGaps.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm"
+                        >
+                          <span>
+                            <span className="font-medium">{p.name}</span>
+                            {p.brand ? (
+                              <span className="ml-2 text-savr-mute">{p.brand}</span>
+                            ) : null}
+                          </span>
+                          <button
+                            type="button"
+                            className="text-xs font-semibold text-savr-forest hover:underline"
+                            onClick={() => {
+                              setAddProductId(p.id);
+                              setAddPriceKes("");
+                              setStatus(`Selected ${p.name} — enter KES below and add.`);
+                            }}
+                          >
+                            Price this →
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 {analytics ? (

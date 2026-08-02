@@ -75,9 +75,11 @@ Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
 - [ ] SMS OTP live on Vercel
 - [ ] `INVITE_GATE_ENABLED` + `INVITE_COOKIE_SECRET` set
 - [ ] Support email / WhatsApp
-- [ ] Seed refresh cadence for grocery + fuel
+- [x] Seed refresh cadence for grocery + fuel — `node scripts/refresh-seed-freshness.js` then apply the printed SQL
 - [ ] M-Pesa: dry-run OK for beta; paste keys + set `MPESA_DRY_RUN=false` for real B2C
-- [ ] Terms / Privacy linked
+- [x] Terms / Privacy linked
+
+Suggested refresh: weekly (or after any large seed wave). Wave migrations also bump seed `observed_at` when applied.
 
 ## Supabase
 

@@ -108,6 +108,8 @@ export type LineItemPrice = {
   unitCents: number | null;
   lineCents: number | null;
   promoCents?: number;
+  observedAt?: string | null;
+  source?: string | null;
 };
 
 export type RideQuote = {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { submitCrowdsourcePrice } from "@/lib/actions";
 import { formatKes } from "@/lib/compare";
+import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
 import { formatDistanceKm } from "@/lib/geo";
 import { track } from "@/lib/track";
 import type { BasketResult, LineItemPrice } from "@/lib/types";
@@ -226,6 +227,10 @@ export function RankList({
                     const key = `${r.merchantId}:${line.productId}`;
                     const tipping = tipKey === key;
                     const missingLine = line.lineCents == null;
+                    const fresh =
+                      !missingLine && line.observedAt
+                        ? formatPriceFreshness(line.observedAt, line.source)
+                        : null;
                     return (
                       <li key={line.productId} className="px-3 py-2.5 text-sm">
                         <div className="flex items-center justify-between gap-3">
@@ -233,6 +238,16 @@ export function RankList({
                             {line.name}
                             {line.quantity > 1 ? (
                               <span className="opacity-60"> ×{line.quantity}</span>
+                            ) : null}
+                            {fresh?.label ? (
+                              <span
+                                className={`mt-0.5 block text-[11px] font-medium ${freshnessClassName(
+                                  fresh.stale,
+                                  r.isRecommended ? "dark" : "light",
+                                )}`}
+                              >
+                                {fresh.label}
+                              </span>
                             ) : null}
                           </span>
                           <span

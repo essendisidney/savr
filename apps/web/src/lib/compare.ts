@@ -293,6 +293,8 @@ export function lineItemsForMerchant(
       unitCents: price?.priceCents ?? null,
       lineCents,
       promoCents: promo.cents,
+      observedAt: price?.observedAt ?? null,
+      source: price?.source ?? null,
     };
   });
 }
