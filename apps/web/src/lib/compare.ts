@@ -434,31 +434,44 @@ export function compareRides(destination: string): RideQuote[] {
   return compareRidesForRoute("Westlands", destination);
 }
 
-/** What you paid at one store vs the best basket total elsewhere. */
+/** What you paid at one store/branch vs the best basket total elsewhere. */
 export function computeMissedSavings(
   catalog: Catalog,
   items: ListItem[],
   paidMerchantId: string,
+  paidLocationId?: string | null,
 ): MissedSavingsResult | null {
   if (!items.length || !paidMerchantId) return null;
 
   const ranks = compareBasket(catalog, items);
-  const paid = ranks.find((r) => r.merchantId === paidMerchantId);
+  const paid =
+    (paidLocationId
+      ? ranks.find(
+          (r) => r.merchantId === paidMerchantId && r.locationId === paidLocationId,
+        )
+      : null) ?? ranks.find((r) => r.merchantId === paidMerchantId);
   const best = ranks.find((r) => r.isRecommended) ?? ranks[0];
   if (!paid || !best || paid.coverage === 0) return null;
 
   const missedCents = Math.max(0, paid.netCents - best.netCents);
-  const alreadyOptimal = best.merchantId === paid.merchantId || missedCents === 0;
+  const sameBranch =
+    paid.merchantId === best.merchantId &&
+    (paid.locationId ?? null) === (best.locationId ?? null);
+  const alreadyOptimal = sameBranch || missedCents === 0;
 
   return {
     paidMerchantId: paid.merchantId,
-    paidMerchantName: paid.merchantName,
+    paidMerchantName: paid.branchName
+      ? `${paid.merchantName} · ${paid.branchName}`
+      : paid.merchantName,
     paidTotalCents: paid.totalCents,
     paidCashbackCents: paid.cashbackCents,
     paidNetCents: paid.netCents,
     paidCoverage: paid.coverage,
     bestMerchantId: best.merchantId,
-    bestMerchantName: best.merchantName,
+    bestMerchantName: best.branchName
+      ? `${best.merchantName} · ${best.branchName}`
+      : best.merchantName,
     bestTotalCents: best.totalCents,
     bestCashbackCents: best.cashbackCents,
     bestNetCents: best.netCents,

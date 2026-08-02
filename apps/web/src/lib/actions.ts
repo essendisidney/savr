@@ -743,3 +743,111 @@ export async function isWatchingProduct(productId: string): Promise<boolean> {
 
   return Boolean(data?.id);
 }
+
+export type ShopReceiptSummary = {
+  id: string;
+  when: string;
+  paidMerchantName: string;
+  bestMerchantName: string;
+  paidTotalCents: number;
+  missedCents: number;
+  alreadyOptimal: boolean;
+};
+
+/** Durable “I paid here” — honesty loop without OCR. */
+export async function logShopReceipt(params: {
+  merchantId: string;
+  locationId?: string | null;
+  items: { productId: string; quantity: number; paidUnitCents: number | null }[];
+  paidTotalCents: number;
+  smartTotalCents: number;
+  missedCents: number;
+  alreadyOptimal: boolean;
+  paidMerchantName: string;
+  bestMerchantName: string;
+}): Promise<{ receiptId: string } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to save this shop." };
+
+  if (!params.items.length) return { error: "Add what you bought first." };
+  if (params.paidTotalCents < 0 || params.smartTotalCents < 0) {
+    return { error: "Invalid totals." };
+  }
+
+  const { data: receipt, error: receiptError } = await supabase
+    .from("shop_receipts")
+    .insert({
+      user_id: user.id,
+      merchant_id: params.merchantId,
+      location_id: params.locationId ?? null,
+      paid_total_cents: params.paidTotalCents,
+      smart_total_cents: params.smartTotalCents,
+      missed_cents: params.missedCents,
+      already_optimal: params.alreadyOptimal,
+      paid_merchant_name: params.paidMerchantName,
+      best_merchant_name: params.bestMerchantName,
+    })
+    .select("id")
+    .single();
+
+  if (receiptError || !receipt) {
+    return { error: receiptError?.message ?? "Could not save receipt." };
+  }
+
+  const lines = params.items.map((item) => ({
+    receipt_id: receipt.id,
+    product_id: item.productId,
+    quantity: item.quantity,
+    paid_unit_cents: item.paidUnitCents,
+  }));
+
+  const { error: linesError } = await supabase.from("shop_receipt_lines").insert(lines);
+  if (linesError) return { error: linesError.message };
+
+  return { receiptId: receipt.id };
+}
+
+export async function loadRecentReceipts(): Promise<{
+  receipts: ShopReceiptSummary[];
+  error?: string;
+}> {
+  const supabase = getSupabase();
+  if (!supabase) return { receipts: [] };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { receipts: [] };
+
+  const { data, error } = await supabase
+    .from("shop_receipts")
+    .select(
+      "id, created_at, paid_total_cents, missed_cents, already_optimal, paid_merchant_name, best_merchant_name",
+    )
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) return { receipts: [], error: error.message };
+
+  const receipts: ShopReceiptSummary[] = (data ?? []).map((row) => ({
+    id: row.id,
+    when: new Date(row.created_at).toLocaleDateString("en-KE", {
+      month: "short",
+      day: "numeric",
+    }),
+    paidMerchantName: row.paid_merchant_name ?? "Store",
+    bestMerchantName: row.best_merchant_name ?? "Smart pick",
+    paidTotalCents: row.paid_total_cents,
+    missedCents: row.missed_cents,
+    alreadyOptimal: row.already_optimal,
+  }));
+
+  return { receipts };
+}
+

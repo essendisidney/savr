@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { submitCrowdsourcePrice } from "@/lib/actions";
+import { logShopReceipt, submitCrowdsourcePrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import {
   hydrateDraftAgainstCatalog,
@@ -27,7 +27,7 @@ import { buildMissedShare } from "@/lib/share";
 export default function CheckPage() {
   const { user } = useAuth();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
-  const [paidMerchantId, setPaidMerchantId] = useState("");
+  const [paidKey, setPaidKey] = useState("");
   const [items, setItems] = useState<ListItem[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -37,12 +37,17 @@ export default function CheckPage() {
   const [tipStatus, setTipStatus] = useState<string | null>(null);
   const [draftHint, setDraftHint] = useState<BasketDraft | null>(null);
   const [listNote, setListNote] = useState<string | null>(null);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
   useEffect(() => {
     loadCatalog().then((c) => {
       setCatalog(c);
       const grocery = c.merchants.filter((m) => m.category === "grocery");
-      if (grocery[0]) setPaidMerchantId(grocery[0].id);
+      const first = grocery[0];
+      if (first) {
+        setPaidKey(`${first.id}:${first.locationId ?? first.location?.id ?? "none"}`);
+      }
       const ids = new Set(c.products.map((p) => p.id));
       const draft = loadBasketDraft();
       const hydrated = draft ? hydrateDraftAgainstCatalog(draft, ids) : null;
@@ -63,34 +68,26 @@ export default function CheckPage() {
     setListNote(`Loaded “${hydrated.name}” from your basket draft.`);
     setTipProductId(null);
     setTipStatus(null);
+    setSaveStatus(null);
   }
-  const grocery = useMemo(() => {
-    if (!catalog) return [];
-    const seen = new Set<string>();
-    return catalog.merchants.filter((m) => {
-      if (m.category !== "grocery") return false;
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
-      return true;
-    });
-  }, [catalog]);
 
+  const grocery = useMemo(
+    () => (catalog ? catalog.merchants.filter((m) => m.category === "grocery") : []),
+    [catalog],
+  );
+
+  const paidMerchantId = useMemo(() => paidKey.split(":")[0] ?? "", [paidKey]);
   const paidLocationId = useMemo(() => {
-    if (!catalog || !paidMerchantId) return null;
-    return (
-      catalog.merchants.find((m) => m.id === paidMerchantId && (m.locationId || m.location?.id))
-        ?.locationId ??
-      catalog.merchants.find((m) => m.id === paidMerchantId)?.location?.id ??
-      null
-    );
-  }, [catalog, paidMerchantId]);
+    const loc = paidKey.split(":")[1];
+    return loc && loc !== "none" ? loc : null;
+  }, [paidKey]);
 
   const missed = useMemo(
     () =>
       catalog && paidMerchantId && items.length
-        ? computeMissedSavings(catalog, items, paidMerchantId)
+        ? computeMissedSavings(catalog, items, paidMerchantId, paidLocationId)
         : null,
-    [catalog, items, paidMerchantId],
+    [catalog, items, paidMerchantId, paidLocationId],
   );
 
   const paidLines = useMemo(
@@ -139,6 +136,7 @@ export default function CheckPage() {
       return [...prev, { productId, freeText: name, quantity: 1 }];
     });
     setQuery("");
+    setSaveStatus(null);
   }
 
   async function onTipPrice(e: FormEvent) {
@@ -164,6 +162,44 @@ export default function CheckPage() {
     setCatalog(c);
   }
 
+  async function onSaveReceipt() {
+    if (!missed || !paidMerchantId) return;
+    if (!user) {
+      setSaveStatus("Sign in to keep this shop on your record.");
+      return;
+    }
+    setSaveBusy(true);
+    setSaveStatus(null);
+    const res = await logShopReceipt({
+      merchantId: paidMerchantId,
+      locationId: paidLocationId,
+      items: items.map((item) => {
+        const line = paidLines.find((l) => l.productId === item.productId);
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          paidUnitCents: line?.unitCents ?? null,
+        };
+      }),
+      paidTotalCents: missed.paidNetCents,
+      smartTotalCents: missed.bestNetCents,
+      missedCents: missed.missedCents,
+      alreadyOptimal: missed.alreadyOptimal,
+      paidMerchantName: missed.paidMerchantName,
+      bestMerchantName: missed.bestMerchantName,
+    });
+    setSaveBusy(false);
+    if ("error" in res) {
+      setSaveStatus(res.error);
+      return;
+    }
+    setSaveStatus(
+      missed.alreadyOptimal
+        ? "Shop saved — you already picked the smart total."
+        : `Shop saved — ${formatKes(missed.missedCents)} left on the table this trip.`,
+    );
+  }
+
   if (loading || !catalog) {
     return (
       <PageFrame>
@@ -180,7 +216,7 @@ export default function CheckPage() {
       <PageHero
         theme="check"
         title="Could you have saved?"
-        subtitle="Pull your basket draft, tip what you paid, and see what you left on the table."
+        subtitle="Pull your basket draft, tip what you paid, and save the trip — no photo needed."
         action={{ href: "/basket", label: "Compare before next shop" }}
       />
 
@@ -208,12 +244,16 @@ export default function CheckPage() {
                   </h2>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {grocery.map((m) => {
-                      const active = m.id === paidMerchantId;
+                      const key = `${m.id}:${m.locationId ?? m.location?.id ?? "none"}`;
+                      const active = key === paidKey;
                       return (
                         <button
-                          key={m.id}
+                          key={key}
                           type="button"
-                          onClick={() => setPaidMerchantId(m.id)}
+                          onClick={() => {
+                            setPaidKey(key);
+                            setSaveStatus(null);
+                          }}
                           className={`px-3.5 py-2 text-sm font-semibold transition ${
                             active
                               ? "bg-savr-forest text-white"
@@ -222,7 +262,11 @@ export default function CheckPage() {
                         >
                           {m.name}
                           {m.location?.name ? (
-                            <span className={`ml-1.5 text-xs font-medium ${active ? "text-white/80" : "text-savr-mute"}`}>
+                            <span
+                              className={`ml-1.5 text-xs font-medium ${
+                                active ? "text-white/80" : "text-savr-mute"
+                              }`}
+                            >
                               {m.location.name}
                             </span>
                           ) : null}
@@ -234,7 +278,9 @@ export default function CheckPage() {
 
                 <div>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 className="font-display text-lg font-bold tracking-tightish">What you bought</h2>
+                    <h2 className="font-display text-lg font-bold tracking-tightish">
+                      What you bought
+                    </h2>
                     <div className="flex items-center gap-2">
                       {draftHint && draftHint.items.length > 0 && (
                         <button
@@ -252,8 +298,8 @@ export default function CheckPage() {
                   </div>
                   {draftHint && draftHint.items.length > 0 && items.length === 0 && (
                     <p className="mt-2 text-xs text-savr-mute">
-                      You have “{draftHint.name}” on Basket ({draftHint.items.length} items) — load it
-                      to check the miss in one tap.
+                      You have “{draftHint.name}” on Basket ({draftHint.items.length} items) — load
+                      it to check the miss in one tap.
                     </p>
                   )}
                   {listNote && (
@@ -321,41 +367,15 @@ export default function CheckPage() {
                                 </p>
                                 <p className="text-xs text-savr-mute">
                                   {line?.unitCents != null
-                                    ? `${formatKes(line.unitCents)} each on Savr`
-                                    : "No price at this store"}
-                                  {" · "}
-                                  {!user ? (
-                                    <Link
-                                      href="/login"
-                                      className="font-semibold text-savr-forest hover:underline"
-                                    >
-                                      Sign in to tip
-                                    </Link>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="font-semibold text-savr-forest hover:underline"
-                                      onClick={() => {
-                                        setTipProductId(tipping ? null : item.productId);
-                                        setTipPrice(
-                                          line?.unitCents != null
-                                            ? String(Math.round(line.unitCents / 100))
-                                            : "",
-                                        );
-                                        setTipStatus(null);
-                                      }}
-                                    >
-                                      {tipping ? "Cancel" : "Tip what you paid"}
-                                    </button>
-                                  )}
+                                    ? `${formatKes(line.unitCents)} shelf`
+                                    : "No shelf price — tip what you paid"}
                                 </p>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex shrink-0 items-center gap-2">
                                 <button
                                   type="button"
-                                  className="h-8 w-8 bg-savr-fog text-sm font-bold"
+                                  className="h-8 w-8 rounded-full bg-savr-fog text-sm font-bold"
                                   onClick={() => setQty(item.productId, item.quantity - 1)}
-                                  aria-label="Decrease quantity"
                                 >
                                   −
                                 </button>
@@ -364,39 +384,53 @@ export default function CheckPage() {
                                 </span>
                                 <button
                                   type="button"
-                                  className="h-8 w-8 bg-savr-fog text-sm font-bold"
+                                  className="h-8 w-8 rounded-full bg-savr-fog text-sm font-bold"
                                   onClick={() => setQty(item.productId, item.quantity + 1)}
-                                  aria-label="Increase quantity"
                                 >
                                   +
                                 </button>
+                                <button
+                                  type="button"
+                                  className="text-xs font-semibold text-savr-forest"
+                                  onClick={() => {
+                                    setTipProductId(item.productId);
+                                    setTipPrice(
+                                      line?.unitCents != null
+                                        ? String(Math.round(line.unitCents / 100))
+                                        : "",
+                                    );
+                                  }}
+                                >
+                                  Tip
+                                </button>
                               </div>
                             </div>
-                            {tipping && user && (
+                            {tipping && (
                               <form
                                 onSubmit={onTipPrice}
-                                className="mt-3 flex flex-wrap items-end gap-2"
+                                className="mt-2 flex flex-wrap items-center gap-2"
                               >
-                                <label className="block min-w-[7rem] flex-1 space-y-1">
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                                    You paid (KES)
-                                  </span>
-                                  <input
-                                    required
-                                    inputMode="decimal"
-                                    value={tipPrice}
-                                    onChange={(e) => setTipPrice(e.target.value)}
-                                    placeholder="e.g. 185"
-                                    className="field py-2"
-                                    autoFocus
-                                  />
-                                </label>
+                                <input
+                                  value={tipPrice}
+                                  onChange={(e) => setTipPrice(e.target.value)}
+                                  inputMode="decimal"
+                                  placeholder="KES paid"
+                                  className="field w-28 py-2"
+                                  required
+                                />
                                 <button
                                   type="submit"
                                   disabled={tipBusy}
-                                  className="btn-primary h-[42px] px-4"
+                                  className="btn-dark px-3 py-2 text-xs disabled:opacity-50"
                                 >
-                                  {tipBusy ? "Saving…" : "Save tip"}
+                                  Save tip
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-xs text-savr-mute"
+                                  onClick={() => setTipProductId(null)}
+                                >
+                                  Cancel
                                 </button>
                               </form>
                             )}
@@ -406,13 +440,7 @@ export default function CheckPage() {
                     </ul>
                   )}
                   {tipStatus && (
-                    <p
-                      className={`mt-3 text-sm font-medium ${
-                        tipStatus.startsWith("Thanks") ? "text-savr-forest" : "text-red-700"
-                      }`}
-                    >
-                      {tipStatus}
-                    </p>
+                    <p className="mt-2 text-xs font-medium text-savr-forest">{tipStatus}</p>
                   )}
                 </div>
               </section>
@@ -423,7 +451,7 @@ export default function CheckPage() {
                 {!missed ? (
                   <div className="border border-dashed border-savr-ink/15 bg-white/70 px-5 py-10 text-center">
                     <p className="text-sm text-savr-mute">
-                      Pick a store and add what you bought — Savr will show the smarter total.
+                      Pick a branch and add what you bought — Savr will show the smarter total.
                     </p>
                   </div>
                 ) : (
@@ -462,15 +490,37 @@ export default function CheckPage() {
                     </div>
 
                     {!missed.alreadyOptimal && missed.missedCents > 0 && (
-                      <p className="border-t border-savr-ink/[0.06] pt-4 text-sm font-medium leading-snug text-savr-ink/80">
+                      <p className="text-sm font-medium text-savr-ink">
                         That’s {formatKes(missed.missedCents)} you could have kept by checking Savr
-                        before the trip.
+                        before this trip.
                       </p>
                     )}
 
-                    <Link href="/basket" className="btn-primary mt-2 inline-flex w-full justify-center">
-                      Compare before my next shop
-                    </Link>
+                    <div className="border-t border-savr-ink/[0.06] pt-4">
+                      {user ? (
+                        <button
+                          type="button"
+                          disabled={saveBusy}
+                          onClick={onSaveReceipt}
+                          className="btn-primary w-full disabled:opacity-50"
+                        >
+                          {saveBusy ? "Saving…" : "Save this shop"}
+                        </button>
+                      ) : (
+                        <Link
+                          href="/login?next=/check"
+                          className="btn-primary flex w-full justify-center"
+                        >
+                          Sign in to save this shop
+                        </Link>
+                      )}
+                      <p className="mt-2 text-xs text-savr-mute">
+                        Keeps a receipt on Saved — no photo, just the miss you can learn from.
+                      </p>
+                      {saveStatus && (
+                        <p className="mt-2 text-sm font-semibold text-savr-forest">{saveStatus}</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </section>

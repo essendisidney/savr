@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   fetchSavedLists,
+  loadRecentReceipts,
   loadWallet,
   loadWatchlist,
   unwatchProduct,
   type SavedListSummary,
+  type ShopReceiptSummary,
   type WatchItem,
 } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
@@ -23,6 +25,7 @@ export default function SavedPage() {
     { id: string; listId: string; when: string; savingsCents: number; chosenMerchant: string }[]
   >([]);
   const [watches, setWatches] = useState<WatchItem[]>([]);
+  const [receipts, setReceipts] = useState<ShopReceiptSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,10 +35,11 @@ export default function SavedPage() {
       return;
     }
     void (async () => {
-      const [listsRes, wallet, watchRes] = await Promise.all([
+      const [listsRes, wallet, watchRes, receiptRes] = await Promise.all([
         fetchSavedLists(),
         loadWallet(),
         loadWatchlist(),
+        loadRecentReceipts(),
       ]);
       setLists(listsRes.lists ?? []);
       setHistory(
@@ -48,6 +52,7 @@ export default function SavedPage() {
         })),
       );
       setWatches(watchRes.items ?? []);
+      setReceipts(receiptRes.receipts ?? []);
       setLoading(false);
     })();
   }, [user, authLoading]);
@@ -79,7 +84,7 @@ export default function SavedPage() {
         <PageShell>
           <EmptyState
             title="Sign in to keep lists"
-            body="Saved baskets, watchlist drops, and shop-again history live here."
+            body="Saved baskets, watchlist drops, shop receipts, and shop-again history live here."
             action={
               <Link href="/login?next=/saved" className="btn-primary">
                 Sign in
@@ -99,16 +104,63 @@ export default function SavedPage() {
             Saved
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tightish text-savr-ink">
-            Lists, watches & wins
+            Lists, watches & shops
           </h1>
           <p className="mt-2 text-sm text-savr-mute">
-            Reopen a list, catch a drop, or shop again from a locked-in basket.
+            Reopen a list, catch a drop, or revisit what a trip really cost you.
           </p>
         </div>
       </div>
 
       <PageShell narrow>
         <section className="space-y-3">
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="font-display text-lg font-bold text-savr-ink">Recent shops</h2>
+            <Link href="/check" className="text-sm font-semibold text-savr-forest hover:underline">
+              Log a shop →
+            </Link>
+          </div>
+          {receipts.length === 0 ? (
+            <EmptyState
+              title="No shops logged yet"
+              body="After a trip, open Check — pick the branch, add what you bought, and tap Save this shop."
+              action={
+                <Link href="/check" className="btn-primary">
+                  Check a shop
+                </Link>
+              }
+            />
+          ) : (
+            <ul className="space-y-2">
+              {receipts.map((r) => (
+                <li key={r.id} className="card flex items-center justify-between gap-3 px-4 py-3.5">
+                  <div className="min-w-0">
+                    <span className="block font-semibold text-savr-ink">{r.paidMerchantName}</span>
+                    <span className="text-xs text-savr-mute">
+                      {r.when}
+                      {r.alreadyOptimal
+                        ? " · smart pick"
+                        : ` · vs ${r.bestMerchantName}`}
+                    </span>
+                  </div>
+                  <span
+                    className={`shrink-0 font-display text-lg font-bold tabular-nums ${
+                      r.alreadyOptimal || r.missedCents <= 0
+                        ? "text-savr-forest"
+                        : "text-amber-800"
+                    }`}
+                  >
+                    {r.alreadyOptimal || r.missedCents <= 0
+                      ? formatKes(r.paidTotalCents)
+                      : `−${formatKes(r.missedCents)}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-10 space-y-3">
           <div className="flex items-end justify-between gap-3">
             <h2 className="font-display text-lg font-bold text-savr-ink">Watching for drops</h2>
             <Link href="/prices" className="text-sm font-semibold text-savr-forest hover:underline">
