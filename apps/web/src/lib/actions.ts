@@ -20,7 +20,13 @@ export async function confirmBasketChoice(params: {
 
   const { data: list, error: listError } = await supabase
     .from("shopping_lists")
-    .insert({ owner_id: user.id, name: "Basket compare" })
+    .insert({
+      owner_id: user.id,
+      name: `Shop · ${new Date().toLocaleDateString("en-KE", {
+        month: "short",
+        day: "numeric",
+      })}`,
+    })
     .select("id")
     .single();
   if (listError || !list) return { error: listError?.message ?? "Could not create list." };
@@ -78,6 +84,7 @@ export async function confirmBasketChoice(params: {
 
 export type CompareHistoryItem = {
   id: string;
+  listId: string;
   when: string;
   savingsCents: number;
   cashbackCents: number;
@@ -132,7 +139,7 @@ export async function loadWallet(): Promise<{
     supabase
       .from("basket_compares")
       .select(
-        "id, savings_cents, cashback_cents, created_at, chosen_merchant_id, recommended_merchant_id, chosen:merchants!chosen_merchant_id(name), recommended:merchants!recommended_merchant_id(name)",
+        "id, list_id, savings_cents, cashback_cents, created_at, chosen_merchant_id, recommended_merchant_id, chosen:merchants!chosen_merchant_id(name), recommended:merchants!recommended_merchant_id(name)",
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -162,6 +169,7 @@ export async function loadWallet(): Promise<{
       : recommended?.name;
     return {
       id: row.id,
+      listId: row.list_id as string,
       when: new Date(row.created_at).toLocaleDateString("en-KE", {
         weekday: "short",
         month: "short",

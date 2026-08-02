@@ -382,6 +382,20 @@ export default function WalletPage() {
                             </p>
                           </div>
                         </div>
+                        {item.listId ? (
+                          <div className="mt-3">
+                            <Link
+                              href={`/basket?saved=${item.listId}`}
+                              className={`inline-flex text-sm font-semibold ${
+                                item.followedAdvice
+                                  ? "text-savr-signal hover:underline"
+                                  : "text-savr-forest hover:underline"
+                              }`}
+                            >
+                              Shop again →
+                            </Link>
+                          </div>
+                        ) : null}
                       </div>
                     </li>
                   ))}

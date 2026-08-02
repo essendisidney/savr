@@ -91,7 +91,9 @@ function BasketInner() {
   }, [user]);
 
   useEffect(() => {
-    loadCatalog().then((c) => {
+    let cancelled = false;
+    loadCatalog().then(async (c) => {
+      if (cancelled) return;
       setCatalog(c);
       const ids = new Set(c.products.map((p) => p.id));
       const sharedFlag = searchParams.get("shared");
@@ -117,6 +119,22 @@ function BasketInner() {
         }
       }
       if (!appliedShared) {
+        const savedId = searchParams.get("saved");
+        if (savedId) {
+          const res = await loadSavedList(savedId);
+          if (!cancelled && !("error" in res) && res.items.length) {
+            const kept = res.items.filter((i) => ids.has(i.productId));
+            if (kept.length) {
+              setItems(kept);
+              setListName(res.name || "Weekly shop");
+              setStatus(`Shop again — reloaded “${res.name || "your list"}”.`);
+              track("reshop_from_history", { listId: savedId, items: kept.length });
+              appliedShared = true;
+            }
+          }
+        }
+      }
+      if (!appliedShared) {
         const listParam = searchParams.get("list");
         const fromLink = listParam ? decodeListShare(listParam) : null;
         if (fromLink) {
@@ -139,9 +157,14 @@ function BasketInner() {
           setItems(defaultListFromCatalog(c));
         }
       }
-      setLoading(false);
-      setDraftReady(true);
+      if (!cancelled) {
+        setLoading(false);
+        setDraftReady(true);
+      }
     });
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   useEffect(() => {
