@@ -20,7 +20,9 @@ type AuthState = {
   signUp: (email: string, password: string, fullName: string) => Promise<string | null>;
   sendEmailOtp: (email: string) => Promise<string | null>;
   verifyEmailOtp: (email: string, token: string) => Promise<string | null>;
-  sendPhoneOtp: (phone: string) => Promise<string | null>;
+  sendPhoneOtp: (
+    phone: string,
+  ) => Promise<{ error: string; retryAfter?: number } | null>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 };
@@ -109,13 +111,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),
       });
-      const data = (await res.json()) as { error?: string; detail?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        detail?: string;
+        retry_after?: number;
+      };
       if (!res.ok) {
-        return data.detail ? `${data.error ?? "Failed"}: ${data.detail}` : data.error ?? "Failed to send code";
+        return {
+          error: data.detail
+            ? `${data.error ?? "Failed"}: ${data.detail}`
+            : data.error ?? "Failed to send code",
+          retryAfter: typeof data.retry_after === "number" ? data.retry_after : undefined,
+        };
       }
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : "Failed to send code";
+      return { error: e instanceof Error ? e.message : "Failed to send code" };
     }
   }, []);
 

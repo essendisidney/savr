@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
+const RESEND_COOLDOWN_SEC = 60;
+
 /**
  * Taifa Mobile SMS + otp_codes — same pattern as CREDA.
  */
@@ -24,10 +26,33 @@ export async function POST(request: NextRequest) {
     }
 
     const normalized = normalizePhone254(raw);
+    const admin = createAdminClient();
+
+    const { data: recent } = await admin
+      .from("otp_codes")
+      .select("created_at")
+      .eq("phone", normalized)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recent?.created_at) {
+      const ageMs = Date.now() - new Date(recent.created_at).getTime();
+      const waitSec = Math.ceil((RESEND_COOLDOWN_SEC * 1000 - ageMs) / 1000);
+      if (waitSec > 0) {
+        return NextResponse.json(
+          {
+            error: `Wait ${waitSec}s before requesting another code.`,
+            retry_after: waitSec,
+          },
+          { status: 429 },
+        );
+      }
+    }
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    const admin = createAdminClient();
     const { error: insertError } = await admin.from("otp_codes").insert({
       phone: normalized,
       code,
@@ -51,6 +76,7 @@ export async function POST(request: NextRequest) {
       console.log("[SMS BYPASS] OTP for", normalized, "is:", code);
       return NextResponse.json({
         success: true,
+        retry_after: RESEND_COOLDOWN_SEC,
         hint: "SMS bypassed — check server logs for code",
         ...(process.env.NODE_ENV === "development" ? { dev_otp: code } : {}),
       });
@@ -59,7 +85,10 @@ export async function POST(request: NextRequest) {
     // Single line — multi-line + URLs often filtered by carriers.
     await sendSMS(normalized, `Your Savr code is ${code}. Valid 15 min. Do not share.`);
 
-    const payload: { success: true; dev_otp?: string } = { success: true };
+    const payload: { success: true; retry_after: number; dev_otp?: string } = {
+      success: true,
+      retry_after: RESEND_COOLDOWN_SEC,
+    };
     if (process.env.NODE_ENV === "development") payload.dev_otp = code;
     return NextResponse.json(payload);
   } catch (e) {
