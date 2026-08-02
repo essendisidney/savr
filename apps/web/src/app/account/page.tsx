@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { loadProfile, saveProfile, type UserProfile } from "@/lib/actions";
+import { loadProfile, loadRecentActivity, saveProfile, type ActivityItem, type UserProfile } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import type { Merchant } from "@/lib/types";
@@ -13,6 +13,7 @@ export default function AccountPage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,15 +27,26 @@ export default function AccountPage() {
       return;
     }
 
-    Promise.all([loadProfile(), loadCatalog()]).then(([p, catalog]) => {
-      if ("error" in p) {
-        setError(p.error);
-      } else {
-        setProfile(p);
-      }
-      setMerchants(catalog.merchants.filter((m) => m.category === "grocery"));
-      setLoading(false);
-    });
+    Promise.all([loadProfile(), loadCatalog(), loadRecentActivity()]).then(
+      ([p, catalog, act]) => {
+        if ("error" in p) {
+          setError(p.error);
+        } else {
+          setProfile(p);
+        }
+        const seen = new Set<string>();
+        setMerchants(
+          catalog.merchants.filter((m) => {
+            if (m.category !== "grocery") return false;
+            if (seen.has(m.id)) return false;
+            seen.add(m.id);
+            return true;
+          }),
+        );
+        setActivity(act.items ?? []);
+        setLoading(false);
+      },
+    );
   }, [user, authLoading]);
 
   function toggleMerchant(id: string) {
@@ -104,6 +116,32 @@ export default function AccountPage() {
       <div className="page-band">
         <PageShell narrow>
           <div className="space-y-8">
+            <section className="space-y-3">
+              <h2 className="font-display text-lg font-bold tracking-tightish">Recent activity</h2>
+              <p className="text-sm text-savr-mute">
+                Your decisions on Savr — locks, tips, shops, watches. Private to you.
+              </p>
+              {activity.length === 0 ? (
+                <p className="card px-4 py-5 text-sm text-savr-mute">
+                  Compare a basket, tip a price, or log a shop — activity shows up here.
+                </p>
+              ) : (
+                <ul className="divide-y divide-savr-ink/[0.06] card">
+                  {activity.map((a) => (
+                    <li key={a.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-savr-ink">{a.label}</p>
+                        {a.detail && (
+                          <p className="mt-0.5 truncate text-xs text-savr-mute">{a.detail}</p>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-[11px] font-medium text-savr-mute">{a.when}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
             <section className="space-y-3">
               <h2 className="font-display text-lg font-bold tracking-tightish">Details</h2>
               <label className="block">

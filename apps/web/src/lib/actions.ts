@@ -2,6 +2,107 @@ import { loadCatalog } from "./catalog";
 import { getSupabase } from "./supabase";
 import type { BasketResult, ListItem } from "./types";
 
+type EventProp = string | number | boolean | null | undefined;
+
+/** Durable product event — best-effort; never fails the parent action. */
+export async function recordSavrEvent(
+  name: string,
+  props?: Record<string, EventProp>,
+): Promise<void> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const clean: Record<string, string | number | boolean | null> = {};
+    for (const [k, v] of Object.entries(props ?? {})) {
+      if (v === undefined) continue;
+      clean[k] = v;
+    }
+
+    await supabase.rpc("record_savr_event", {
+      p_name: name,
+      p_props: clean,
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+export type ActivityItem = {
+  id: string;
+  name: string;
+  label: string;
+  when: string;
+  detail: string | null;
+};
+
+const ACTIVITY_LABELS: Record<string, string> = {
+  basket_lock: "Locked a basket",
+  shop_receipt: "Logged a shop",
+  price_tip: "Tipped a shelf price",
+  fuel_tip: "Tipped a fuel price",
+  watch_product: "Watched a staple",
+  unwatch_product: "Stopped watching",
+  alert_seen: "Opened a drop alert",
+  list_share: "Shared a list",
+  redeem_request: "Requested redeem",
+  basket_confirm: "Locked a basket",
+  basket_coverage_tip: "Tipped a shelf price",
+};
+
+export async function loadRecentActivity(): Promise<{ items: ActivityItem[] }> {
+  const supabase = getSupabase();
+  if (!supabase) return { items: [] };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { items: [] };
+
+  const { data, error } = await supabase
+    .from("savr_events")
+    .select("id, name, props, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  if (error || !data) return { items: [] };
+
+  return {
+    items: data.map((row) => {
+      const props = (row.props ?? {}) as Record<string, unknown>;
+      const name = String(row.name);
+      let detail: string | null = null;
+      if (typeof props.merchantName === "string") detail = props.merchantName;
+      else if (typeof props.productName === "string") detail = props.productName;
+      else if (typeof props.missedCents === "number" && props.missedCents > 0) {
+        detail = `Missed KES ${Math.round(Number(props.missedCents) / 100)}`;
+      } else if (typeof props.savingsCents === "number" && props.savingsCents > 0) {
+        detail = `Saved KES ${Math.round(Number(props.savingsCents) / 100)}`;
+      } else if (typeof props.dropCents === "number" && props.dropCents > 0) {
+        detail = `↓ KES ${Math.round(Number(props.dropCents) / 100)}`;
+      }
+
+      return {
+        id: row.id as string,
+        name,
+        label: ACTIVITY_LABELS[name] ?? name.replace(/_/g, " "),
+        when: new Date(row.created_at as string).toLocaleString("en-KE", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        detail,
+      };
+    }),
+  };
+}
+
 export async function confirmBasketChoice(params: {
   items: ListItem[];
   results: BasketResult[];
@@ -80,6 +181,16 @@ export async function confirmBasketChoice(params: {
     });
     if (creditError) return { error: creditError.message };
   }
+
+  void recordSavrEvent("basket_lock", {
+    compareId: compare.id,
+    chosenMerchantId: params.chosenMerchantId,
+    recommendedMerchantId: params.recommendedMerchantId,
+    followed: followedRecommended,
+    savingsCents: params.savingsCents,
+    cashbackCents: followedRecommended ? params.cashbackCents : 0,
+    items: params.items.length,
+  });
 
   return { compareId: compare.id };
 }
@@ -562,6 +673,12 @@ export async function submitCrowdsourcePrice(params: {
   });
 
   if (error) return { error: error.message };
+  void recordSavrEvent("price_tip", {
+    merchantId: params.merchantId,
+    productId: params.productId,
+    locationId: params.locationId ?? null,
+    priceCents: Math.round(kes * 100),
+  });
   return { ok: true };
 }
 
@@ -594,6 +711,11 @@ export async function submitCrowdsourceFuelPrice(params: {
   });
 
   if (error) return { error: error.message };
+  void recordSavrEvent("fuel_tip", {
+    stationId: params.stationId,
+    fuelType: params.fuelType ?? "petrol",
+    priceCentsPerLitre: Math.round(kes * 100),
+  });
   return { ok: true };
 }
 
@@ -715,6 +837,10 @@ export async function markWatchDropSeen(
     .eq("product_id", productId);
 
   if (error) return { error: error.message };
+  void recordSavrEvent("alert_seen", {
+    productId,
+    dropCents: Math.max(0, Math.round(dropCents)),
+  });
   return { ok: true };
 }
 
@@ -751,6 +877,10 @@ export async function watchProduct(params: {
   );
 
   if (error) return { error: error.message };
+  void recordSavrEvent("watch_product", {
+    productId: params.productId,
+    baselineCents: params.baselineCents,
+  });
   return { ok: true };
 }
 
@@ -772,6 +902,7 @@ export async function unwatchProduct(
     .eq("product_id", productId);
 
   if (error) return { error: error.message };
+  void recordSavrEvent("unwatch_product", { productId });
   return { ok: true };
 }
 
@@ -858,6 +989,16 @@ export async function logShopReceipt(params: {
 
   const { error: linesError } = await supabase.from("shop_receipt_lines").insert(lines);
   if (linesError) return { error: linesError.message };
+
+  void recordSavrEvent("shop_receipt", {
+    receiptId: receipt.id,
+    merchantId: params.merchantId,
+    locationId: params.locationId ?? null,
+    merchantName: params.paidMerchantName,
+    missedCents: params.missedCents,
+    alreadyOptimal: params.alreadyOptimal,
+    items: params.items.length,
+  });
 
   return { receiptId: receipt.id };
 }
