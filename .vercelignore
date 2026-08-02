@@ -1,0 +1,11 @@
+.tools
+**/node_modules
+**/.next
+**/build
+**/.dart_tool
+apps/mobile/android
+apps/mobile/ios
+apps/mobile/macos
+apps/mobile/linux
+apps/mobile/windows
+apps/mobile/web
