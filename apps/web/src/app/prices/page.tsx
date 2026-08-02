@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { compareProduct, formatKes } from "@/lib/compare";
 import { track } from "@/lib/track";
-import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName } from "@/lib/freshness";
+import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
 import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -388,14 +388,14 @@ function PricesInner() {
                                     r.prevPriceCents,
                                     r.prevObservedAt,
                                   );
-                                  if (!fresh.label && !trend.label) return null;
+                                  if (!fresh.label && !trend.label && !r.confidenceLabel) return null;
                                   return (
                                     <>
                                       {fresh.label ? (
                                         <p
                                           className={`mt-0.5 text-[11px] ${freshnessClassName(
                                             fresh.stale,
-                                            r.isCheapest ? "light" : "light",
+                                            "light",
                                           )}`}
                                         >
                                           {fresh.label}
@@ -405,10 +405,20 @@ function PricesInner() {
                                         <p
                                           className={`mt-0.5 text-[11px] font-semibold ${trendClassName(
                                             trend.direction,
-                                            r.isCheapest ? "light" : "light",
+                                            "light",
                                           )}`}
                                         >
                                           {trend.label}
+                                        </p>
+                                      ) : null}
+                                      {r.confidenceLabel ? (
+                                        <p
+                                          className={`mt-0.5 text-[11px] font-semibold ${confidenceClassName(
+                                            r.confidenceLevel ?? "medium",
+                                            "light",
+                                          )}`}
+                                        >
+                                          {r.confidenceLabel}
                                         </p>
                                       ) : null}
                                     </>

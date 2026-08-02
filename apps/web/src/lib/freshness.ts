@@ -33,6 +33,110 @@ export function freshnessClassName(stale: boolean, tone: "dark" | "light" = "lig
   return tone === "dark" ? "text-white/55" : "text-savr-mute";
 }
 
+export type ConfidenceLevel = "high" | "medium" | "low";
+
+export type PriceConfidence = {
+  level: ConfidenceLevel;
+  /** 0–100 composite of source trust × freshness. */
+  score: number;
+  label: string;
+  shortLabel: string;
+};
+
+function sourceTrust(source: string | null | undefined): {
+  points: number;
+  label: string;
+} {
+  const s = (source ?? "").toLowerCase().trim();
+  if (s === "merchant" || s === "partner" || s === "verified") {
+    return { points: 42, label: "merchant" };
+  }
+  if (s === "crowdsource" || s === "tip" || s === "user") {
+    return { points: 30, label: "shopper tip" };
+  }
+  if (s === "seed" || s === "ops" || s === "catalog") {
+    return { points: 18, label: "catalog seed" };
+  }
+  if (!s) return { points: 12, label: "unknown source" };
+  return { points: 16, label: s };
+}
+
+function freshnessPoints(observedAt: string | null | undefined): number {
+  if (!observedAt) return 8;
+  const then = new Date(observedAt).getTime();
+  if (!Number.isFinite(then)) return 8;
+  const age = Date.now() - then;
+  if (age < DAY_MS) return 55;
+  if (age < 3 * DAY_MS) return 42;
+  if (age < 7 * DAY_MS) return 30;
+  if (age < 14 * DAY_MS) return 16;
+  return 6;
+}
+
+/** Honest confidence: freshness × source. Never claims certainty. */
+export function priceConfidence(
+  observedAt: string | null | undefined,
+  source?: string | null,
+): PriceConfidence {
+  const src = sourceTrust(source);
+  const fresh = freshnessPoints(observedAt);
+  const score = Math.max(0, Math.min(100, src.points + fresh));
+  // High only when source is merchant/tip — catalog seed never claims certainty.
+  const level: ConfidenceLevel =
+    score >= 70 && src.points >= 30 ? "high" : score >= 40 ? "medium" : "low";
+  const shortLabel =
+    level === "high" ? "High confidence" : level === "medium" ? "Medium confidence" : "Low confidence";
+  const age = formatPriceFreshness(observedAt, source);
+  const when = age.label.replace(/^Updated /, "") || "age unknown";
+  return {
+    level,
+    score,
+    shortLabel,
+    label: `${shortLabel} · ${src.label} · ${when}`,
+  };
+}
+
+export function confidenceClassName(
+  level: ConfidenceLevel,
+  tone: "dark" | "light" = "light",
+): string {
+  if (level === "high") {
+    return tone === "dark" ? "text-emerald-300" : "text-savr-forest";
+  }
+  if (level === "medium") {
+    return tone === "dark" ? "text-white/70" : "text-savr-mute";
+  }
+  return tone === "dark" ? "text-amber-300" : "text-amber-800";
+}
+
+/** Average line confidence for a basket rank; conservative when empty. */
+export function aggregateConfidence(
+  lines: { observedAt?: string | null; source?: string | null }[],
+): PriceConfidence | null {
+  if (!lines.length) return null;
+  const parts = lines.map((l) => priceConfidence(l.observedAt, l.source));
+  const score = Math.round(parts.reduce((s, p) => s + p.score, 0) / parts.length);
+  const anyHighEligible = parts.some((p) => p.level === "high");
+  const level: ConfidenceLevel =
+    score >= 70 && anyHighEligible ? "high" : score >= 40 ? "medium" : "low";
+  const shortLabel =
+    level === "high" ? "High confidence" : level === "medium" ? "Medium confidence" : "Low confidence";
+  const sources = new Set(
+    parts.map((p) => {
+      const bits = p.label.split(" · ");
+      return bits[1] ?? "";
+    }),
+  );
+  const sourceNote =
+    sources.size <= 1 ? Array.from(sources)[0] || "mixed sources" : "mixed sources";
+  return {
+    level,
+    score,
+    shortLabel,
+    label: `${shortLabel} · ${sourceNote} · ${parts.length} priced items`,
+  };
+}
+
 export type PriceTrend = {
   label: string;
   direction: "down" | "up" | "flat" | null;

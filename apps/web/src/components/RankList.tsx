@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { submitCrowdsourcePrice } from "@/lib/actions";
 import { formatKes } from "@/lib/compare";
-import { formatPriceFreshness, freshnessClassName, formatBasketTrend, formatPriceTrend, trendClassName } from "@/lib/freshness";
+import { formatPriceFreshness, freshnessClassName, formatBasketTrend, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
 import { formatDistanceKm } from "@/lib/geo";
 import { track } from "@/lib/track";
 import type { BasketResult, LineItemPrice } from "@/lib/types";
@@ -193,6 +193,19 @@ export function RankList({
                     <span className="text-savr-mute">Coverage </span>
                     <span className="font-semibold">{Math.round(r.coverage * 100)}% of list</span>
                   </li>
+                  {r.confidenceLabel && (
+                    <li className="sm:col-span-2">
+                      <span className="text-savr-mute">Price trust </span>
+                      <span
+                        className={`font-semibold ${confidenceClassName(
+                          r.confidenceLevel ?? "medium",
+                          "light",
+                        )}`}
+                      >
+                        {r.confidenceLabel}
+                      </span>
+                    </li>
+                  )}
                 </ul>
               )}
 
@@ -241,16 +254,30 @@ export function RankList({
 
               {(() => {
                 const basketTrend = formatBasketTrend(r.weekDeltaCents);
-                if (!basketTrend.label) return null;
+                if (!basketTrend.label && !r.confidenceLabel) return null;
                 return (
-                  <p
-                    className={`mt-1.5 text-xs font-semibold ${trendClassName(
-                      basketTrend.direction,
-                      "light",
-                    )}`}
-                  >
-                    {basketTrend.label}
-                  </p>
+                  <div className="mt-1.5 space-y-0.5">
+                    {basketTrend.label ? (
+                      <p
+                        className={`text-xs font-semibold ${trendClassName(
+                          basketTrend.direction,
+                          "light",
+                        )}`}
+                      >
+                        {basketTrend.label}
+                      </p>
+                    ) : null}
+                    {!r.isRecommended && r.confidenceLabel ? (
+                      <p
+                        className={`text-xs font-medium ${confidenceClassName(
+                          r.confidenceLevel ?? "medium",
+                          "light",
+                        )}`}
+                      >
+                        {r.confidenceLabel}
+                      </p>
+                    ) : null}
+                  </div>
                 );
               })()}
 
