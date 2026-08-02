@@ -4,11 +4,22 @@ export function formatKes(cents: MoneyCents): string {
   return `KES ${Math.round(cents / 100).toLocaleString("en-KE")}`;
 }
 
+export type MerchantLocation = {
+  id: string;
+  merchantId: string;
+  name: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  city: string;
+};
+
 export type Merchant = {
   id: string;
   name: string;
   slug: string;
   category: string;
+  location?: MerchantLocation | null;
 };
 
 export type Product = {
@@ -48,11 +59,13 @@ export type ListItem = {
 export type BasketResult = {
   merchantId: string;
   merchantName: string;
+  branchName: string | null;
   totalCents: number;
   cashbackCents: number;
   coverage: number;
   netCents: number;
   isRecommended: boolean;
+  mapsUrl: string;
 };
 
 export type LineItemPrice = {
@@ -82,6 +95,8 @@ export type FuelStation = {
 export type ProductPriceResult = {
   merchantId: string;
   merchantName: string;
+  branchName: string | null;
+  address: string | null;
   priceCents: number;
   deltaCents: number;
   isCheapest: boolean;

@@ -66,6 +66,15 @@ export function RankList({
                     >
                       {r.merchantName}
                     </p>
+                    {r.branchName && (
+                      <p
+                        className={`text-xs ${
+                          r.isRecommended ? "text-white/65" : "text-savr-mute"
+                        }`}
+                      >
+                        {r.branchName}
+                      </p>
+                    )}
                     <p
                       className={`mt-0.5 text-xs font-semibold ${
                         r.isRecommended ? "text-savr-signal" : "text-savr-mute"
@@ -166,18 +175,30 @@ export function RankList({
                 </ul>
               )}
 
-              {r.isRecommended && onChoose && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => onChoose(r.merchantId)}
-                  className="btn-primary mt-5 w-full sm:w-auto"
+              <div className="mt-4 flex flex-wrap items-center gap-4">
+                <a
+                  href={r.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-sm font-semibold ${
+                    r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                  }`}
                 >
-                  {busy
-                    ? "Locking in…"
-                    : chooseLabel?.(r.merchantName) ?? `Choose ${r.merchantName}`}
-                </button>
-              )}
+                  Directions →
+                </a>
+                {r.isRecommended && onChoose && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onChoose(r.merchantId)}
+                    className="btn-primary w-full sm:ml-auto sm:w-auto"
+                  >
+                    {busy
+                      ? "Locking in…"
+                      : chooseLabel?.(r.merchantName) ?? `Choose ${r.merchantName}`}
+                  </button>
+                )}
+              </div>
             </div>
           </li>
         );

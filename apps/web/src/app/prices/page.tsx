@@ -243,6 +243,16 @@ function PricesInner() {
                                 >
                                   {r.merchantName}
                                 </p>
+                                {r.branchName && (
+                                  <p
+                                    className={`text-xs ${
+                                      r.isCheapest ? "text-white/65" : "text-savr-mute"
+                                    }`}
+                                  >
+                                    {r.branchName}
+                                    {r.address ? ` · ${r.address}` : ""}
+                                  </p>
+                                )}
                                 <p
                                   className={`mt-0.5 text-xs font-semibold ${
                                     r.isCheapest ? "text-savr-signal" : "text-savr-mute"
@@ -287,7 +297,7 @@ function PricesInner() {
                               r.isCheapest ? "text-savr-signal" : "text-savr-forest"
                             }`}
                           >
-                            Directions →
+                            Directions to store →
                           </a>
                         </div>
                       </li>

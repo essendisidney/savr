@@ -3,6 +3,7 @@ import type {
   Catalog,
   LineItemPrice,
   ListItem,
+  Merchant,
   ProductPriceResult,
   RideQuote,
 } from "./types";
@@ -33,6 +34,17 @@ export function searchProducts(
     .slice(0, limit);
 }
 
+function mapsUrlForMerchant(merchant: Merchant): string {
+  const loc = merchant.location;
+  if (loc?.lat != null && loc?.lng != null) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
+  }
+  const query = [loc?.name, loc?.address, merchant.name, loc?.city ?? "Nairobi"]
+    .filter(Boolean)
+    .join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 export function compareProduct(catalog: Catalog, productId: string): ProductPriceResult[] {
   const grocery = catalog.merchants.filter((m) => m.category === "grocery");
   const priced = grocery
@@ -44,11 +56,23 @@ export function compareProduct(catalog: Catalog, productId: string): ProductPric
       return {
         merchantId: merchant.id,
         merchantName: merchant.name,
+        branchName: merchant.location?.name ?? null,
+        address: merchant.location?.address ?? null,
         priceCents: price.priceCents,
+        mapsUrl: mapsUrlForMerchant(merchant),
       };
     })
-    .filter((row): row is { merchantId: string; merchantName: string; priceCents: number } =>
-      row !== null,
+    .filter(
+      (
+        row,
+      ): row is {
+        merchantId: string;
+        merchantName: string;
+        branchName: string | null;
+        address: string | null;
+        priceCents: number;
+        mapsUrl: string;
+      } => row !== null,
     )
     .sort((a, b) => a.priceCents - b.priceCents);
 
@@ -59,9 +83,6 @@ export function compareProduct(catalog: Catalog, productId: string): ProductPric
     ...row,
     deltaCents: row.priceCents - best,
     isCheapest: row.priceCents === best,
-    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      `${row.merchantName} supermarket Nairobi`,
-    )}`,
   }));
 }
 
@@ -111,11 +132,13 @@ export function compareBasket(catalog: Catalog, items: ListItem[]): BasketResult
     return {
       merchantId: merchant.id,
       merchantName: merchant.name,
+      branchName: merchant.location?.name ?? null,
       totalCents: total,
       cashbackCents: cashback,
       coverage: items.length ? matched / items.length : 0,
       netCents: total - cashback,
       isRecommended: false,
+      mapsUrl: mapsUrlForMerchant(merchant),
     };
   });
 

@@ -11,9 +11,51 @@ import type {
 const fallbackCatalog: Catalog = {
   source: "fallback",
   merchants: [
-    { id: "m-naivas", name: "Naivas", slug: "naivas", category: "grocery" },
-    { id: "m-quickmart", name: "Quickmart", slug: "quickmart", category: "grocery" },
-    { id: "m-carrefour", name: "Carrefour", slug: "carrefour", category: "grocery" },
+    {
+      id: "m-naivas",
+      name: "Naivas",
+      slug: "naivas",
+      category: "grocery",
+      location: {
+        id: "loc-naivas",
+        merchantId: "m-naivas",
+        name: "Naivas Westlands",
+        address: "Waiyaki Way, Westlands",
+        lat: -1.2671,
+        lng: 36.811,
+        city: "Nairobi",
+      },
+    },
+    {
+      id: "m-quickmart",
+      name: "Quickmart",
+      slug: "quickmart",
+      category: "grocery",
+      location: {
+        id: "loc-qm",
+        merchantId: "m-quickmart",
+        name: "Quickmart Kilimani",
+        address: "Argwings Kodhek Rd",
+        lat: -1.2921,
+        lng: 36.785,
+        city: "Nairobi",
+      },
+    },
+    {
+      id: "m-carrefour",
+      name: "Carrefour",
+      slug: "carrefour",
+      category: "grocery",
+      location: {
+        id: "loc-carrefour",
+        merchantId: "m-carrefour",
+        name: "Carrefour The Hub",
+        address: "The Hub Karen",
+        lat: -1.319,
+        lng: 36.712,
+        city: "Nairobi",
+      },
+    },
   ],
   products: [
     { id: "p-milk", name: "Fresh Milk 500ml", brand: "Brookside", category: "dairy", unit: "piece" },
@@ -54,13 +96,17 @@ export async function loadCatalog(): Promise<Catalog> {
   const supabase = getSupabase();
   if (!supabase) return fallbackCatalog;
 
-  const [merchantsRes, productsRes, pricesRes, rulesRes] = await Promise.all([
+  const [merchantsRes, productsRes, pricesRes, rulesRes, locationsRes] = await Promise.all([
     supabase.from("merchants").select("id, name, slug, category").eq("category", "grocery"),
     supabase.from("products").select("id, name, brand, category, unit").order("name"),
     supabase.from("merchant_prices").select("merchant_id, product_id, price_cents"),
     supabase
       .from("cashback_rules")
       .select("merchant_id, flat_cents, min_basket_cents")
+      .eq("is_active", true),
+    supabase
+      .from("merchant_locations")
+      .select("id, merchant_id, name, address, lat, lng, city")
       .eq("is_active", true),
   ]);
 
@@ -73,7 +119,24 @@ export async function loadCatalog(): Promise<Catalog> {
     return fallbackCatalog;
   }
 
-  const merchants: Merchant[] = merchantsRes.data;
+  const locationByMerchant = new Map<string, Merchant["location"]>();
+  for (const row of locationsRes.data ?? []) {
+    if (locationByMerchant.has(row.merchant_id)) continue;
+    locationByMerchant.set(row.merchant_id, {
+      id: row.id,
+      merchantId: row.merchant_id,
+      name: row.name,
+      address: row.address,
+      lat: row.lat,
+      lng: row.lng,
+      city: row.city,
+    });
+  }
+
+  const merchants: Merchant[] = merchantsRes.data.map((m) => ({
+    ...m,
+    location: locationByMerchant.get(m.id) ?? null,
+  }));
   const products: Product[] = productsRes.data ?? [];
   const prices: MerchantPrice[] = (pricesRes.data ?? []).map((row) => ({
     merchantId: row.merchant_id,
