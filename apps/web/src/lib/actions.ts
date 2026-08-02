@@ -539,6 +539,7 @@ export async function submitCrowdsourcePrice(params: {
   merchantId: string;
   productId: string;
   priceKes: number;
+  locationId?: string | null;
 }): Promise<{ ok: true } | { error: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Supabase is not configured." };
@@ -557,6 +558,7 @@ export async function submitCrowdsourcePrice(params: {
     p_merchant_id: params.merchantId,
     p_product_id: params.productId,
     p_price_cents: Math.round(kes * 100),
+    p_location_id: params.locationId ?? null,
   });
 
   if (error) return { error: error.message };

@@ -64,10 +64,26 @@ export default function CheckPage() {
     setTipProductId(null);
     setTipStatus(null);
   }
-  const grocery = useMemo(
-    () => (catalog ? catalog.merchants.filter((m) => m.category === "grocery") : []),
-    [catalog],
-  );
+  const grocery = useMemo(() => {
+    if (!catalog) return [];
+    const seen = new Set<string>();
+    return catalog.merchants.filter((m) => {
+      if (m.category !== "grocery") return false;
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+  }, [catalog]);
+
+  const paidLocationId = useMemo(() => {
+    if (!catalog || !paidMerchantId) return null;
+    return (
+      catalog.merchants.find((m) => m.id === paidMerchantId && (m.locationId || m.location?.id))
+        ?.locationId ??
+      catalog.merchants.find((m) => m.id === paidMerchantId)?.location?.id ??
+      null
+    );
+  }, [catalog, paidMerchantId]);
 
   const missed = useMemo(
     () =>
@@ -80,9 +96,9 @@ export default function CheckPage() {
   const paidLines = useMemo(
     () =>
       catalog && paidMerchantId && items.length
-        ? lineItemsForMerchant(catalog, items, paidMerchantId)
+        ? lineItemsForMerchant(catalog, items, paidMerchantId, paidLocationId)
         : [],
-    [catalog, items, paidMerchantId],
+    [catalog, items, paidMerchantId, paidLocationId],
   );
 
   const share = useMemo(() => {
@@ -132,6 +148,7 @@ export default function CheckPage() {
     setTipStatus(null);
     const res = await submitCrowdsourcePrice({
       merchantId: paidMerchantId,
+      locationId: paidLocationId,
       productId: tipProductId,
       priceKes: Number(tipPrice),
     });

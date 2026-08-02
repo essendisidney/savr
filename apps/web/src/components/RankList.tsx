@@ -62,6 +62,7 @@ export function RankList({
   async function onTip(
     e: FormEvent,
     merchantId: string,
+    locationId: string | null,
     productId: string,
   ) {
     e.preventDefault();
@@ -69,6 +70,7 @@ export function RankList({
     setTipStatus(null);
     const res = await submitCrowdsourcePrice({
       merchantId,
+      locationId,
       productId,
       priceKes: Number(tipPrice),
     });
@@ -77,10 +79,10 @@ export function RankList({
       setTipStatus(res.error);
       return;
     }
-    setTipStatus("Thanks — price updated.");
+    setTipStatus("Thanks — price updated for this branch.");
     setTipKey(null);
     setTipPrice("");
-    track("basket_coverage_tip", { merchantId, productId });
+    track("basket_coverage_tip", { merchantId, locationId, productId });
     await onPriceTipped?.();
   }
 
@@ -419,7 +421,7 @@ export function RankList({
                             ) : (
                               <form
                                 className="mt-1 flex flex-wrap items-center gap-2"
-                                onSubmit={(e) => onTip(e, r.merchantId, line.productId)}
+                                onSubmit={(e) => onTip(e, r.merchantId, r.locationId, line.productId)}
                               >
                                 <input
                                   value={tipPrice}

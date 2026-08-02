@@ -30,7 +30,7 @@ function PricesInner() {
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("id"));
   const [category, setCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-  const [tipMerchantId, setTipMerchantId] = useState("");
+  const [tipBranchKey, setTipBranchKey] = useState("");
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
@@ -47,8 +47,10 @@ function PricesInner() {
       if (id && c.products.some((p) => p.id === id)) {
         setSelectedId(id);
       }
-      const grocery = c.merchants.filter((m) => m.category === "grocery");
-      if (grocery[0]) setTipMerchantId(grocery[0].id);
+      const grocery = c.merchants.filter((m) => m.category === "grocery" && m.location?.id);
+      if (grocery[0]) {
+        setTipBranchKey(`${grocery[0].id}|${grocery[0].locationId ?? grocery[0].location?.id}`);
+      }
     });
   }, [searchParams]);
 
@@ -70,16 +72,21 @@ function PricesInner() {
     return catalog.products.find((p) => p.id === selectedId) ?? null;
   }, [catalog, selectedId]);
 
-  const groceryMerchants = useMemo(() => {
-    if (!catalog) return [];
-    const seen = new Set<string>();
-    return catalog.merchants.filter((m) => {
-      if (m.category !== "grocery") return false;
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
-      return true;
-    });
+  const tipBranches = useMemo(() => {
+    if (!catalog) return [] as { key: string; merchantId: string; locationId: string; label: string }[];
+    return catalog.merchants
+      .filter((m) => m.category === "grocery" && (m.locationId || m.location?.id))
+      .map((m) => {
+        const locationId = m.locationId ?? m.location!.id;
+        return {
+          key: `${m.id}|${locationId}`,
+          merchantId: m.id,
+          locationId,
+          label: `${m.name}${m.location?.name ? ` · ${m.location.name}` : ""}`,
+        };
+      });
   }, [catalog]);
+
   const categories = useMemo(() => {
     if (!catalog) return [] as string[];
     return Array.from(new Set(catalog.products.map((p) => p.category))).sort();
@@ -497,7 +504,7 @@ function PricesInner() {
                     Saw a different price?
                   </h3>
                   <p className="mt-1 text-sm text-savr-mute">
-                    Tip what you paid for {selected.name} — helps keep Nairobi prices fresh.
+                    Tip what you paid for {selected.name} at a specific branch — raises confidence for that shelf.
                   </p>
                   {!user ? (
                     <p className="mt-4 text-sm text-savr-mute">
@@ -511,11 +518,14 @@ function PricesInner() {
                       className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
                       onSubmit={async (e: FormEvent) => {
                         e.preventDefault();
-                        if (!selectedId || !tipMerchantId) return;
+                        if (!selectedId || !tipBranchKey) return;
+                        const branch = tipBranches.find((b) => b.key === tipBranchKey);
+                        if (!branch) return;
                         setTipBusy(true);
                         setTipStatus(null);
                         const res = await submitCrowdsourcePrice({
-                          merchantId: tipMerchantId,
+                          merchantId: branch.merchantId,
+                          locationId: branch.locationId,
                           productId: selectedId,
                           priceKes: Number(tipPrice),
                         });
@@ -524,7 +534,7 @@ function PricesInner() {
                           setTipStatus(res.error);
                           return;
                         }
-                        setTipStatus("Thanks — price tip saved. Refresh ranks in a moment.");
+                        setTipStatus("Thanks — tip saved for that branch. Confidence should rise.");
                         setTipPrice("");
                         const c = await loadCatalog();
                         setCatalog(c);
@@ -532,17 +542,16 @@ function PricesInner() {
                     >
                       <label className="block space-y-1.5">
                         <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                          Store
+                          Branch
                         </span>
                         <select
-                          value={tipMerchantId}
-                          onChange={(e) => setTipMerchantId(e.target.value)}
+                          value={tipBranchKey}
+                          onChange={(e) => setTipBranchKey(e.target.value)}
                           className="field"
                         >
-                          {groceryMerchants.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name}
-                              {m.location?.name ? ` · ${m.location.name}` : ""}
+                          {tipBranches.map((b) => (
+                            <option key={b.key} value={b.key}>
+                              {b.label}
                             </option>
                           ))}
                         </select>
@@ -589,11 +598,14 @@ function PricesInner() {
                     className="grid gap-3 card px-4 py-5 sm:grid-cols-[1fr_auto_auto] sm:items-end"
                     onSubmit={async (e: FormEvent) => {
                       e.preventDefault();
-                      if (!tipMerchantId) return;
+                      if (!tipBranchKey) return;
+                      const branch = tipBranches.find((b) => b.key === tipBranchKey);
+                      if (!branch) return;
                       setTipBusy(true);
                       setTipStatus(null);
                       const res = await submitCrowdsourcePrice({
-                        merchantId: tipMerchantId,
+                        merchantId: branch.merchantId,
+                        locationId: branch.locationId,
                         productId: selectedId,
                         priceKes: Number(tipPrice),
                       });
@@ -602,20 +614,20 @@ function PricesInner() {
                         setTipStatus(res.error);
                         return;
                       }
-                      setTipStatus("Thanks — price tip saved.");
+                      setTipStatus("Thanks — tip saved for that branch.");
                       setTipPrice("");
                       const c = await loadCatalog();
                       setCatalog(c);
                     }}
                   >
                     <select
-                      value={tipMerchantId}
-                      onChange={(e) => setTipMerchantId(e.target.value)}
+                      value={tipBranchKey}
+                      onChange={(e) => setTipBranchKey(e.target.value)}
                       className="field"
                     >
-                      {groceryMerchants.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
+                      {tipBranches.map((b) => (
+                        <option key={b.key} value={b.key}>
+                          {b.label}
                         </option>
                       ))}
                     </select>
