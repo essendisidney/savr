@@ -111,7 +111,7 @@ export default function FuelPage() {
   if (loading) {
     return (
       <PageFrame>
-        <div className="h-44 animate-pulse bg-savr-night/85" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <LoadingBlock rows={4} />
         </PageShell>
@@ -175,7 +175,7 @@ export default function FuelPage() {
                     onClick={() => setSort(id)}
                     className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
                       sort === id
-                        ? "bg-savr-night text-white"
+                        ? "chip-active"
                         : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
                     }`}
                   >
@@ -215,20 +215,18 @@ export default function FuelPage() {
                 return (
                   <li
                     key={`${s.id}-${fuelType}`}
-                    className={`animate-rise relative overflow-hidden border ${
-                      i === 0
-                        ? "border-transparent bg-savr-night text-white shadow-[0_18px_40px_-24px_rgba(4,36,25,0.65)]"
-                        : "border-savr-ink/[0.08] bg-white"
+                    className={`animate-rise relative overflow-hidden ${
+                      i === 0 ? "card-winner" : "card"
                     }`}
                     style={{ animationDelay: `${i * 0.07}s` }}
                   >
-                    {i === 0 && <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-signal" />}
+                    {i === 0 && <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-forest" />}
                     <div className="px-4 py-5 sm:px-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex gap-3">
                           <span
                             className={`mt-0.5 flex h-8 w-8 items-center justify-center font-display text-sm font-bold ${
-                              i === 0 ? "bg-savr-signal text-savr-ink" : "bg-savr-fog text-savr-mute"
+                              i === 0 ? "bg-savr-forest text-white" : "bg-savr-fog text-savr-mute"
                             }`}
                           >
                             {i + 1}
@@ -237,7 +235,7 @@ export default function FuelPage() {
                             <p className="font-display text-2xl font-bold tracking-tightish">
                               {s.brand}
                             </p>
-                            <p className={`text-sm ${i === 0 ? "text-white/65" : "text-savr-mute"}`}>
+                            <p className={`text-sm ${i === 0 ? "text-savr-mute" : "text-savr-mute"}`}>
                               {s.name}
                               {dist ? ` · ${dist}` : ""}
                             </p>
@@ -269,7 +267,7 @@ export default function FuelPage() {
                           {formatKes(s.priceCentsPerLitre)}
                           <span
                             className={`text-sm font-semibold ${
-                              i === 0 ? "text-white/60" : "text-savr-mute"
+                              i === 0 ? "text-savr-mute" : "text-savr-mute"
                             }`}
                           >
                             /L
@@ -277,7 +275,7 @@ export default function FuelPage() {
                         </p>
                       </div>
                       <div
-                        className={`mt-4 h-2 overflow-hidden ${i === 0 ? "bg-white/15" : "bg-savr-fog"}`}
+                        className={`mt-4 h-2 overflow-hidden ${i === 0 ? "bg-savr-forest/15" : "bg-savr-fog"}`}
                       >
                         <div
                           className={`rank-bar h-full animate-barGrow ${
@@ -308,7 +306,7 @@ export default function FuelPage() {
             </ol>
             )}
 
-            <section className="border border-savr-ink/[0.08] bg-white px-4 py-5 sm:px-5">
+            <section className="card px-4 py-5 sm:px-5">
               <h3 className="font-display text-lg font-bold tracking-tightish">
                 Saw a different pump price?
               </h3>

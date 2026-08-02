@@ -104,6 +104,22 @@ body {
   @apply rounded-card-lg border border-white/60 bg-white/70 shadow-[0_20px_50px_-32px_rgba(11,18,32,0.35)] backdrop-blur-xl;
 }
 
+.card {
+  @apply rounded-card border border-savr-ink/[0.06] bg-white/90 shadow-[0_14px_40px_-32px_rgba(11,18,32,0.28)] transition duration-soft;
+}
+
+.card-winner {
+  @apply rounded-card-lg border border-savr-forest/25 bg-gradient-to-br from-white via-white to-savr-forest/[0.08] shadow-[0_22px_50px_-28px_rgba(0,200,83,0.4)] ring-1 ring-savr-forest/15;
+}
+
+.chip {
+  @apply rounded-full border border-savr-ink/[0.08] bg-white/80 px-3.5 py-2 text-sm font-semibold text-savr-mute transition duration-soft hover:border-savr-forest/30 hover:text-savr-forest;
+}
+
+.chip-active {
+  @apply rounded-full border border-transparent bg-savr-forest px-3.5 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_-14px_rgba(0,200,83,0.65)];
+}
+
 @media (max-width: 767px) {
   main {
     padding-bottom: var(--page-pad-bottom);

@@ -64,7 +64,7 @@ export default function AccountPage() {
   if (loading || authLoading) {
     return (
       <PageFrame>
-        <div className="h-52 animate-pulse bg-savr-night/80" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <div className="h-40 animate-pulse bg-savr-fog" />
         </PageShell>
@@ -151,7 +151,7 @@ export default function AccountPage() {
                   picks best total value, never silent reorder.
                 </p>
               </div>
-              <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+              <ul className="divide-y divide-savr-ink/[0.06] card">
                 {merchants.map((m) => {
                   const on = profile.preferredMerchantIds.includes(m.id);
                   return (
@@ -160,7 +160,7 @@ export default function AccountPage() {
                         type="button"
                         onClick={() => toggleMerchant(m.id)}
                         className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition ${
-                          on ? "bg-savr-night text-white" : "hover:bg-savr-mist"
+                          on ? "chip-active" : "hover:bg-savr-mist"
                         }`}
                       >
                         <span className="font-semibold">{m.name}</span>

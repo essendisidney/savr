@@ -1,46 +1,14 @@
 import Link from "next/link";
 
 const themes = {
-  basket: {
-    label: "Groceries · Nairobi",
-    image:
-      "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1800&q=80",
-  },
-  rides: {
-    label: "Transport",
-    image:
-      "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1800&q=80",
-  },
-  fuel: {
-    label: "Fuel · Nearby",
-    image:
-      "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?auto=format&fit=crop&w=1800&q=80",
-  },
-  wallet: {
-    label: "Saved with Savr",
-    image:
-      "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=1800&q=80",
-  },
-  prices: {
-    label: "Price check · Nairobi",
-    image:
-      "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1800&q=80",
-  },
-  login: {
-    label: "Account",
-    image:
-      "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1800&q=80",
-  },
-  account: {
-    label: "Your profile",
-    image:
-      "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1800&q=80",
-  },
-  check: {
-    label: "After the shop",
-    image:
-      "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80",
-  },
+  basket: { label: "Groceries · Nairobi" },
+  rides: { label: "Transport" },
+  fuel: { label: "Fuel · Nearby" },
+  wallet: { label: "Saved with Savr" },
+  prices: { label: "Price check · Nairobi" },
+  login: { label: "Account" },
+  account: { label: "Your profile" },
+  check: { label: "After the shop" },
 } as const;
 
 export type PageTheme = keyof typeof themes;
@@ -59,29 +27,21 @@ export function PageHero({
   const t = themes[theme];
 
   return (
-    <section
-      className="relative overflow-hidden"
-      style={{
-        backgroundImage: `linear-gradient(165deg, rgba(1,20,14,0.88) 0%, rgba(1,20,14,0.62) 48%, rgba(3,26,18,0.92) 100%), url(${t.image})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-savr-mist" />
-      <div className="relative mx-auto max-w-5xl px-4 pb-12 pt-12 md:px-6 md:pb-14 md:pt-16">
-        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.22em] text-savr-signal">
+    <section className="border-b border-savr-ink/[0.05]">
+      <div className="relative mx-auto max-w-5xl px-4 pb-8 pt-10 md:px-6 md:pb-10 md:pt-14">
+        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
           {t.label}
         </p>
-        <h1 className="animate-rise-delay mt-3 max-w-2xl font-display text-[clamp(2.1rem,5.5vw,3.5rem)] font-extrabold leading-[1.05] tracking-tightish text-white">
+        <h1 className="animate-rise-delay mt-2 max-w-2xl font-display text-[clamp(1.85rem,4.5vw,2.75rem)] font-extrabold leading-[1.1] tracking-tightish text-savr-ink">
           {title}
         </h1>
         {subtitle && (
-          <p className="animate-rise-delay-2 mt-3 max-w-md text-[15px] leading-relaxed text-white/70 md:text-base">
+          <p className="animate-rise-delay-2 mt-3 max-w-lg text-[15px] leading-relaxed text-savr-mute md:text-base">
             {subtitle}
           </p>
         )}
         {action && (
-          <Link href={action.href} className="btn-primary mt-7 inline-flex animate-rise-delay-2">
+          <Link href={action.href} className="btn-primary mt-6 inline-flex animate-rise-delay-2">
             {action.label}
           </Link>
         )}

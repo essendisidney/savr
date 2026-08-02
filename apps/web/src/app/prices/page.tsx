@@ -95,7 +95,7 @@ function PricesInner() {
   if (loading) {
     return (
       <PageFrame>
-        <div className="h-44 animate-pulse bg-savr-night/85" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <LoadingBlock rows={4} />
         </PageShell>
@@ -122,7 +122,7 @@ function PricesInner() {
                   onClick={() => setCategory("all")}
                   className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
                     category === "all"
-                      ? "bg-savr-night text-white"
+                      ? "chip-active"
                       : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
                   }`}
                 >
@@ -135,7 +135,7 @@ function PricesInner() {
                     onClick={() => setCategory(c)}
                     className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
                       category === c
-                        ? "bg-savr-night text-white"
+                        ? "chip-active"
                         : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
                     }`}
                   >
@@ -155,7 +155,7 @@ function PricesInner() {
                 className="w-full border border-savr-ink/[0.12] bg-white px-4 py-3.5 text-[15px] text-savr-ink outline-none transition placeholder:text-savr-mute focus:border-savr-forest"
                 autoComplete="off"
               />
-              <ul className="mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+              <ul className="mt-3 divide-y divide-savr-ink/[0.06] card">
                 {suggestions.map((p) => {
                   const active = p.id === selectedId;
                   return (
@@ -168,7 +168,7 @@ function PricesInner() {
                         }}
                         className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition ${
                           active
-                            ? "bg-savr-night text-white"
+                            ? "chip-active"
                             : "hover:bg-savr-mist"
                         }`}
                       >
@@ -189,7 +189,7 @@ function PricesInner() {
                           </span>
                         </span>
                         {active && (
-                          <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-savr-signal">
+                          <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-white/80">
                             Selected
                           </span>
                         )}
@@ -264,13 +264,13 @@ function PricesInner() {
                         key={r.merchantId}
                         className={`animate-rise relative overflow-hidden border ${
                           r.isCheapest
-                            ? "border-transparent bg-savr-night text-white shadow-[0_18px_40px_-24px_rgba(4,36,25,0.65)]"
+                            ? "card-winner"
                             : "border-savr-ink/[0.08] bg-white"
                         }`}
                         style={{ animationDelay: `${i * 0.07}s` }}
                       >
                         {r.isCheapest && (
-                          <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-signal" />
+                          <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-forest" />
                         )}
                         <div className="px-4 py-5 sm:px-5">
                           <div className="flex items-start justify-between gap-3">
@@ -278,8 +278,8 @@ function PricesInner() {
                               <span
                                 className={`mt-0.5 flex h-8 w-8 items-center justify-center font-display text-sm font-bold ${
                                   r.isCheapest
-                                    ? "bg-savr-signal text-savr-ink"
-                                    : "bg-savr-fog text-savr-mute"
+                                    ? "rounded-xl bg-savr-forest text-white"
+                                    : "rounded-xl bg-savr-fog text-savr-mute"
                                 }`}
                               >
                                 {i + 1}
@@ -287,7 +287,7 @@ function PricesInner() {
                               <div>
                                 <p
                                   className={`font-display text-2xl font-bold tracking-tightish ${
-                                    r.isCheapest ? "text-white" : "text-savr-ink"
+                                    r.isCheapest ? "text-savr-ink" : "text-savr-ink"
                                   }`}
                                 >
                                   {r.merchantName}
@@ -295,7 +295,7 @@ function PricesInner() {
                                 {r.branchName && (
                                   <p
                                     className={`text-xs ${
-                                      r.isCheapest ? "text-white/65" : "text-savr-mute"
+                                      r.isCheapest ? "text-savr-mute" : "text-savr-mute"
                                     }`}
                                   >
                                     {r.branchName}
@@ -331,7 +331,7 @@ function PricesInner() {
                                         <p
                                           className={`mt-0.5 text-[11px] ${freshnessClassName(
                                             fresh.stale,
-                                            r.isCheapest ? "dark" : "light",
+                                            r.isCheapest ? "light" : "light",
                                           )}`}
                                         >
                                           {fresh.label}
@@ -341,7 +341,7 @@ function PricesInner() {
                                         <p
                                           className={`mt-0.5 text-[11px] font-semibold ${trendClassName(
                                             trend.direction,
-                                            r.isCheapest ? "dark" : "light",
+                                            r.isCheapest ? "light" : "light",
                                           )}`}
                                         >
                                           {trend.label}
@@ -355,7 +355,7 @@ function PricesInner() {
                             <div className="text-right">
                               <p
                                 className={`font-display text-2xl font-bold tracking-tightish tabular-nums ${
-                                  r.isCheapest ? "text-white" : "text-savr-ink"
+                                  r.isCheapest ? "text-savr-ink" : "text-savr-ink"
                                 }`}
                               >
                                 {formatKes(r.priceCents)}
@@ -363,7 +363,7 @@ function PricesInner() {
                               {r.promoCents > 0 && (
                                 <p
                                   className={`text-xs line-through ${
-                                    r.isCheapest ? "text-white/45" : "text-savr-mute"
+                                    r.isCheapest ? "text-savr-mute" : "text-savr-mute"
                                   }`}
                                 >
                                   {formatKes(r.listCents)}
@@ -379,7 +379,7 @@ function PricesInner() {
                           >
                             <div
                               className={`rank-bar h-full animate-barGrow ${
-                                r.isCheapest ? "bg-savr-signal" : "bg-savr-forest/70"
+                                r.isCheapest ? "bg-savr-forest" : "bg-savr-forest/70"
                               }`}
                               style={{
                                 width: `${width}%`,
@@ -412,7 +412,7 @@ function PricesInner() {
                   for the real total.
                 </p>
 
-                <section className="border border-savr-ink/[0.08] bg-white px-4 py-5 sm:px-5">
+                <section className="card px-4 py-5 sm:px-5">
                   <h3 className="font-display text-lg font-bold tracking-tightish">
                     Saw a different price?
                   </h3>
@@ -506,7 +506,7 @@ function PricesInner() {
                 />
                 {user && selectedId && (
                   <form
-                    className="grid gap-3 border border-savr-ink/[0.08] bg-white px-4 py-5 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+                    className="grid gap-3 card px-4 py-5 sm:grid-cols-[1fr_auto_auto] sm:items-end"
                     onSubmit={async (e: FormEvent) => {
                       e.preventDefault();
                       if (!tipMerchantId) return;
@@ -573,7 +573,7 @@ export default function PricesPage() {
     <Suspense
       fallback={
         <PageFrame>
-          <div className="h-52 animate-pulse bg-savr-night/80" />
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
           <PageShell>
             <div className="h-28 animate-pulse bg-savr-fog" />
           </PageShell>

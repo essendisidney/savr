@@ -337,7 +337,7 @@ export default function MerchantPage() {
   if (loading || authLoading) {
     return (
       <PageFrame>
-        <div className="h-48 animate-pulse bg-savr-night/80" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <div className="h-40 animate-pulse bg-savr-fog" />
         </PageShell>
@@ -366,7 +366,7 @@ export default function MerchantPage() {
             )}
 
             {user && (
-              <section className="space-y-4 border border-savr-ink/[0.08] bg-white p-4 sm:p-5">
+              <section className="space-y-4 card p-4 sm:p-5">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
                     New on Savr
@@ -426,7 +426,7 @@ export default function MerchantPage() {
 
             <section className="space-y-3">
               <h2 className="font-display text-xl font-bold tracking-tightish">Grocery network</h2>
-              <div className="overflow-x-auto border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
+              <div className="overflow-x-auto card">
                 <table className="w-full min-w-[36rem] text-left text-sm">
                   <thead className="border-b border-savr-ink/10 text-savr-mute">
                     <tr>
@@ -493,7 +493,7 @@ export default function MerchantPage() {
                   </p>
                 </div>
 
-                <div className="border border-savr-ink/[0.08] bg-white px-4 py-5 sm:px-5">
+                <div className="card px-4 py-5 sm:px-5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h3 className="font-display text-lg font-bold tracking-tightish">
                       Pricing gaps
@@ -552,7 +552,7 @@ export default function MerchantPage() {
                       ].map((stat, i) => (
                         <div
                           key={stat.label}
-                          className="animate-rise border border-savr-ink/[0.08] bg-white px-4 py-4"
+                          className="animate-rise card px-4 py-4"
                           style={{ animationDelay: `${i * 0.05}s` }}
                         >
                           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
@@ -566,7 +566,7 @@ export default function MerchantPage() {
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="border border-savr-ink/[0.08] bg-white px-4 py-4">
+                      <div className="card px-4 py-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
                           List inclusions
                         </p>
@@ -577,7 +577,7 @@ export default function MerchantPage() {
                           Times your priced SKUs appeared on shopping lists
                         </p>
                       </div>
-                      <div className="border border-savr-ink/[0.08] bg-white px-4 py-4">
+                      <div className="card px-4 py-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
                           Avg basket shown
                         </p>
@@ -601,7 +601,7 @@ export default function MerchantPage() {
                           No list activity yet — keep prices fresh so shoppers can add your SKUs.
                         </p>
                       ) : (
-                        <ol className="mt-2 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                        <ol className="mt-2 divide-y divide-savr-ink/[0.06] card">
                           {analytics.topProducts.map((p, i) => (
                             <li
                               key={`${p.productName}-${i}`}
@@ -638,7 +638,7 @@ export default function MerchantPage() {
                   </p>
                 </div>
 
-                <div className="grid gap-4 border border-savr-ink/[0.08] bg-white p-4 sm:grid-cols-2 sm:p-5">
+                <div className="grid gap-4 card p-4 sm:grid-cols-2 sm:p-5">
                   <label className="block sm:col-span-2">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
                       Offer title
@@ -722,7 +722,7 @@ export default function MerchantPage() {
                   </p>
                 </div>
 
-                <div className="grid gap-4 border border-savr-ink/[0.08] bg-white p-4 sm:grid-cols-2 sm:p-5">
+                <div className="grid gap-4 card p-4 sm:grid-cols-2 sm:p-5">
                   <label className="block sm:col-span-2">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
                       Title
@@ -816,7 +816,7 @@ export default function MerchantPage() {
                   </div>
                 </div>
 
-                <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                <ul className="divide-y divide-savr-ink/[0.06] card">
                   {promotions.map((p) => (
                     <li
                       key={p.id}
@@ -875,7 +875,7 @@ export default function MerchantPage() {
                   </p>
                 </div>
 
-                <div className="space-y-3 border border-savr-ink/[0.08] bg-white p-4">
+                <div className="space-y-3 card p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-forest">
                     Bulk CSV
                   </p>
@@ -966,7 +966,7 @@ export default function MerchantPage() {
                   </button>
                 </div>
 
-                <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                <ul className="divide-y divide-savr-ink/[0.06] card">
                   {prices.map((p) => (
                     <li
                       key={p.id}

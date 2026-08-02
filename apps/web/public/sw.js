@@ -1,6 +1,6 @@
 /* Savr PWA — offline-capable shell + stale-while-revalidate for app routes. */
-const SHELL = "savr-shell-v5";
-const RUNTIME = "savr-runtime-v5";
+const SHELL = "savr-shell-v6";
+const RUNTIME = "savr-runtime-v6";
 const PRECACHE = [
   "/",
   "/basket",

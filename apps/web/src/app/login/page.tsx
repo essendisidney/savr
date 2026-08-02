@@ -196,7 +196,7 @@ function LoginInner() {
       />
       <div className="page-band">
         <PageShell narrow>
-          <div className="mb-5 flex gap-1 border border-savr-ink/[0.08] bg-white p-1">
+          <div className="mb-5 flex gap-1 card p-1">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -204,7 +204,7 @@ function LoginInner() {
                 onClick={() => setTab(t.id)}
                 className={`flex-1 px-2 py-2.5 text-xs font-semibold uppercase tracking-wide transition sm:text-[13px] sm:normal-case sm:tracking-normal ${
                   tab === t.id
-                    ? "bg-savr-night text-white"
+                    ? "chip-active"
                     : "text-savr-mute hover:text-savr-ink"
                 }`}
               >
@@ -458,7 +458,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <PageFrame>
-          <div className="h-52 animate-pulse bg-savr-night/80" />
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
         </PageFrame>
       }
     >

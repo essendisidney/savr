@@ -84,22 +84,22 @@ export function RankList({
             key={r.merchantId}
             className={`animate-rise group relative overflow-hidden border transition duration-300 ${
               r.isRecommended
-                ? "border-transparent bg-savr-night text-white shadow-[0_18px_40px_-24px_rgba(4,36,25,0.65)]"
-                : "border-savr-ink/[0.08] bg-white hover:border-savr-forest/35"
+                ? "card-winner"
+                : "card hover:border-savr-forest/30"
             }`}
             style={{ animationDelay: `${i * 0.07}s` }}
           >
             {r.isRecommended && (
-              <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-signal" />
+              <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-forest" />
             )}
 
             <div className="px-4 py-5 sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <span
-                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center font-display text-sm font-bold ${
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-sm font-bold ${
                       r.isRecommended
-                        ? "bg-savr-signal text-savr-ink"
+                        ? "bg-savr-forest text-white"
                         : "bg-savr-fog text-savr-mute"
                     }`}
                   >
@@ -108,7 +108,7 @@ export function RankList({
                   <div>
                     <p
                       className={`font-display text-2xl font-bold tracking-tightish ${
-                        r.isRecommended ? "text-white" : "text-savr-ink"
+                        r.isRecommended ? "text-savr-ink" : "text-savr-ink"
                       }`}
                     >
                       {r.merchantName}
@@ -116,7 +116,7 @@ export function RankList({
                     {r.branchName && (
                       <p
                         className={`text-xs ${
-                          r.isRecommended ? "text-white/65" : "text-savr-mute"
+                          r.isRecommended ? "text-savr-mute" : "text-savr-mute"
                         }`}
                       >
                         {r.branchName}
@@ -124,7 +124,7 @@ export function RankList({
                     )}
                     <p
                       className={`mt-0.5 text-xs font-semibold ${
-                        r.isRecommended ? "text-savr-signal" : "text-savr-mute"
+                        r.isRecommended ? "text-savr-forest" : "text-savr-mute"
                       }`}
                     >
                       {r.isRecommended
@@ -139,7 +139,7 @@ export function RankList({
                 </div>
                 <p
                   className={`font-display text-2xl font-bold tracking-tightish tabular-nums ${
-                    r.isRecommended ? "text-white" : "text-savr-ink"
+                    r.isRecommended ? "text-savr-ink" : "text-savr-ink"
                   }`}
                 >
                   {formatKes(r.totalCents)}
@@ -148,12 +148,12 @@ export function RankList({
 
               <div
                 className={`mt-4 h-2 overflow-hidden ${
-                  r.isRecommended ? "bg-white/15" : "bg-savr-fog"
+                  r.isRecommended ? "bg-savr-forest/15" : "bg-savr-fog"
                 }`}
               >
                 <div
                   className={`rank-bar h-full animate-barGrow ${
-                    r.isRecommended ? "bg-savr-signal" : "bg-savr-forest/70"
+                    r.isRecommended ? "bg-savr-forest" : "bg-savr-forest/70"
                   }`}
                   style={{ width: `${width}%`, animationDelay: `${0.12 + i * 0.08}s` }}
                 />
@@ -161,7 +161,7 @@ export function RankList({
 
               <p
                 className={`mt-3 text-sm ${
-                  r.isRecommended ? "text-white/70" : "text-savr-mute"
+                  r.isRecommended ? "text-savr-mute" : "text-savr-mute"
                 }`}
               >
                 {r.promoCents > 0 && (
@@ -176,7 +176,7 @@ export function RankList({
                 Net{" "}
                 <span
                   className={
-                    r.isRecommended ? "font-semibold text-white" : "font-semibold text-savr-ink"
+                    "font-semibold text-savr-ink"
                   }
                 >
                   {formatKes(r.netCents)}
@@ -196,7 +196,7 @@ export function RankList({
                   <p
                     className={`mt-1.5 text-xs font-semibold ${trendClassName(
                       basketTrend.direction,
-                      r.isRecommended ? "dark" : "light",
+                      "light",
                     )}`}
                   >
                     {basketTrend.label}
@@ -207,7 +207,7 @@ export function RankList({
               {r.coverage < 1 && (
                 <p
                   className={`mt-2 text-xs font-medium ${
-                    r.isRecommended ? "text-amber-200" : "text-amber-800"
+                    r.isRecommended ? "text-amber-800" : "text-amber-800"
                   }`}
                 >
                   Incomplete prices weaken this rank — tip shelf prices you saw.
@@ -219,7 +219,7 @@ export function RankList({
                   type="button"
                   onClick={() => setOpenId(open ? null : r.merchantId)}
                   className={`mt-3 text-sm font-semibold ${
-                    r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                    "text-savr-forest"
                   }`}
                 >
                   {open
@@ -257,7 +257,7 @@ export function RankList({
                     return (
                       <li key={line.productId} className="px-3 py-2.5 text-sm">
                         <div className="flex items-center justify-between gap-3">
-                          <span className={r.isRecommended ? "text-white/85" : "text-savr-ink"}>
+                          <span className={r.isRecommended ? "text-savr-ink" : "text-savr-ink"}>
                             {line.name}
                             {line.quantity > 1 ? (
                               <span className="opacity-60"> ×{line.quantity}</span>
@@ -266,7 +266,7 @@ export function RankList({
                               <span
                                 className={`mt-0.5 block text-[11px] font-medium ${freshnessClassName(
                                   fresh.stale,
-                                  r.isRecommended ? "dark" : "light",
+                                  "light",
                                 )}`}
                               >
                                 {fresh.label}
@@ -276,7 +276,7 @@ export function RankList({
                               <span
                                 className={`mt-0.5 block text-[11px] font-semibold ${trendClassName(
                                   trend.direction,
-                                  r.isRecommended ? "dark" : "light",
+                                  "light",
                                 )}`}
                               >
                                 {trend.label}
@@ -285,13 +285,7 @@ export function RankList({
                           </span>
                           <span
                             className={`shrink-0 font-semibold tabular-nums ${
-                              missingLine
-                                ? r.isRecommended
-                                  ? "text-amber-200"
-                                  : "text-amber-800"
-                                : r.isRecommended
-                                  ? "text-white"
-                                  : "text-savr-ink"
+                              missingLine ? "text-amber-800" : "text-savr-ink"
                             }`}
                           >
                             {missingLine
@@ -302,7 +296,7 @@ export function RankList({
                             {line.promoCents && line.promoCents > 0 ? (
                               <span
                                 className={`ml-1.5 text-xs font-medium ${
-                                  r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                                  "text-savr-forest"
                                 }`}
                               >
                                 −{formatKes(line.promoCents)}
@@ -316,7 +310,7 @@ export function RankList({
                               <Link
                                 href="/login?next=/basket"
                                 className={`text-xs font-semibold ${
-                                  r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                                  "text-savr-forest"
                                 } hover:underline`}
                               >
                                 Sign in to tip this price
@@ -330,7 +324,7 @@ export function RankList({
                                   setTipStatus(null);
                                 }}
                                 className={`text-xs font-semibold ${
-                                  r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                                  "text-savr-forest"
                                 } hover:underline`}
                               >
                                 Tip shelf price
@@ -346,11 +340,7 @@ export function RankList({
                                   inputMode="numeric"
                                   placeholder="KES"
                                   aria-label={`Tip price for ${line.name}`}
-                                  className={`w-24 border px-2 py-1.5 text-sm outline-none ${
-                                    r.isRecommended
-                                      ? "border-white/25 bg-white/10 text-white placeholder:text-white/40"
-                                      : "border-savr-ink/15 bg-white text-savr-ink"
-                                  }`}
+                                  className="w-24 rounded-xl border border-savr-ink/15 bg-white px-2 py-1.5 text-sm text-savr-ink outline-none"
                                   autoFocus
                                 />
                                 <button
@@ -367,7 +357,7 @@ export function RankList({
                                     setTipStatus(null);
                                   }}
                                   className={`text-xs font-semibold ${
-                                    r.isRecommended ? "text-white/60" : "text-savr-mute"
+                                    r.isRecommended ? "text-savr-mute" : "text-savr-mute"
                                   }`}
                                 >
                                   Cancel
@@ -399,7 +389,7 @@ export function RankList({
               {open && missing.length > 0 && canTip && tipKey == null && (
                 <p
                   className={`mt-2 text-xs ${
-                    r.isRecommended ? "text-white/55" : "text-savr-mute"
+                    r.isRecommended ? "text-savr-mute" : "text-savr-mute"
                   }`}
                 >
                   {missing.length} item{missing.length === 1 ? "" : "s"} without a price — tip any
@@ -413,7 +403,7 @@ export function RankList({
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`text-sm font-semibold ${
-                    r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                    "text-savr-forest"
                   }`}
                 >
                   Directions →

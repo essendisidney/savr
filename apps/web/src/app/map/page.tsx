@@ -86,7 +86,7 @@ export default function MapPage() {
               </div>
               <NairobiMap points={points} onSelect={setSelected} />
               {selected && (
-                <div className="border border-savr-ink/[0.08] bg-white px-4 py-4">
+                <div className="card px-4 py-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
                     {selected.kind === "fuel" ? "Fuel" : "Grocery"}
                   </p>

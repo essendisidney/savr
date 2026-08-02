@@ -103,7 +103,7 @@ export default function InvitePage() {
     <Suspense
       fallback={
         <PageFrame>
-          <div className="h-52 animate-pulse bg-savr-night/80" />
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
         </PageFrame>
       }
     >

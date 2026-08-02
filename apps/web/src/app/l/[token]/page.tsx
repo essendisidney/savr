@@ -76,7 +76,7 @@ export default function SharedListPage() {
   if (loading) {
     return (
       <PageFrame>
-        <div className="h-44 animate-pulse bg-savr-night/85" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <LoadingBlock rows={3} />
         </PageShell>
@@ -160,7 +160,7 @@ export default function SharedListPage() {
                 body="Search above to add the first staple — everyone with the link can add."
               />
             ) : (
-              <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+              <ul className="divide-y divide-savr-ink/[0.06] card">
                 {items.map((item) => (
                   <li
                     key={item.productId}

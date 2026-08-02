@@ -46,7 +46,7 @@ export default function BasketPage() {
     <Suspense
       fallback={
         <PageFrame>
-          <div className="h-52 animate-pulse bg-savr-night/80" />
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
           <PageShell>
             <div className="space-y-4 animate-pulse">
               <div className="h-28 w-full bg-savr-fog" />
@@ -350,7 +350,7 @@ function BasketInner() {
   if (loading || !catalog) {
     return (
       <PageFrame>
-        <div className="h-44 animate-pulse bg-savr-night/85" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <LoadingBlock rows={4} />
         </PageShell>
@@ -411,7 +411,7 @@ function BasketInner() {
                         Clear
                       </button>
                     )}
-                    <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
+                    <span className="rounded-full bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
                       {items.length} items
                     </span>
                   </div>
@@ -463,7 +463,7 @@ function BasketInner() {
                   </div>
                 )}
 
-                <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
+                <ul className="divide-y divide-savr-ink/[0.06] card">
                   {items.map((item) => (
                     <li
                       key={item.productId}
@@ -526,7 +526,7 @@ function BasketInner() {
                   )}
                 </ul>
 
-                <div className="flex flex-col gap-2 border border-savr-ink/[0.08] bg-white p-3 sm:flex-row sm:items-center">
+                <div className="flex flex-col gap-2 card p-3 sm:flex-row sm:items-center">
                   <input
                     value={listName}
                     onChange={(e) => setListName(e.target.value)}
@@ -559,7 +559,7 @@ function BasketInner() {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
                       Saved lists
                     </p>
-                    <ul className="divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                    <ul className="divide-y divide-savr-ink/[0.06] card">
                       {savedLists.map((list) => (
                         <li key={list.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
                           <div className="min-w-0">
@@ -640,7 +640,7 @@ function BasketInner() {
                       onClick={() => setPreferredOnly(false)}
                       className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
                         !preferredOnly
-                          ? "bg-savr-night text-white"
+                          ? "chip-active"
                           : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
                       }`}
                     >

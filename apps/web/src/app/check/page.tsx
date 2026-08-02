@@ -150,7 +150,7 @@ export default function CheckPage() {
   if (loading || !catalog) {
     return (
       <PageFrame>
-        <div className="h-44 animate-pulse bg-savr-night/85" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <LoadingBlock rows={4} />
         </PageShell>
@@ -205,7 +205,7 @@ export default function CheckPage() {
                         >
                           {m.name}
                           {m.location?.name ? (
-                            <span className={`ml-1.5 text-xs font-medium ${active ? "text-white/70" : "text-savr-mute"}`}>
+                            <span className={`ml-1.5 text-xs font-medium ${active ? "text-white/80" : "text-savr-mute"}`}>
                               {m.location.name}
                             </span>
                           ) : null}
@@ -228,7 +228,7 @@ export default function CheckPage() {
                           Use my basket list
                         </button>
                       )}
-                      <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
+                      <span className="rounded-full bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
                         {items.length} items
                       </span>
                     </div>
@@ -410,7 +410,7 @@ export default function CheckPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4 bg-white px-5 py-5 shadow-[0_18px_50px_-28px_rgba(4,36,25,0.45)] ring-1 ring-savr-ink/[0.06]">
+                  <div className="card space-y-4 px-5 py-5">
                     <div className="flex items-end justify-between gap-4">
                       <div>
                         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-savr-mute">

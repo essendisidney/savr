@@ -96,7 +96,7 @@ export function InstallPrompt() {
       role="dialog"
       aria-labelledby="savr-install-title"
     >
-      <div className="animate-rise mx-auto flex max-w-lg flex-col gap-3 border border-savr-ink/[0.08] bg-white p-4 shadow-[0_18px_50px_-28px_rgba(1,20,14,0.55)] sm:flex-row sm:items-center sm:justify-between">
+      <div className="animate-rise mx-auto flex max-w-lg flex-col gap-3 card p-4 shadow-[0_18px_50px_-28px_rgba(1,20,14,0.55)] sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p
             id="savr-install-title"

@@ -102,7 +102,7 @@ export default function WalletPage() {
   if (loading || authLoading) {
     return (
       <PageFrame>
-        <div className="h-44 animate-pulse bg-savr-night/85" />
+        <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
           <LoadingBlock rows={4} />
         </PageShell>
@@ -192,7 +192,7 @@ export default function WalletPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="animate-rise relative overflow-hidden bg-savr-night px-5 py-6 text-white">
+              <div className="animate-rise relative overflow-hidden rounded-card-lg bg-gradient-to-br from-savr-forest to-[#009624] px-5 py-6 text-white">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,197,24,0.35),transparent_55%)]" />
                 <div className="relative">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
@@ -205,7 +205,7 @@ export default function WalletPage() {
                 </div>
               </div>
               <div
-                className="animate-rise border border-savr-ink/[0.08] bg-white px-5 py-6"
+                className="animate-rise card px-5 py-6"
                 style={{ animationDelay: "0.06s" }}
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
@@ -218,7 +218,7 @@ export default function WalletPage() {
               </div>
             </div>
 
-            <section className="space-y-4 border border-savr-ink/[0.08] bg-gradient-to-br from-white to-savr-mist/40 p-5 sm:p-6">
+            <section className="card space-y-4 bg-gradient-to-br from-white to-savr-mist/40 p-5 sm:p-6">
               <div>
                 <h2 className="font-display text-lg font-bold tracking-tightish">Redeem cashback</h2>
                 <p className="mt-1 text-sm text-savr-mute">
@@ -271,7 +271,7 @@ export default function WalletPage() {
             {pendingRedeems.length > 0 && (
               <section>
                 <h2 className="font-display text-lg font-bold tracking-tightish">Redeem requests</h2>
-                <ul className="mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white">
+                <ul className="mt-3 divide-y divide-savr-ink/[0.06] card">
                   {pendingRedeems.map((r) => (
                     <li
                       key={r.id}
@@ -330,29 +330,27 @@ export default function WalletPage() {
                   {history.map((item, i) => (
                     <li
                       key={item.id}
-                      className={`animate-rise relative overflow-hidden border ${
-                        item.followedAdvice
-                          ? "border-transparent bg-savr-night text-white"
-                          : "border-savr-ink/[0.08] bg-white"
+                      className={`animate-rise relative overflow-hidden ${
+                        item.followedAdvice ? "card-winner" : "card"
                       }`}
                       style={{ animationDelay: `${i * 0.05}s` }}
                     >
                       {item.followedAdvice && (
-                        <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-signal" />
+                        <div className="absolute inset-y-0 left-0 w-1.5 bg-savr-forest" />
                       )}
                       <div className="px-4 py-4 sm:px-5">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p
                               className={`font-display text-xl font-bold tracking-tightish ${
-                                item.followedAdvice ? "text-white" : "text-savr-ink"
+                                item.followedAdvice ? "text-savr-ink" : "text-savr-ink"
                               }`}
                             >
                               {item.chosenMerchant}
                             </p>
                             <p
                               className={`mt-0.5 text-xs font-semibold ${
-                                item.followedAdvice ? "text-savr-signal" : "text-savr-mute"
+                                item.followedAdvice ? "text-savr-forest" : "text-savr-mute"
                               }`}
                             >
                               {item.followedAdvice
@@ -365,14 +363,14 @@ export default function WalletPage() {
                           <div className="text-right">
                             <p
                               className={`font-display text-xl font-bold tabular-nums ${
-                                item.followedAdvice ? "text-savr-signal" : "text-savr-forest"
+                                "text-savr-forest"
                               }`}
                             >
                               {formatKes(item.savingsCents)}
                             </p>
                             <p
                               className={`text-xs ${
-                                item.followedAdvice ? "text-white/55" : "text-savr-mute"
+                                "text-savr-mute"
                               }`}
                             >
                               saved
@@ -413,7 +411,7 @@ export default function WalletPage() {
                   />
                 </div>
               ) : (
-                <ul className="mt-3 divide-y divide-savr-ink/[0.06] border border-savr-ink/[0.08] bg-white shadow-[0_12px_40px_-28px_rgba(4,36,25,0.45)]">
+                <ul className="mt-3 divide-y divide-savr-ink/[0.06] card">
                   {ledger.map((e, i) => {
                     const credit = e.amountCents >= 0;
                     return (
