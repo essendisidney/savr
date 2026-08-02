@@ -10,9 +10,36 @@ import type {
 } from "./types";
 import { haversineKm, type GeoPoint } from "./geo";
 
+/** Classic Nairobi weekly shop — match by name so catalog order never breaks the wedge demo. */
+const WEEKLY_STAPLE_MATCHERS: { label: string; match: RegExp }[] = [
+  { label: "Fresh Milk 500ml", match: /^fresh milk 500ml$/i },
+  { label: "White Bread 400g", match: /^white bread 400g$/i },
+  { label: "Basmati Rice 2kg", match: /^(basmati|pishori) rice 2kg$/i },
+  { label: "Sugar 1kg", match: /^sugar 1kg$/i },
+  { label: "Bar Soap 800g", match: /bar soap/i },
+  { label: "Cooking Oil 2L", match: /cooking oil 2l/i },
+  { label: "Eggs Tray 30", match: /eggs tray/i },
+  { label: "Maize Flour 2kg", match: /maize flour 2kg/i },
+];
+
 export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
-  const staples = catalog.products.slice(0, 6);
-  return staples.map((p) => ({
+  const picked: ListItem[] = [];
+  const used = new Set<string>();
+
+  for (const staple of WEEKLY_STAPLE_MATCHERS) {
+    const product = catalog.products.find(
+      (p) => !used.has(p.id) && staple.match.test(p.name),
+    );
+    if (!product) continue;
+    used.add(product.id);
+    picked.push({ productId: product.id, freeText: product.name, quantity: 1 });
+    if (picked.length >= 6) break;
+  }
+
+  if (picked.length >= 4) return picked;
+
+  // Fallback if seed names drift — keep a usable demo basket.
+  return catalog.products.slice(0, 6).map((p) => ({
     productId: p.id,
     freeText: p.name,
     quantity: 1,

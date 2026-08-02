@@ -257,7 +257,7 @@ function BasketInner() {
       <PageHero
         theme="basket"
         title="Beat the weekly shop"
-        subtitle="Search, save your list, and reopen it next week — ranked by total value."
+        subtitle="Start from weekly staples, save your list, and reopen it next week — ranked by total value."
       />
 
       <div className="page-band">
@@ -274,11 +274,24 @@ function BasketInner() {
 
             <div className="grid gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-12">
               <section className="animate-rise-delay space-y-3">
-                <div className="flex items-baseline justify-between">
+                <div className="flex items-baseline justify-between gap-3">
                   <h2 className="font-display text-lg font-bold tracking-tightish">Your list</h2>
-                  <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
-                    {items.length} items
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setItems(defaultListFromCatalog(catalog));
+                        setListName("Weekly shop");
+                        setStatus("Loaded weekly staples — milk, bread, rice, sugar, soap, oil.");
+                      }}
+                      className="text-xs font-semibold text-savr-forest hover:underline"
+                    >
+                      Weekly staples
+                    </button>
+                    <span className="rounded-sm bg-savr-fog px-2 py-0.5 text-xs font-semibold text-savr-mute">
+                      {items.length} items
+                    </span>
+                  </div>
                 </div>
 
                 <div className="relative">
