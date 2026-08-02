@@ -212,8 +212,12 @@ export async function loadWallet(): Promise<{
   todaySavingsCents: number;
   yesterdaySavingsCents: number;
   compareCount: number;
+  /** Verified miss from logged shops (Check → Save this shop). */
+  lifetimeMissedCents: number;
+  receiptCount: number;
   history: CompareHistoryItem[];
   lastTip: { savingsCents: number; merchantName: string } | null;
+  lastMiss: { missedCents: number; merchantName: string } | null;
   ledger: { note: string | null; amountCents: number; when: string; entryType: string }[];
   pendingRedeems: { id: string; amountCents: number; status: string; when: string; phone: string | null }[];
   error?: string;
@@ -224,8 +228,11 @@ export async function loadWallet(): Promise<{
     todaySavingsCents: 0,
     yesterdaySavingsCents: 0,
     compareCount: 0,
+    lifetimeMissedCents: 0,
+    receiptCount: 0,
     history: [] as CompareHistoryItem[],
     lastTip: null as { savingsCents: number; merchantName: string } | null,
+    lastMiss: null as { missedCents: number; merchantName: string } | null,
     ledger: [] as { note: string | null; amountCents: number; when: string; entryType: string }[],
     pendingRedeems: [] as {
       id: string;
@@ -248,7 +255,7 @@ export async function loadWallet(): Promise<{
     return { ...empty, error: "signed_out" };
   }
 
-  const [accountRes, comparesRes, redeemRes] = await Promise.all([
+  const [accountRes, comparesRes, redeemRes, receiptsRes] = await Promise.all([
     supabase
       .from("wallet_accounts")
       .select("id, cashback_cents")
@@ -268,13 +275,25 @@ export async function loadWallet(): Promise<{
       .eq("profile_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10),
+    supabase
+      .from("shop_receipts")
+      .select("missed_cents, paid_merchant_name, already_optimal, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   const account = accountRes.data;
   const compares = comparesRes.data ?? [];
+  const receipts = receiptsRes.data ?? [];
 
   const lifetimeSavingsCents = compares.reduce(
     (sum, row) => sum + (row.savings_cents ?? 0),
+    0,
+  );
+
+  const lifetimeMissedCents = receipts.reduce(
+    (sum, row) => sum + (row.missed_cents ?? 0),
     0,
   );
 
@@ -331,6 +350,14 @@ export async function loadWallet(): Promise<{
     };
   }
 
+  const missRow = receipts.find((row) => (row.missed_cents ?? 0) > 0);
+  const lastMiss = missRow
+    ? {
+        missedCents: missRow.missed_cents ?? 0,
+        merchantName: missRow.paid_merchant_name ?? "a recent shop",
+      }
+    : null;
+
   let ledger: { note: string | null; amountCents: number; when: string; entryType: string }[] = [];
   if (account) {
     const { data: entries } = await supabase
@@ -370,8 +397,11 @@ export async function loadWallet(): Promise<{
     todaySavingsCents,
     yesterdaySavingsCents,
     compareCount: compares.length,
+    lifetimeMissedCents,
+    receiptCount: receipts.length,
     history,
     lastTip,
+    lastMiss,
     ledger,
     pendingRedeems,
   };

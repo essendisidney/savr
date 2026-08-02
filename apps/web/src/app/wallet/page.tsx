@@ -36,6 +36,8 @@ export default function WalletPage() {
   const { user, loading: authLoading } = useAuth();
   const [balanceCents, setBalanceCents] = useState(0);
   const [lifetimeSavingsCents, setLifetimeSavingsCents] = useState(0);
+  const [lifetimeMissedCents, setLifetimeMissedCents] = useState(0);
+  const [receiptCount, setReceiptCount] = useState(0);
   const [compareCount, setCompareCount] = useState(0);
   const [history, setHistory] = useState<CompareHistoryItem[]>([]);
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
@@ -52,6 +54,8 @@ export default function WalletPage() {
     const w = await loadWallet();
     setBalanceCents(w.balanceCents);
     setLifetimeSavingsCents(w.lifetimeSavingsCents);
+    setLifetimeMissedCents(w.lifetimeMissedCents ?? 0);
+    setReceiptCount(w.receiptCount ?? 0);
     setCompareCount(w.compareCount);
     setHistory(w.history);
     setLedger(w.ledger);
@@ -211,14 +215,35 @@ export default function WalletPage() {
                 style={{ animationDelay: "0.06s" }}
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                  In progress
+                  Left on the table
                 </p>
-                <p className="mt-2 font-display text-4xl font-bold tracking-tightish tabular-nums text-savr-ink">
-                  {formatKes(pendingTotal)}
+                <p className="mt-2 font-display text-4xl font-bold tracking-tightish tabular-nums text-amber-800">
+                  {formatKes(lifetimeMissedCents)}
                 </p>
-                <p className="mt-2 text-xs text-savr-mute">Redeem requests pending</p>
+                <p className="mt-2 text-xs text-savr-mute">
+                  {receiptCount > 0
+                    ? `From ${receiptCount} logged shop${receiptCount === 1 ? "" : "s"} — verified miss, not a guess`
+                    : "Log a shop on Check to measure what you left behind"}
+                </p>
+                <Link
+                  href="/check"
+                  className="mt-3 inline-block text-xs font-semibold text-savr-forest hover:underline"
+                >
+                  Log a shop →
+                </Link>
               </div>
             </div>
+
+            {pendingTotal > 0 && (
+              <div className="card px-5 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                  Redeem in progress
+                </p>
+                <p className="mt-1 font-display text-2xl font-bold tabular-nums text-savr-ink">
+                  {formatKes(pendingTotal)}
+                </p>
+              </div>
+            )}
 
             <section className="card space-y-4 bg-gradient-to-br from-white to-savr-mist/40 p-5 sm:p-6">
               <div>

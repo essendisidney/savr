@@ -74,6 +74,8 @@ export function HomeDecision() {
   const [yesterdayCents, setYesterdayCents] = useState(0);
   const [lifetimeCents, setLifetimeCents] = useState(0);
   const [tip, setTip] = useState<{ savingsCents: number; merchantName: string } | null>(null);
+  const [miss, setMiss] = useState<{ missedCents: number; merchantName: string } | null>(null);
+  const [lifetimeMissedCents, setLifetimeMissedCents] = useState(0);
   const [drop, setDrop] = useState<DropSignal | null>(null);
   const [fuel, setFuel] = useState<FuelSignal | null>(null);
   const [alertCount, setAlertCount] = useState(0);
@@ -145,6 +147,8 @@ export function HomeDecision() {
         setYesterdayCents(0);
         setLifetimeCents(0);
         setTip(null);
+        setMiss(null);
+        setLifetimeMissedCents(0);
         setAlertCount(0);
         setReady(true);
         return;
@@ -162,6 +166,8 @@ export function HomeDecision() {
       setYesterdayCents(wallet.yesterdaySavingsCents ?? 0);
       setLifetimeCents(wallet.lifetimeSavingsCents ?? 0);
       setTip(wallet.lastTip ?? null);
+      setMiss(wallet.lastMiss ?? null);
+      setLifetimeMissedCents(wallet.lifetimeMissedCents ?? 0);
       setAlertCount(watchRes.unreadCount ?? 0);
 
       const personal =
@@ -239,6 +245,19 @@ export function HomeDecision() {
           title: `You saved ${formatKes(tip.savingsCents)}`,
           body: `At ${tip.merchantName}. Run another list before you shop.`,
           href: "/basket",
+          tone: "night" as const,
+        }
+      : null,
+    miss && miss.missedCents > 0
+      ? {
+          key: "miss",
+          eyebrow: "Left on the table",
+          title: `${formatKes(miss.missedCents)} after ${miss.merchantName}`,
+          body:
+            lifetimeMissedCents > miss.missedCents
+              ? `${formatKes(lifetimeMissedCents)} total across logged shops — check before the next trip.`
+              : "Logged from Check. Compare before you spend next time.",
+          href: "/check",
           tone: "night" as const,
         }
       : null,
@@ -330,7 +349,15 @@ export function HomeDecision() {
           )}
           {lifetimeCents > 0 && (
             <p className="mt-4 text-xs font-medium text-savr-mute">
-              Lifetime · {formatKes(lifetimeCents)}
+              Lifetime kept · {formatKes(lifetimeCents)}
+              {lifetimeMissedCents > 0
+                ? ` · left on table · ${formatKes(lifetimeMissedCents)}`
+                : ""}
+            </p>
+          )}
+          {lifetimeCents <= 0 && lifetimeMissedCents > 0 && (
+            <p className="mt-4 text-xs font-medium text-amber-800">
+              Left on the table · {formatKes(lifetimeMissedCents)} from logged shops
             </p>
           )}
         </section>
