@@ -1,12 +1,86 @@
 import type { ListItem } from "./types";
 
 const DRAFT_KEY = "savr_basket_draft_v1";
+const COMPARE_KEY = "savr_last_compared_v1";
+/** ~5 days — treat draft / last compare as “this week” vs due for a new shop. */
+const WEEK_MS = 5 * 24 * 60 * 60 * 1000;
 
 export type BasketDraft = {
   name: string;
   items: ListItem[];
   updatedAt: number;
 };
+
+export type HomeBasketCta = {
+  href: string;
+  label: string;
+  detail: string;
+  secondaryHref?: string;
+  secondaryLabel?: string;
+};
+
+export function markBasketCompared(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(COMPARE_KEY, String(Date.now()));
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+export function loadLastComparedAt(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(COMPARE_KEY);
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Primary Home CTA for weekly reopen — resume draft when it’s still this week’s list. */
+export function homeBasketCta(
+  draft: BasketDraft | null,
+  lastComparedAt: number | null = loadLastComparedAt(),
+  now = Date.now(),
+): HomeBasketCta {
+  if (draft?.items.length) {
+    const fresh = now - draft.updatedAt < WEEK_MS;
+    if (fresh) {
+      const count = draft.items.length;
+      return {
+        href: "/basket",
+        label: `Resume “${draft.name}”`,
+        detail: `${count} item${count === 1 ? "" : "s"} · pick up where you left off`,
+        secondaryHref: "/check",
+        secondaryLabel: "Already shopped? Check the miss",
+      };
+    }
+    return {
+      href: "/basket?staples=1",
+      label: "Time for this week’s shop",
+      detail: "Fresh staples to compare — your old list is still in Basket if you need it",
+      secondaryHref: "/basket",
+      secondaryLabel: `Open “${draft.name}” instead`,
+    };
+  }
+
+  if (lastComparedAt != null && now - lastComparedAt >= WEEK_MS) {
+    return {
+      href: "/basket?staples=1",
+      label: "Time for this week’s shop",
+      detail: "It’s been a while — compare before you spend",
+    };
+  }
+
+  return {
+    href: "/basket?staples=1",
+    label: "Compare this week’s staples",
+    detail: "Milk, bread, rice… — ranks every branch",
+  };
+}
 
 export function loadBasketDraft(): BasketDraft | null {
   if (typeof window === "undefined") return null;

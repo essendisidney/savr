@@ -4,8 +4,9 @@ function secret(): string {
   return process.env.INVITE_COOKIE_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "savr-dev-invite";
 }
 
+/** Soft launch is open by default. Set INVITE_GATE_ENABLED=true to require a code. */
 export function inviteGateEnabled(): boolean {
-  return process.env.INVITE_GATE_ENABLED !== "false";
+  return process.env.INVITE_GATE_ENABLED === "true";
 }
 
 async function hmacHex(payload: string): Promise<string> {

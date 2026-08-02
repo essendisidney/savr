@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { loadProfile, loadWallet, loadWatchlist } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
+import {
+  homeBasketCta,
+  loadBasketDraft,
+  loadLastComparedAt,
+  type HomeBasketCta,
+} from "@/lib/basket-draft";
 import { formatKes } from "@/lib/compare";
 
 function greetingForHour(hour: number): string {
@@ -26,9 +32,14 @@ export function HomeDecision() {
   const [todayCents, setTodayCents] = useState(0);
   const [alertCount, setAlertCount] = useState(0);
   const [ready, setReady] = useState(false);
+  const [cta, setCta] = useState<HomeBasketCta>(() => homeBasketCta(null, null));
 
   const hour = useMemo(() => new Date().getHours(), []);
   const greeting = greetingForHour(hour);
+
+  useEffect(() => {
+    setCta(homeBasketCta(loadBasketDraft(), loadLastComparedAt()));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,16 +100,27 @@ export function HomeDecision() {
         </h1>
 
         <p className="animate-rise-delay mt-3 max-w-sm text-[15px] text-savr-mute">
-          One list. Every branch. Keep what you would have left on the shelf.
+          {cta.detail}
         </p>
 
         <div className="animate-rise-delay-2 mt-10 space-y-4">
           <Link
-            href="/basket?staples=1"
+            href={cta.href}
             className="btn-primary flex w-full items-center justify-center py-4 text-base"
           >
-            Compare this week&apos;s staples
+            {cta.label}
           </Link>
+
+          {cta.secondaryHref && cta.secondaryLabel && (
+            <p className="text-center text-sm">
+              <Link
+                href={cta.secondaryHref}
+                className="font-semibold text-savr-mute hover:text-savr-forest hover:underline"
+              >
+                {cta.secondaryLabel}
+              </Link>
+            </p>
+          )}
 
           {ready && todayCents > 0 && (
             <p className="text-center text-sm text-savr-mute">

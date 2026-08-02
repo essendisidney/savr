@@ -30,6 +30,7 @@ import {
   decodeListShare,
   hydrateDraftAgainstCatalog,
   loadBasketDraft,
+  markBasketCompared,
   saveBasketDraft,
 } from "@/lib/basket-draft";
 import type { Catalog, ListItem } from "@/lib/types";
@@ -206,6 +207,7 @@ function BasketInner() {
     if (!draftReady || loading) return;
     saveBasketDraft(listName, items);
   }, [draftReady, loading, listName, items]);
+
   useEffect(() => {
     refreshLists();
   }, [refreshLists]);
@@ -234,6 +236,11 @@ function BasketInner() {
         : [],
     [catalog, items, origin, preferredOnly, preferredMerchantIds],
   );
+
+  useEffect(() => {
+    if (loading || items.length === 0 || results.length === 0) return;
+    markBasketCompared();
+  }, [loading, items.length, results.length]);
   const recommended = results.find((r) => r.isRecommended);
   const worst = results[results.length - 1];
   const saved = recommended && worst ? worst.netCents - recommended.netCents : 0;
