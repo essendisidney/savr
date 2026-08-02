@@ -5,8 +5,12 @@ import { normalizePhone254 } from "./phone";
  * API expects mobile as 2547XXXXXXXX (no +).
  */
 export async function sendSMS(phone: string, message: string): Promise<void> {
-  const apiKey = (process.env.TAIFA_API_KEY ?? "").trim();
-  const senderName = (process.env.TAIFA_SENDER_ID ?? "SIDNET").trim();
+  const apiKey = (process.env.TAIFA_API_KEY ?? "")
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  const senderName = (process.env.TAIFA_SENDER_ID ?? "SIDNET")
+    .trim()
+    .replace(/^["']|["']$/g, "");
 
   if (!apiKey) {
     throw new Error("TAIFA_API_KEY is not configured");
