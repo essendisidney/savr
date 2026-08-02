@@ -116,6 +116,13 @@ export function RankList({
                   r.isRecommended ? "text-white/70" : "text-savr-mute"
                 }`}
               >
+                {r.promoCents > 0 && (
+                  <>
+                    Promo −{formatKes(r.promoCents)}
+                    {r.promoLabel ? ` · ${r.promoLabel}` : ""}
+                    <span className="mx-1.5 opacity-40">·</span>
+                  </>
+                )}
                 Cashback {formatKes(r.cashbackCents)}
                 <span className="mx-1.5 opacity-40">·</span>
                 Net{" "}
@@ -176,7 +183,20 @@ export function RankList({
                               : "text-savr-ink"
                         }`}
                       >
-                        {line.lineCents == null ? "No price" : formatKes(line.lineCents)}
+                        {line.lineCents == null
+                          ? "No price"
+                          : line.promoCents && line.promoCents > 0
+                            ? `${formatKes(line.lineCents - line.promoCents)}`
+                            : formatKes(line.lineCents)}
+                        {line.promoCents && line.promoCents > 0 ? (
+                          <span
+                            className={`ml-1.5 text-xs font-medium ${
+                              r.isRecommended ? "text-savr-signal" : "text-savr-forest"
+                            }`}
+                          >
+                            −{formatKes(line.promoCents)}
+                          </span>
+                        ) : null}
                       </span>
                     </li>
                   ))}

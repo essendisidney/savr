@@ -774,13 +774,19 @@ export default function MerchantPage() {
                           ) : null}
                         </p>
                         <p className="text-xs text-savr-mute">
-                          {p.discountPercent != null ? `${p.discountPercent}%` : null}
-                          {p.discountPercent != null && p.description ? " · " : null}
-                          {p.description}
-                          {p.productName ? ` · ${p.productName}` : " · all catalog"}
-                          {p.endsAt
-                            ? ` · ends ${new Date(p.endsAt).toLocaleDateString("en-KE")}`
-                            : ""}
+                          {[
+                            p.discountPercent != null ? `${p.discountPercent}%` : null,
+                            p.flatCents != null
+                              ? `KES ${Math.round(p.flatCents / 100)} off`
+                              : null,
+                            p.category ? `Category: ${p.category}` : null,
+                            p.productName ?? "All catalog",
+                            p.endsAt
+                              ? `ends ${new Date(p.endsAt).toLocaleDateString("en-KE")}`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
                       </div>
                       {p.isActive ? (

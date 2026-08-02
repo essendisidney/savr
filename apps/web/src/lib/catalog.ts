@@ -7,6 +7,7 @@ import type {
   Merchant,
   MerchantPrice,
   Product,
+  Promotion,
 } from "./types";
 
 const fallbackCatalog: Catalog = {
@@ -107,27 +108,66 @@ const fallbackCatalog: Catalog = {
     { merchantId: "m-quickmart", flatCents: 3000, minBasketCents: 200000 },
     { merchantId: "m-carrefour", flatCents: 4500, minBasketCents: 200000 },
   ],
+  promotions: [
+    {
+      id: "promo-oil",
+      merchantId: "m-quickmart",
+      title: "Cooking oil deal",
+      discountPercent: 10,
+      flatCents: null,
+      productId: "p-oil",
+      category: null,
+      endsAt: null,
+    },
+    {
+      id: "promo-dairy",
+      merchantId: "m-carrefour",
+      title: "KES 50 off dairy",
+      discountPercent: null,
+      flatCents: 5000,
+      productId: null,
+      category: "dairy",
+      endsAt: null,
+    },
+    {
+      id: "promo-weekend",
+      merchantId: "m-naivas",
+      title: "Weekend basket boost",
+      discountPercent: null,
+      flatCents: 3000,
+      productId: null,
+      category: null,
+      endsAt: null,
+    },
+  ],
 };
 
 export async function loadCatalog(): Promise<Catalog> {
   const supabase = getSupabase();
   if (!supabase) return fallbackCatalog;
 
-  const [merchantsRes, productsRes, pricesRes, rulesRes, locationsRes] = await Promise.all([
-    supabase.from("merchants").select("id, name, slug, category").eq("category", "grocery"),
-    supabase.from("products").select("id, name, brand, category, unit").order("name"),
-    supabase
-      .from("merchant_prices")
-      .select("merchant_id, product_id, price_cents, observed_at, source"),
-    supabase
-      .from("cashback_rules")
-      .select("merchant_id, flat_cents, min_basket_cents")
-      .eq("is_active", true),
-    supabase
-      .from("merchant_locations")
-      .select("id, merchant_id, name, address, lat, lng, city")
-      .eq("is_active", true),
-  ]);
+  const [merchantsRes, productsRes, pricesRes, rulesRes, locationsRes, promosRes] =
+    await Promise.all([
+      supabase.from("merchants").select("id, name, slug, category").eq("category", "grocery"),
+      supabase.from("products").select("id, name, brand, category, unit").order("name"),
+      supabase
+        .from("merchant_prices")
+        .select("merchant_id, product_id, price_cents, observed_at, source"),
+      supabase
+        .from("cashback_rules")
+        .select("merchant_id, flat_cents, min_basket_cents")
+        .eq("is_active", true),
+      supabase
+        .from("merchant_locations")
+        .select("id, merchant_id, name, address, lat, lng, city")
+        .eq("is_active", true),
+      supabase
+        .from("promotions")
+        .select(
+          "id, merchant_id, title, discount_percent, flat_cents, product_id, category, ends_at, description",
+        )
+        .eq("is_active", true),
+    ]);
 
   if (merchantsRes.error || productsRes.error || pricesRes.error || !merchantsRes.data?.length) {
     console.warn("Catalog load failed, using fallback", {
@@ -170,7 +210,46 @@ export async function loadCatalog(): Promise<Catalog> {
     minBasketCents: row.min_basket_cents ?? 0,
   }));
 
-  return { merchants, products, prices, cashbackRules, source: "supabase" };
+  const now = Date.now();
+  const promotions: Promotion[] = (promosRes.data ?? [])
+    .filter((row) => {
+      if (!row.ends_at) return true;
+      const ends = new Date(row.ends_at).getTime();
+      return Number.isFinite(ends) ? ends > now : true;
+    })
+    .map((row) => {
+      const description = typeof row.description === "string" ? row.description : "";
+      let flatCents =
+        row.flat_cents != null && Number.isFinite(Number(row.flat_cents))
+          ? Number(row.flat_cents)
+          : null;
+      let category =
+        typeof row.category === "string" && row.category.trim() ? row.category.trim() : null;
+      // Back-compat: older portal rows stuffed flat/category into description
+      if (flatCents == null) {
+        const flatMatch = description.match(/Flat\s+(\d+)\s*KES\s*off/i);
+        if (flatMatch) flatCents = Number(flatMatch[1]) * 100;
+      }
+      if (!category) {
+        const catMatch = description.match(/Category:\s*([^·]+)/i);
+        if (catMatch) category = catMatch[1].trim();
+      }
+      return {
+        id: row.id,
+        merchantId: row.merchant_id,
+        title: row.title,
+        discountPercent:
+          row.discount_percent != null && Number.isFinite(Number(row.discount_percent))
+            ? Number(row.discount_percent)
+            : null,
+        flatCents,
+        productId: row.product_id ?? null,
+        category,
+        endsAt: row.ends_at ?? null,
+      };
+    });
+
+  return { merchants, products, prices, cashbackRules, promotions, source: "supabase" };
 }
 
 export async function loadFuelStations(

@@ -244,6 +244,8 @@ export type MerchantPromotion = {
   title: string;
   description: string | null;
   discountPercent: number | null;
+  flatCents: number | null;
+  category: string | null;
   productId: string | null;
   productName: string | null;
   endsAt: string | null;
@@ -256,7 +258,9 @@ export async function loadPromotions(merchantId: string): Promise<MerchantPromot
 
   const { data, error } = await supabase
     .from("promotions")
-    .select("id, title, description, discount_percent, product_id, ends_at, is_active, products(name)")
+    .select(
+      "id, title, description, discount_percent, flat_cents, category, product_id, ends_at, is_active, products(name)",
+    )
     .eq("merchant_id", merchantId)
     .order("starts_at", { ascending: false });
 
@@ -267,11 +271,28 @@ export async function loadPromotions(merchantId: string): Promise<MerchantPromot
     const product = (Array.isArray(productRaw) ? productRaw[0] : productRaw) as {
       name: string;
     } | null;
+    const description = row.description ?? null;
+    let flatCents =
+      row.flat_cents != null && Number.isFinite(Number(row.flat_cents))
+        ? Number(row.flat_cents)
+        : null;
+    let category =
+      typeof row.category === "string" && row.category.trim() ? row.category.trim() : null;
+    if (flatCents == null && description) {
+      const flatMatch = description.match(/Flat\s+(\d+)\s*KES\s*off/i);
+      if (flatMatch) flatCents = Number(flatMatch[1]) * 100;
+    }
+    if (!category && description) {
+      const catMatch = description.match(/Category:\s*([^·]+)/i);
+      if (catMatch) category = catMatch[1].trim();
+    }
     return {
       id: row.id,
       title: row.title,
-      description: row.description ?? null,
+      description,
       discountPercent: row.discount_percent != null ? Number(row.discount_percent) : null,
+      flatCents,
+      category,
       productId: row.product_id ?? null,
       productName: product?.name ?? null,
       endsAt: row.ends_at ?? null,
@@ -317,6 +338,8 @@ export async function createPromotion(params: {
     title,
     description: notes.length ? notes.join(" · ") : null,
     discount_percent: percent,
+    flat_cents: flat,
+    category: params.category?.trim() || null,
     product_id: params.productId || null,
     ends_at: params.endsAt || null,
     is_active: true,

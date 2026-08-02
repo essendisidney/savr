@@ -44,11 +44,23 @@ export type CashbackRule = {
   minBasketCents: number;
 };
 
+export type Promotion = {
+  id: string;
+  merchantId: string;
+  title: string;
+  discountPercent: number | null;
+  flatCents: number | null;
+  productId: string | null;
+  category: string | null;
+  endsAt: string | null;
+};
+
 export type Catalog = {
   merchants: Merchant[];
   products: Product[];
   prices: MerchantPrice[];
   cashbackRules: CashbackRule[];
+  promotions: Promotion[];
   source: "supabase" | "fallback";
 };
 
@@ -64,6 +76,8 @@ export type BasketResult = {
   branchName: string | null;
   totalCents: number;
   cashbackCents: number;
+  promoCents: number;
+  promoLabel: string | null;
   coverage: number;
   netCents: number;
   isRecommended: boolean;
@@ -93,6 +107,7 @@ export type LineItemPrice = {
   quantity: number;
   unitCents: number | null;
   lineCents: number | null;
+  promoCents?: number;
 };
 
 export type RideQuote = {
@@ -127,7 +142,12 @@ export type ProductPriceResult = {
   merchantName: string;
   branchName: string | null;
   address: string | null;
+  /** Effective price after promo (used for ranking). */
   priceCents: number;
+  /** Shelf / list price before promo. */
+  listCents: number;
+  promoCents: number;
+  promoLabel: string | null;
   deltaCents: number;
   isCheapest: boolean;
   mapsUrl: string;

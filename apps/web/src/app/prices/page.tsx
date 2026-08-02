@@ -311,6 +311,11 @@ function PricesInner() {
                                     ? "Lowest price"
                                     : `+${formatKes(r.deltaCents)} vs cheapest`}
                                   {dist ? ` · ${dist}` : ""}
+                                  {r.promoCents > 0
+                                    ? ` · promo −${formatKes(r.promoCents)}${
+                                        r.promoLabel ? ` (${r.promoLabel})` : ""
+                                      }`
+                                    : ""}
                                 </p>
                                 {(() => {
                                   const fresh = formatPriceFreshness(r.observedAt, r.source);
@@ -328,13 +333,24 @@ function PricesInner() {
                                 })()}
                               </div>
                             </div>
-                            <p
-                              className={`font-display text-2xl font-bold tracking-tightish tabular-nums ${
-                                r.isCheapest ? "text-white" : "text-savr-ink"
-                              }`}
-                            >
-                              {formatKes(r.priceCents)}
-                            </p>
+                            <div className="text-right">
+                              <p
+                                className={`font-display text-2xl font-bold tracking-tightish tabular-nums ${
+                                  r.isCheapest ? "text-white" : "text-savr-ink"
+                                }`}
+                              >
+                                {formatKes(r.priceCents)}
+                              </p>
+                              {r.promoCents > 0 && (
+                                <p
+                                  className={`text-xs line-through ${
+                                    r.isCheapest ? "text-white/45" : "text-savr-mute"
+                                  }`}
+                                >
+                                  {formatKes(r.listCents)}
+                                </p>
+                              )}
+                            </div>
                           </div>
 
                           <div

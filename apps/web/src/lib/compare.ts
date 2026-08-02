@@ -5,7 +5,9 @@ import type {
   ListItem,
   Merchant,
   MissedSavingsResult,
+  Product,
   ProductPriceResult,
+  Promotion,
   RideQuote,
 } from "./types";
 import { haversineKm, type GeoPoint } from "./geo";
@@ -125,6 +127,85 @@ function mapsUrlForMerchant(merchant: Merchant, origin?: GeoPoint | null): strin
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+function activePromosForMerchant(catalog: Catalog, merchantId: string): Promotion[] {
+  const now = Date.now();
+  return (catalog.promotions ?? []).filter((p) => {
+    if (p.merchantId !== merchantId) return false;
+    if (!p.endsAt) return true;
+    const ends = new Date(p.endsAt).getTime();
+    return Number.isFinite(ends) ? ends > now : true;
+  });
+}
+
+function discountFromPromo(promo: Promotion, amountCents: number): number {
+  if (amountCents <= 0) return 0;
+  let discount = 0;
+  if (promo.discountPercent != null && promo.discountPercent > 0) {
+    discount = Math.round((amountCents * promo.discountPercent) / 100);
+  }
+  if (promo.flatCents != null && promo.flatCents > 0) {
+    discount = Math.max(discount, promo.flatCents);
+  }
+  return Math.min(amountCents, Math.max(0, discount));
+}
+
+/** Best product- or category-scoped promo for one line. */
+function linePromoDiscount(
+  promos: Promotion[],
+  product: Product | undefined,
+  lineCents: number,
+): { cents: number; title: string | null } {
+  if (!product || lineCents <= 0) return { cents: 0, title: null };
+
+  const productPromos = promos.filter((p) => p.productId === product.id);
+  const categoryPromos = promos.filter(
+    (p) =>
+      !p.productId &&
+      p.category &&
+      p.category.toLowerCase() === product.category.toLowerCase(),
+  );
+  const candidates = productPromos.length ? productPromos : categoryPromos;
+
+  let best = 0;
+  let title: string | null = null;
+  for (const promo of candidates) {
+    const d = discountFromPromo(promo, lineCents);
+    if (d > best) {
+      best = d;
+      title = promo.title;
+    }
+  }
+  return { cents: best, title };
+}
+
+function storeWidePromoDiscount(
+  promos: Promotion[],
+  basketCents: number,
+): { cents: number; title: string | null } {
+  const wide = promos.filter((p) => !p.productId && !p.category);
+  let best = 0;
+  let title: string | null = null;
+  for (const promo of wide) {
+    const d = discountFromPromo(promo, basketCents);
+    if (d > best) {
+      best = d;
+      title = promo.title;
+    }
+  }
+  return { cents: best, title };
+}
+
+function productPromoForUnit(
+  catalog: Catalog,
+  merchantId: string,
+  productId: string,
+  unitCents: number,
+): { cents: number; title: string | null } {
+  const product = catalog.products.find((p) => p.id === productId);
+  const promos = activePromosForMerchant(catalog, merchantId);
+  return linePromoDiscount(promos, product, unitCents);
+}
+
 export function compareProduct(
   catalog: Catalog,
   productId: string,
@@ -137,12 +218,17 @@ export function compareProduct(
         (p) => p.merchantId === merchant.id && p.productId === productId,
       );
       if (!price) return null;
+      const promo = productPromoForUnit(catalog, merchant.id, productId, price.priceCents);
+      const effective = Math.max(0, price.priceCents - promo.cents);
       return {
         merchantId: merchant.id,
         merchantName: merchant.name,
         branchName: merchant.location?.name ?? null,
         address: merchant.location?.address ?? null,
-        priceCents: price.priceCents,
+        priceCents: effective,
+        listCents: price.priceCents,
+        promoCents: promo.cents,
+        promoLabel: promo.title,
         mapsUrl: mapsUrlForMerchant(merchant, origin),
         distanceKm: distanceForMerchant(merchant, origin),
         observedAt: price.observedAt ?? null,
@@ -158,6 +244,9 @@ export function compareProduct(
         branchName: string | null;
         address: string | null;
         priceCents: number;
+        listCents: number;
+        promoCents: number;
+        promoLabel: string | null;
         mapsUrl: string;
         distanceKm: number | null;
         observedAt: string | null;
@@ -188,16 +277,22 @@ export function lineItemsForMerchant(
   items: ListItem[],
   merchantId: string,
 ): LineItemPrice[] {
+  const promos = activePromosForMerchant(catalog, merchantId);
   return items.map((item) => {
     const price = catalog.prices.find(
       (p) => p.merchantId === merchantId && p.productId === item.productId,
     );
+    const product = catalog.products.find((p) => p.id === item.productId);
+    const lineCents = price ? price.priceCents * item.quantity : null;
+    const promo =
+      lineCents != null ? linePromoDiscount(promos, product, lineCents) : { cents: 0, title: null };
     return {
       productId: item.productId,
       name: item.freeText,
       quantity: item.quantity,
       unitCents: price?.priceCents ?? null,
-      lineCents: price ? price.priceCents * item.quantity : null,
+      lineCents,
+      promoCents: promo.cents,
     };
   });
 }
@@ -216,26 +311,48 @@ export function compareBasket(
     grocery = grocery.filter((m) => allow.has(m.id));
   }
   const results = grocery.map((merchant) => {
+    const promos = activePromosForMerchant(catalog, merchant.id);
     let total = 0;
     let matched = 0;
+    let linePromoTotal = 0;
+    const labels = new Set<string>();
+
     for (const item of items) {
       const price = catalog.prices.find(
         (p) => p.merchantId === merchant.id && p.productId === item.productId,
       );
-      if (price) {
-        total += price.priceCents * item.quantity;
-        matched += 1;
-      }
+      if (!price) continue;
+      const line = price.priceCents * item.quantity;
+      total += line;
+      matched += 1;
+      const product = catalog.products.find((p) => p.id === item.productId);
+      const linePromo = linePromoDiscount(promos, product, line);
+      linePromoTotal += linePromo.cents;
+      if (linePromo.title) labels.add(linePromo.title);
     }
+
+    const afterLinePromos = Math.max(0, total - linePromoTotal);
+    const storeWide = storeWidePromoDiscount(promos, afterLinePromos);
+    if (storeWide.title && storeWide.cents > 0) labels.add(storeWide.title);
+    const promoCents = linePromoTotal + storeWide.cents;
     const cashback = cashbackForBasket(catalog, merchant.id, total);
+    const promoLabel =
+      labels.size === 0
+        ? null
+        : labels.size === 1
+          ? Array.from(labels)[0]
+          : `${labels.size} promos`;
+
     return {
       merchantId: merchant.id,
       merchantName: merchant.name,
       branchName: merchant.location?.name ?? null,
       totalCents: total,
       cashbackCents: cashback,
+      promoCents,
+      promoLabel,
       coverage: items.length ? matched / items.length : 0,
-      netCents: total - cashback,
+      netCents: Math.max(0, total - promoCents - cashback),
       isRecommended: false,
       mapsUrl: mapsUrlForMerchant(merchant, origin),
       distanceKm: distanceForMerchant(merchant, origin),

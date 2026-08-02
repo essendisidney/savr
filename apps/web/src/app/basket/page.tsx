@@ -178,7 +178,7 @@ function BasketInner() {
   );
   const recommended = results.find((r) => r.isRecommended);
   const worst = results[results.length - 1];
-  const saved = recommended && worst ? worst.totalCents - recommended.totalCents : 0;
+  const saved = recommended && worst ? worst.netCents - recommended.netCents : 0;
   const share = useMemo(() => {
     if (!recommended || saved <= 0) return undefined;
     return buildBasketShare({
@@ -350,7 +350,11 @@ function BasketInner() {
               <SavingsMoment
                 amountLabel="You could keep"
                 amountCents={saved}
-                detail={`vs the priciest basket · earn ${formatKes(recommended.cashbackCents)} at ${recommended.merchantName}`}
+                detail={`vs the priciest basket · earn ${formatKes(recommended.cashbackCents)} at ${recommended.merchantName}${
+                  recommended.promoCents > 0
+                    ? ` · promo −${formatKes(recommended.promoCents)}`
+                    : ""
+                }`}
                 share={share}
               />
             )}
