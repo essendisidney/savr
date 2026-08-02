@@ -59,6 +59,21 @@ export function buildMissedShare(params: {
   };
 }
 
+export function buildRideShare(params: {
+  savingsCents: number;
+  partner: string;
+  destination: string;
+}): SharePayload {
+  const amount = formatKes(params.savingsCents);
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
+  return {
+    title: "Saved with Savr",
+    text: `Savr says take ${params.partner} to ${params.destination} — keep about ${amount} vs the priciest quote. Before you spend, Savr it.`,
+    url: `${origin}/rides`,
+  };
+}
+
 export async function sharePayload(payload: SharePayload): Promise<"shared" | "copied" | "failed"> {
   const full = `${payload.text}\n${payload.url}`;
   try {

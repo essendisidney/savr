@@ -99,6 +99,8 @@ export type RideQuote = {
   etaMin: number;
   cashbackCents: number;
   deepLink: string;
+  netCents: number;
+  isEstimated: boolean;
 };
 
 export type FuelStation = {
@@ -107,6 +109,9 @@ export type FuelStation = {
   priceCentsPerLitre: number;
   cashbackCents: number;
   distanceKm: number | null;
+  lat: number | null;
+  lng: number | null;
+  mapsUrl: string | null;
 };
 
 export type ProductPriceResult = {

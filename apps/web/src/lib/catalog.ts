@@ -155,19 +155,12 @@ export async function loadCatalog(): Promise<Catalog> {
 export async function loadFuelStations(): Promise<{ stations: FuelStation[]; source: string }> {
   const supabase = getSupabase();
   if (!supabase) {
-    return {
-      source: "fallback",
-      stations: [
-        { name: "Total Kilimani", brand: "TotalEnergies", priceCentsPerLitre: 17900, cashbackCents: 1500, distanceKm: 1.2 },
-        { name: "Rubis Westlands", brand: "Rubis", priceCentsPerLitre: 18000, cashbackCents: 1000, distanceKm: 0.8 },
-        { name: "Shell Junction", brand: "Shell", priceCentsPerLitre: 18300, cashbackCents: 1200, distanceKm: 2.1 },
-      ],
-    };
+    return loadFuelStationsFallback();
   }
 
   const { data, error } = await supabase
     .from("fuel_stations")
-    .select("name, brand, fuel_prices(price_cents_per_litre, fuel_type, observed_at)")
+    .select("name, brand, lat, lng, address, fuel_prices(price_cents_per_litre, fuel_type, observed_at)")
     .eq("is_active", true);
 
   if (error || !data?.length) {
@@ -179,12 +172,22 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
       const prices = (s.fuel_prices as { price_cents_per_litre: number; fuel_type: string }[] | null) ?? [];
       const petrol = prices.find((p) => p.fuel_type === "petrol") ?? prices[0];
       if (!petrol) return null;
+      const lat = typeof s.lat === "number" ? s.lat : null;
+      const lng = typeof s.lng === "number" ? s.lng : null;
       const station: FuelStation = {
         name: s.name,
         brand: s.brand ?? s.name,
         priceCentsPerLitre: petrol.price_cents_per_litre,
         cashbackCents: 1500,
         distanceKm: null,
+        lat,
+        lng,
+        mapsUrl:
+          lat != null && lng != null
+            ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+            : s.address
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.name}, ${s.address}, Nairobi`)}`
+              : null,
       };
       return station;
     })
@@ -195,12 +198,37 @@ export async function loadFuelStations(): Promise<{ stations: FuelStation[]; sou
 }
 
 function loadFuelStationsFallback() {
-  return {
-    source: "fallback" as const,
-    stations: [
-      { name: "Total Kilimani", brand: "TotalEnergies", priceCentsPerLitre: 17900, cashbackCents: 1500, distanceKm: 1.2 },
-      { name: "Rubis Westlands", brand: "Rubis", priceCentsPerLitre: 18000, cashbackCents: 1000, distanceKm: 0.8 },
-      { name: "Shell Junction", brand: "Shell", priceCentsPerLitre: 18300, cashbackCents: 1200, distanceKm: 2.1 },
-    ],
-  };
+  const stations: FuelStation[] = [
+    {
+      name: "Total Kilimani",
+      brand: "TotalEnergies",
+      priceCentsPerLitre: 17900,
+      cashbackCents: 1500,
+      distanceKm: null,
+      lat: -1.29,
+      lng: 36.788,
+      mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.29,36.788",
+    },
+    {
+      name: "Rubis Westlands",
+      brand: "Rubis",
+      priceCentsPerLitre: 18000,
+      cashbackCents: 1000,
+      distanceKm: null,
+      lat: -1.265,
+      lng: 36.804,
+      mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.265,36.804",
+    },
+    {
+      name: "Shell Junction",
+      brand: "Shell",
+      priceCentsPerLitre: 18300,
+      cashbackCents: 1200,
+      distanceKm: null,
+      lat: -1.3,
+      lng: 36.78,
+      mapsUrl: "https://www.google.com/maps/dir/?api=1&destination=-1.3,36.78",
+    },
+  ];
+  return { source: "fallback" as const, stations };
 }

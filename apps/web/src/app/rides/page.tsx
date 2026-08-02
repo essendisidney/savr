@@ -1,46 +1,105 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { compareRides, formatKes } from "@/lib/compare";
+import { compareRidesForRoute, formatKes } from "@/lib/compare";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { buildRideShare } from "@/lib/share";
+
+const PRESETS = ["Westlands", "CBD", "Airport", "Kilimani", "Karen", "Eastleigh"];
 
 export default function RidesPage() {
+  const [pickup, setPickup] = useState("Westlands");
   const [destination, setDestination] = useState("Airport");
-  const quotes = useMemo(() => compareRides(destination), [destination]);
+  const quotes = useMemo(
+    () => compareRidesForRoute(pickup, destination),
+    [pickup, destination],
+  );
   const best = quotes[0];
   const worst = quotes[quotes.length - 1];
-  const saved = worst && best ? worst.priceCents - best.priceCents : 0;
+  const saved =
+    worst && best ? worst.netCents - best.netCents : 0;
   const maxPrice = Math.max(...quotes.map((q) => q.priceCents), 1);
+  const share = useMemo(() => {
+    if (!best || saved <= 0) return undefined;
+    return buildRideShare({
+      savingsCents: saved,
+      partner: best.partner,
+      destination: destination.trim() || "Nairobi",
+    });
+  }, [best, saved, destination]);
 
   return (
     <PageFrame>
       <PageHero
         theme="rides"
         title="Who gets you there for less?"
-        subtitle="Bolt, Uber, Little — ranked before you request."
+        subtitle="Bolt, Uber, Little — ranked before you request. Quotes are estimated until partner APIs go live."
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
-            <label className="animate-rise block max-w-md space-y-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                Destination
-              </span>
-              <input
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
-              />
-            </label>
+            <div className="animate-rise grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                  Pickup
+                </span>
+                <input
+                  value={pickup}
+                  onChange={(e) => setPickup(e.target.value)}
+                  list="ride-places"
+                  placeholder="Westlands"
+                  className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
+                />
+              </label>
+              <label className="block space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                  Destination
+                </span>
+                <input
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  list="ride-places"
+                  placeholder="Airport"
+                  className="field shadow-[0_10px_30px_-20px_rgba(4,36,25,0.5)]"
+                />
+              </label>
+              <datalist id="ride-places">
+                {PRESETS.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {PRESETS.filter((p) => p !== pickup).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setDestination(p)}
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                    destination === p
+                      ? "bg-savr-night text-white"
+                      : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                  }`}
+                >
+                  → {p}
+                </button>
+              ))}
+            </div>
+
+            <p className="rounded-sm bg-savr-fog px-3 py-2 text-xs font-semibold text-savr-mute">
+              Estimated quotes · not live partner fares · cashback applied to net rank
+            </p>
 
             {best && (
               <SavingsMoment
                 amountLabel={`Take ${best.partner}`}
                 amountCents={saved}
-                detail={`Save on this trip · plus ${formatKes(best.cashbackCents)} cashback`}
+                detail={`Est. save vs priciest net · +${formatKes(best.cashbackCents)} cashback · ${pickup} → ${destination}`}
+                share={share}
               />
             )}
 
@@ -69,7 +128,15 @@ export default function RidesPage() {
                         <div>
                           <p className="font-display text-2xl font-bold tracking-tightish">{q.partner}</p>
                           <p className={`text-sm ${i === 0 ? "text-white/65" : "text-savr-mute"}`}>
-                            ETA {q.etaMin} min · Cashback {formatKes(q.cashbackCents)}
+                            ETA ~{q.etaMin} min · Cashback {formatKes(q.cashbackCents)}
+                            {q.isEstimated ? " · Estimated" : " · Live"}
+                          </p>
+                          <p
+                            className={`mt-0.5 text-xs font-semibold ${
+                              i === 0 ? "text-savr-signal" : "text-savr-mute"
+                            }`}
+                          >
+                            Net {formatKes(q.netCents)}
                           </p>
                         </div>
                       </div>
