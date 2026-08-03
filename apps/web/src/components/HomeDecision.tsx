@@ -225,14 +225,14 @@ export function HomeDecision() {
         </form>
 
         <div className="animate-rise-delay-2 mt-8 space-y-5">
-          <Link
-            href={cta.href}
-            className="block border-t border-savr-ink/[0.06] pt-5 transition hover:border-savr-forest/25"
-          >
+          <div className="border-t border-savr-ink/[0.06] pt-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
               Continue
             </p>
-            <div className="mt-2 flex items-start justify-between gap-3">
+            <Link
+              href={cta.href}
+              className="mt-2 flex items-start justify-between gap-3 transition hover:opacity-90"
+            >
               <div>
                 <p className="font-display text-xl font-bold tracking-tightish text-savr-ink">
                   {cta.label}
@@ -245,8 +245,16 @@ export function HomeDecision() {
                 )}
               </div>
               <span className="shrink-0 pt-1 text-sm font-semibold text-savr-forest">→</span>
-            </div>
-          </Link>
+            </Link>
+            {cta.secondaryHref && cta.secondaryLabel && (
+              <Link
+                href={cta.secondaryHref}
+                className="mt-3 inline-block text-sm font-semibold text-savr-mute transition hover:text-savr-forest hover:underline"
+              >
+                {cta.secondaryLabel} →
+              </Link>
+            )}
+          </div>
 
           {insight && insight.href !== cta.href && (
             <Link

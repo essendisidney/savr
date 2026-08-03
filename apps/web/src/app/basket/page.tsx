@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   confirmBasketChoice,
   enableListShare,
@@ -81,6 +81,8 @@ function BasketInner() {
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [sharingDraft, setSharingDraft] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  const [lockedShareReady, setLockedShareReady] = useState(false);
+  const punchRef = useRef<HTMLDivElement>(null);
   const askText = (searchParams.get("ask") ?? "").trim();
   const {
     origin,
@@ -242,6 +244,11 @@ function BasketInner() {
     if (loading || items.length === 0 || results.length === 0) return;
     markBasketCompared();
   }, [loading, items.length, results.length]);
+
+  useEffect(() => {
+    setLockedShareReady(false);
+  }, [items]);
+
   const recommended = results.find((r) => r.isRecommended);
   const worst = results[results.length - 1];
   const saved = recommended && worst ? worst.netCents - recommended.netCents : 0;
@@ -417,15 +424,37 @@ function BasketInner() {
       setStatus(outcome.error);
       return;
     }
-    setStatus(
-      followed && earnCents > 0
-        ? `Locked in — ${formatKes(earnCents)} cashback in your wallet.`
-        : followed
-          ? "Locked in — share your save or see it in Savings."
-          : `Locked ${chosen.merchantName} — no cashback (Savr recommended ${recommended.merchantName}).`,
-    );
     track("basket_confirm", { followed, earned: earnCents });
     refreshLists();
+    setLockedShareReady(true);
+
+    const punch = share;
+    if (followed && punch) {
+      track("share_save", {
+        via: "whatsapp_autolock",
+        amountKes: Math.round(saved / 100),
+      });
+      window.open(whatsAppShareUrl(punch), "_blank", "noopener,noreferrer");
+      setStatus(
+        earnCents > 0
+          ? `Locked in — ${formatKes(earnCents)} cashback. Opening WhatsApp…`
+          : "Locked in — opening WhatsApp so someone else checks first.",
+      );
+    } else if (followed) {
+      setStatus(
+        earnCents > 0
+          ? `Locked in — ${formatKes(earnCents)} cashback in your wallet. Share the save.`
+          : "Locked in — WhatsApp your save so someone else checks before they spend.",
+      );
+    } else {
+      setStatus(
+        `Locked ${chosen.merchantName} — no cashback (Savr recommended ${recommended.merchantName}).`,
+      );
+    }
+
+    requestAnimationFrame(() => {
+      punchRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
 
   if (loading || !catalog) {
@@ -471,24 +500,36 @@ function BasketInner() {
               </p>
             )}
             {recommended && items.length > 0 && (
-              <SavingsMoment
-                amountLabel="You could keep"
-                amountCents={saved}
-                detail={`vs the priciest basket · ${recommended.merchantName}${
-                  recommended.cashbackCents > 0
-                    ? ` · earn ${formatKes(recommended.cashbackCents)}`
-                    : ""
-                }`}
-                share={share}
-                paidCents={recommended.netCents}
-                averageCents={
-                  results.length
-                    ? Math.round(
-                        results.reduce((s, r) => s + r.netCents, 0) / results.length,
-                      )
-                    : undefined
-                }
-              />
+              <div ref={punchRef}>
+                <SavingsMoment
+                  amountLabel={lockedShareReady ? "You locked in" : "You could keep"}
+                  amountCents={saved}
+                  detail={
+                    lockedShareReady
+                      ? `Smart pick · ${recommended.merchantName}${
+                          recommended.cashbackCents > 0
+                            ? ` · ${formatKes(recommended.cashbackCents)} cashback`
+                            : ""
+                        }`
+                      : `vs the priciest basket · ${recommended.merchantName}${
+                          recommended.cashbackCents > 0
+                            ? ` · earn ${formatKes(recommended.cashbackCents)}`
+                            : ""
+                        }`
+                  }
+                  share={share}
+                  shareLabel="Share another way"
+                  emphasizeShare={lockedShareReady}
+                  paidCents={recommended.netCents}
+                  averageCents={
+                    results.length
+                      ? Math.round(
+                          results.reduce((s, r) => s + r.netCents, 0) / results.length,
+                        )
+                      : undefined
+                  }
+                />
+              </div>
             )}
 
             <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
