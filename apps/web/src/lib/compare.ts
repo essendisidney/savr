@@ -12,9 +12,9 @@ import type {
 } from "./types";
 import { haversineKm, type GeoPoint } from "./geo";
 import { aggregateConfidence, priceConfidence } from "./freshness";
-import { askSearchTokens } from "./intents";
+import { askSearchTokens, resolveAskSearchProbe } from "./intents";
 import { compareRidesForRoute } from "./rides";
-import { WEEKLY_30 } from "./weekly-30";
+import { WEEKLY_30, weekly30ProductIds } from "./weekly-30";
 
 export { compareRidesForRoute } from "./rides";
 
@@ -151,12 +151,19 @@ export function searchProducts(
     .map((row) => row.p);
 }
 
-/** Best single product for an Ask free-text query. */
+/** Best single product for an Ask free-text query (aliases + tokens). */
 export function bestAskProductMatch(catalog: Catalog, raw: string) {
-  const tokens = askSearchTokens(raw);
-  const probe = tokens.length ? tokens.join(" ") : raw;
-  const hits = searchProducts(catalog, probe, [], 1);
+  const probe = resolveAskSearchProbe(raw);
+  const hits = searchProducts(catalog, probe || raw, [], 3);
   return hits[0] ?? null;
+}
+
+/** Soft suggestions when Ask misses — Weekly 30 first, then catalog head. */
+export function askRecoveryProducts(catalog: Catalog, limit = 8) {
+  const weeklyIds = weekly30ProductIds();
+  const fromWeekly = catalog.products.filter((p) => weeklyIds.has(p.id));
+  const pool = fromWeekly.length ? fromWeekly : catalog.products;
+  return pool.slice(0, limit);
 }
 
 function distanceForMerchant(merchant: Merchant, origin?: GeoPoint | null): number | null {

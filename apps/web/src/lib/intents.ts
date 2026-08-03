@@ -85,6 +85,7 @@ const PRODUCTISH = new Set([
   "flour",
   "maize",
   "ugali",
+  "unga",
   "eggs",
   "egg",
   "tea",
@@ -118,7 +119,42 @@ const PRODUCTISH = new Set([
   "panadol",
   "paracetamol",
   "medicine",
+  "chai",
 ]);
+
+/**
+ * Broad “I need groceries” language — never a single-SKU dead end.
+ * “food” alone should open a staples basket, not “No match”.
+ */
+const BASKETISH_RE =
+  /\b(food|foods|meal|meals|lunch|dinner|breakfast|kitchen|shopping|supermarket|market|provisions|vikapu|family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/;
+
+/**
+ * Nairobi vernacular / synonyms → catalog search probe.
+ * Keep honest: only map to things we actually stock.
+ */
+export const ASK_PRODUCT_ALIASES: Record<string, string> = {
+  ugali: "maize flour",
+  unga: "maize flour",
+  posho: "maize flour",
+  chai: "tea",
+  mandazi: "bread",
+  loaf: "bread",
+  cookingoil: "cooking oil",
+  vegetable: "sukuma",
+  veggies: "sukuma",
+  vegetables: "sukuma",
+  greens: "sukuma",
+  ndengu: "green grams",
+  detergent: "laundry detergent",
+  omo: "laundry detergent",
+  tissue: "tissue paper",
+  toothpaste: "toothpaste",
+  eggs: "eggs",
+  chicken: "chicken",
+  yoghurt: "yoghurt",
+  yogurt: "yoghurt",
+};
 
 const ASK_STOP = new Set([
   "a",
@@ -150,6 +186,8 @@ const ASK_STOP = new Set([
   "compare",
   "price",
   "prices",
+  "and",
+  "with",
   "westlands",
   "nairobi",
   "naivas",
@@ -183,16 +221,38 @@ export function askSearchTokens(raw: string): string[] {
     .filter((t) => t.length > 2 && !ASK_STOP.has(t));
 }
 
-/** Compact q= for Prices — product tokens when present, else full Ask. */
-export function askPriceQuery(raw: string): string {
+/** Expand aliases so “ugali” finds maize flour, etc. */
+export function resolveAskSearchProbe(raw: string): string {
   const tokens = askSearchTokens(raw);
-  if (tokens.length) return tokens.slice(0, 4).join(" ");
+  if (!tokens.length) return raw.trim().slice(0, 80);
+  const expanded: string[] = [];
+  for (const t of tokens) {
+    const alias = ASK_PRODUCT_ALIASES[t];
+    if (alias) {
+      for (const part of alias.split(/\s+/)) {
+        if (part && !expanded.includes(part)) expanded.push(part);
+      }
+    } else if (!expanded.includes(t)) {
+      expanded.push(t);
+    }
+  }
+  return expanded.slice(0, 6).join(" ");
+}
+
+/** Compact q= for Prices — aliases + product tokens when present. */
+export function askPriceQuery(raw: string): string {
+  const probe = resolveAskSearchProbe(raw);
+  if (probe) return probe;
   return raw.trim().slice(0, 80);
 }
 
 function hasProductish(q: string): boolean {
   const tokens = q.toLowerCase().split(/[^a-z0-9+]+/).filter(Boolean);
-  return tokens.some((t) => PRODUCTISH.has(t));
+  return tokens.some((t) => PRODUCTISH.has(t) || Boolean(ASK_PRODUCT_ALIASES[t]));
+}
+
+function isBasketish(q: string): boolean {
+  return BASKETISH_RE.test(q);
 }
 
 function pricesPath(raw: string): string {
@@ -207,6 +267,18 @@ export function routeAskQuery(raw: string): string {
   if (!q) return "/ask";
 
   const productish = hasProductish(q);
+  const basketish = isBasketish(q);
+
+  // Broad grocery language with no specific SKU → staples basket (e.g. “food”).
+  if (basketish && !productish) {
+    if (/\b(watch|wishlist|alert|notify)\b/.test(q)) {
+      return withAskParam("/saved", trimmed);
+    }
+    if (/\b(missed|could i|receipt|after\s+(a\s+)?shop|last\s+shop)\b/.test(q)) {
+      return withAskParam("/check", trimmed);
+    }
+    return withAskParam("/basket?staples=1", trimmed);
+  }
 
   // Product asks win over geo/ride keywords (“bread near me”, “milk in CBD”).
   if (productish) {
@@ -215,9 +287,6 @@ export function routeAskQuery(raw: string): string {
     }
     if (/\b(missed|could i|receipt|after\s+(a\s+)?shop|last\s+shop)\b/.test(q)) {
       return withAskParam("/check", trimmed);
-    }
-    if (/\b(family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/.test(q) && !/\b(compare|cheapest|price)\b/.test(q)) {
-      return withAskParam("/basket?staples=1", trimmed);
     }
     return pricesPath(trimmed);
   }
@@ -245,7 +314,7 @@ export function routeAskQuery(raw: string): string {
   if (/\b(map|nearby|near\s+me|directions)\b/.test(q)) {
     return withAskParam("/map", trimmed);
   }
-  if (/\b(family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/.test(q)) {
+  if (basketish) {
     return withAskParam("/basket?staples=1", trimmed);
   }
   if (/\b(missed|could i|receipt|after\s+(a\s+)?shop|last\s+shop)\b/.test(q)) {
@@ -255,6 +324,7 @@ export function routeAskQuery(raw: string): string {
     return pricesPath(trimmed);
   }
 
+  // Unknown free text → Prices with recovery UI (never a hard dead end).
   return pricesPath(trimmed);
 }
 

@@ -11,7 +11,7 @@ import {
 } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
-import { bestAskProductMatch, compareProduct, formatKes } from "@/lib/compare";
+import { bestAskProductMatch, askRecoveryProducts, compareProduct, formatKes } from "@/lib/compare";
 import { askQuote } from "@/lib/intents";
 import { buildPriceTipShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
@@ -159,6 +159,11 @@ function PricesInner() {
     return pool.slice(0, 12);
   }, [catalog, query, category]);
 
+  const recoveryPicks = useMemo(
+    () => (catalog ? askRecoveryProducts(catalog, 8) : []),
+    [catalog],
+  );
+
   const results = useMemo(
     () => (catalog && selectedId ? compareProduct(catalog, selectedId, origin) : []),
     [catalog, selectedId, origin],
@@ -286,26 +291,63 @@ function PricesInner() {
             )}
 
             {fromAsk && !selected && !loading && (
-              <EmptyState
-                title={`No match for “${askQuote(askText || query || "that")}”`}
-                body="Try a staple we track — or compare a full weekly basket."
-                action={
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    {RECOVERY_CHIPS.map((chip) => (
-                      <Link
-                        key={chip.q}
-                        href={`/prices?q=${encodeURIComponent(chip.q)}&ask=${encodeURIComponent(chip.label)}`}
-                        className="btn-ghost px-3 py-2 text-sm"
+              <div className="card space-y-4 px-4 py-5 sm:px-5">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                    Still helping
+                  </p>
+                  <h2 className="mt-1 font-display text-xl font-bold tracking-tightish text-savr-ink">
+                    We don’t track “{askQuote(askText || query || "that")}” as one item yet
+                  </h2>
+                  <p className="mt-1.5 text-sm text-savr-mute">
+                    Savr ranks real shelf staples — pick one below, or compare a full weekly basket.
+                    Tip what you see later so we grow the catalog honestly.
+                  </p>
+                </div>
+                <ul className="divide-y divide-savr-ink/[0.06] overflow-hidden rounded-2xl border border-savr-ink/[0.08]">
+                  {recoveryPicks.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedId(p.id);
+                          setQuery("");
+                          setAskMatched(true);
+                          track("ask_price_recover", {
+                            productId: p.id,
+                            q: (askText || query).slice(0, 80),
+                          });
+                        }}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-savr-mist"
                       >
-                        {chip.label}
-                      </Link>
-                    ))}
-                    <Link href="/basket?staples=1" className="btn-primary">
-                      Weekly staples
+                        <span>
+                          <span className="block font-semibold text-savr-ink">{p.name}</span>
+                          <span className="text-xs text-savr-mute">
+                            {[p.brand, p.category].filter(Boolean).join(" · ")}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-savr-forest">
+                          Compare →
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap gap-2">
+                  {RECOVERY_CHIPS.map((chip) => (
+                    <Link
+                      key={chip.q}
+                      href={`/prices?q=${encodeURIComponent(chip.q)}&ask=${encodeURIComponent(chip.label)}`}
+                      className="btn-ghost px-3 py-2 text-sm"
+                    >
+                      {chip.label}
                     </Link>
-                  </div>
-                }
-              />
+                  ))}
+                  <Link href="/basket?staples=1" className="btn-primary">
+                    Weekly staples basket
+                  </Link>
+                </div>
+              </div>
             )}
 
             <div className={askMatched && selected ? "order-2" : "order-1"}>
