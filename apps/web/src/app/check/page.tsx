@@ -12,12 +12,14 @@ import {
 } from "@/lib/basket-draft";
 import { loadCatalog } from "@/lib/catalog";
 import {
+  compareBasket,
   computeMissedSavings,
   defaultListFromCatalog,
   formatKes,
   lineItemsForMerchant,
   searchProducts,
 } from "@/lib/compare";
+import { formatPriceFreshness } from "@/lib/freshness";
 import { askQuote } from "@/lib/intents";
 import type { Catalog, ListItem } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -25,7 +27,14 @@ import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
-import { buildMissedShare, buildWinShare, sharePayload, whatsAppShareUrl } from "@/lib/share";
+import {
+  buildMissedShare,
+  buildPriceTipShare,
+  buildWinShare,
+  sharePayload,
+  whatsAppShareUrl,
+  type SharePayload,
+} from "@/lib/share";
 import { track } from "@/lib/track";
 
 export default function CheckPage() {
@@ -58,6 +67,7 @@ function CheckInner() {
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
+  const [tipShare, setTipShare] = useState<SharePayload | null>(null);
   const [draftHint, setDraftHint] = useState<BasketDraft | null>(null);
   const [listNote, setListNote] = useState<string | null>(null);
   const [listName, setListName] = useState("This trip");
@@ -141,6 +151,72 @@ function CheckInner() {
     [catalog, items, paidMerchantId, paidLocationId],
   );
 
+  /** Top shelves to tip after a shop — missing, stale, or biggest line gaps. */
+  const tipTargets = useMemo(() => {
+    if (!catalog || !items.length || !paidMerchantId || !paidLines.length) return [];
+    const ranks = compareBasket(catalog, items);
+    const best =
+      ranks.find((r) => r.isRecommended) ??
+      ranks.find((r) => r.merchantId !== paidMerchantId) ??
+      ranks[0];
+    const bestLines = best
+      ? lineItemsForMerchant(catalog, items, best.merchantId, best.locationId)
+      : [];
+
+    type Target = {
+      productId: string;
+      name: string;
+      reason: string;
+      score: number;
+      prefillKes: string;
+    };
+    const rows: Target[] = [];
+    for (const line of paidLines) {
+      const bestLine = bestLines.find((b) => b.productId === line.productId);
+      const fresh = formatPriceFreshness(line.observedAt, line.source);
+      if (line.unitCents == null) {
+        rows.push({
+          productId: line.productId,
+          name: line.name,
+          reason: "No shelf price at the store you used",
+          score: 100_000,
+          prefillKes: "",
+        });
+        continue;
+      }
+      if (fresh.stale || line.confidenceLevel === "low") {
+        rows.push({
+          productId: line.productId,
+          name: line.name,
+          reason: fresh.stale
+            ? "May be stale — tip what you paid"
+            : "Low confidence — tip what you paid",
+          score: 50_000 + (fresh.stale ? 1_000 : 0) + (line.confidenceLevel === "low" ? 500 : 0),
+          prefillKes: String(Math.round(line.unitCents / 100)),
+        });
+        continue;
+      }
+      if (
+        best &&
+        best.merchantId !== paidMerchantId &&
+        bestLine?.unitCents != null &&
+        line.unitCents > bestLine.unitCents
+      ) {
+        const gap = (line.unitCents - bestLine.unitCents) * line.quantity;
+        if (gap >= 500) {
+          rows.push({
+            productId: line.productId,
+            name: line.name,
+            reason: `~${formatKes(gap)} of the miss sits on this line`,
+            score: gap,
+            prefillKes: String(Math.round(line.unitCents / 100)),
+          });
+        }
+      }
+    }
+    return rows.sort((a, b) => b.score - a.score).slice(0, 2);
+  }, [catalog, items, paidMerchantId, paidLines]);
+
   const share = useMemo(() => {
     if (!missed) return undefined;
     const listPayload = { listName, items };
@@ -198,6 +274,7 @@ function CheckInner() {
     if (!tipProductId || !paidMerchantId) return;
     setTipBusy(true);
     setTipStatus(null);
+    setTipShare(null);
     const res = await submitCrowdsourcePrice({
       merchantId: paidMerchantId,
       locationId: paidLocationId,
@@ -209,13 +286,29 @@ function CheckInner() {
       setTipStatus(res.error);
       return;
     }
+    const productName =
+      items.find((i) => i.productId === tipProductId)?.freeText ??
+      catalog?.products.find((p) => p.id === tipProductId)?.name ??
+      "Item";
+    const paidMerchant = grocery.find((m) => m.id === paidMerchantId);
+    const shareTip = buildPriceTipShare({
+      productName,
+      productId: tipProductId,
+      merchantName: paidMerchant?.name ?? missed?.paidMerchantName ?? "Store",
+      branchName: paidMerchant?.location?.name ?? null,
+      priceCents: Math.round(Number(tipPrice) * 100),
+    });
+    setTipShare(shareTip);
     setTipStatus(
       `Thanks — ${
         res.tipCount === 1 ? "1 shopper" : `${res.tipCount} shoppers`
-      } tipped this shelf. Miss recalculates with fresher prices.`,
+      } tipped this shelf · opening WhatsApp…`,
     );
     setTipPrice("");
     setTipProductId(null);
+    track("check_tip", { productId: tipProductId, merchantId: paidMerchantId });
+    track("share_save", { via: "whatsapp_price_tip", productId: tipProductId });
+    window.open(whatsAppShareUrl(shareTip), "_blank", "noopener,noreferrer");
     const c = await loadCatalog();
     setCatalog(c);
   }
@@ -375,6 +468,62 @@ function CheckInner() {
               />
             )}
 
+            {tipTargets.length > 0 && (
+              <div className="card space-y-3 px-4 py-4 sm:px-5">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                    Next — from this shop
+                  </p>
+                  <h3 className="mt-1 font-display text-lg font-bold tracking-tightish text-savr-ink">
+                    Tip what you paid on these shelves
+                  </h3>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    Missing or shaky prices move the miss most. One tip keeps Nairobi honest.
+                  </p>
+                </div>
+                <ul className="divide-y divide-savr-ink/[0.06]">
+                  {tipTargets.map((t) => (
+                    <li
+                      key={t.productId}
+                      className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-savr-ink">{t.name}</p>
+                        <p className="text-xs text-savr-mute">{t.reason}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-primary shrink-0 px-3 py-2 text-xs"
+                        onClick={() => {
+                          setTipProductId(t.productId);
+                          setTipPrice(t.prefillKes);
+                          setTipStatus(null);
+                          track("check_tip_prompt", { productId: t.productId });
+                          document
+                            .getElementById(`check-item-${t.productId}`)
+                            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }}
+                      >
+                        Tip this
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {tipShare && (
+                  <button
+                    type="button"
+                    className="btn-ghost w-full py-2.5 text-sm"
+                    onClick={() => {
+                      track("share_save", { via: "whatsapp_price_tip_retry" });
+                      window.open(whatsAppShareUrl(tipShare), "_blank", "noopener,noreferrer");
+                    }}
+                  >
+                    WhatsApp last tip again
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="grid gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-12">
               <section className="animate-rise-delay space-y-5">
                 <div>
@@ -498,8 +647,13 @@ function CheckInner() {
                       {items.map((item) => {
                         const line = paidLines.find((l) => l.productId === item.productId);
                         const tipping = tipProductId === item.productId;
+                        const isPriority = tipTargets.some((t) => t.productId === item.productId);
                         return (
-                          <li key={item.productId} className="py-3">
+                          <li
+                            key={item.productId}
+                            id={`check-item-${item.productId}`}
+                            className={`py-3 ${isPriority ? "bg-savr-mist/40 px-2 -mx-2 rounded-xl" : ""}`}
+                          >
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium text-savr-ink">
