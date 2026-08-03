@@ -478,6 +478,17 @@ export function HomeDecision() {
             </div>
           </Link>
 
+          {/* Soft launch ops — founder path */}
+          <Link href="/ops" className="home-card-sm alive-card block">
+            <p className="home-eyebrow home-eyebrow-mute">Soft launch</p>
+            <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
+              Weekly 30 shelf walk
+            </p>
+            <p className="mt-1 text-[13px] text-savr-mute">
+              Download CSV · walk branches · upload — real prices beat more UI
+            </p>
+          </Link>
+
           {/* Recent — small */}
           {recent.length > 0 && (
             <div className="home-card-sm">

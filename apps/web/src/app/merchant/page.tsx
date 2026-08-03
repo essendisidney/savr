@@ -429,8 +429,12 @@ export default function MerchantPage() {
                     Unmatched searches on this device
                   </h2>
                   <p className="mt-1 text-sm text-savr-mute">
-                    Soft-launch signal — phrases shoppers typed that didn’t hit a SKU. Use them to
-                    grow aliases or catalog; Weekly 30 still comes first.
+                    Soft-launch signal — phrases shoppers typed that didn’t hit a SKU. Full checklist
+                    on{" "}
+                    <Link href="/ops" className="font-semibold text-savr-forest hover:underline">
+                      Soft launch ops
+                    </Link>
+                    .
                   </p>
                 </div>
                 <ul className="divide-y divide-savr-ink/[0.06]">
