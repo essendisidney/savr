@@ -171,13 +171,20 @@ export function RankList({
                     {r.branchName && (
                       <p className="text-xs text-savr-mute">{r.branchName}</p>
                     )}
+                    {r.channel === "online" && (
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                        Online · scrape — not a Nairobi aisle
+                      </p>
+                    )}
                     <p
                       className={`mt-0.5 text-xs font-semibold ${
                         r.isRecommended ? "text-savr-forest" : "text-savr-mute"
                       }`}
                     >
                       {r.isRecommended
-                        ? "Winner · best total value"
+                        ? r.channel === "online"
+                          ? "Winner · best online total"
+                          : "Winner · best store total"
                         : `${Math.round(r.coverage * 100)}% list coverage · score ${score}`}
                       {preferred ? (r.isRecommended ? " · Your store" : " · Your preferred") : ""}
                       {r.coverage < 1 ? ` · ${gapCount || "some"} missing` : ""}

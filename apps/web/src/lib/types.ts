@@ -82,6 +82,8 @@ export type BasketResult = {
   locationId: string | null;
   merchantName: string;
   branchName: string | null;
+  /** Physical aisle vs marketplace / delivery catalog. */
+  channel: "store" | "online";
   totalCents: number;
   cashbackCents: number;
   promoCents: number;
@@ -164,6 +166,7 @@ export type ProductPriceResult = {
   merchantName: string;
   branchName: string | null;
   address: string | null;
+  channel: "store" | "online";
   /** Effective price after promo (used for ranking). */
   priceCents: number;
   /** Shelf / list price before promo. */

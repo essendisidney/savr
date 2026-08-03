@@ -173,6 +173,14 @@ function distanceForMerchant(merchant: Merchant, origin?: GeoPoint | null): numb
   return Math.round(haversineKm(origin, { lat, lng }) * 10) / 10;
 }
 
+function merchantChannel(merchant: Merchant): "store" | "online" {
+  const slug = (merchant.slug ?? "").toLowerCase();
+  if (slug === "jumia" || slug === "kilimall" || slug === "glovo") return "online";
+  const place = `${merchant.location?.name ?? ""} ${merchant.location?.address ?? ""}`.toLowerCase();
+  if (/\bonline\b|\.co\.ke\b|marketplace|delivery only/.test(place)) return "online";
+  return "store";
+}
+
 function mapsUrlForMerchant(merchant: Merchant, origin?: GeoPoint | null): string {
   const loc = merchant.location;
   if (loc?.lat != null && loc?.lng != null) {
@@ -291,6 +299,7 @@ export function compareProduct(
         merchantName: merchant.name,
         branchName: merchant.location?.name ?? null,
         address: merchant.location?.address ?? null,
+        channel: merchantChannel(merchant),
         priceCents: effective,
         listCents: price.priceCents,
         promoCents: promo.cents,
@@ -316,6 +325,7 @@ export function compareProduct(
         merchantName: string;
         branchName: string | null;
         address: string | null;
+        channel: "store" | "online";
         priceCents: number;
         listCents: number;
         promoCents: number;
@@ -336,11 +346,16 @@ export function compareProduct(
 
   if (!priced.length) return [];
   const best = priced[0].priceCents;
+  const bestStore = priced.find((r) => r.channel === "store") ?? null;
 
   return priced.map((row) => ({
     ...row,
     deltaCents: row.priceCents - best,
-    isCheapest: row.priceCents === best,
+    // Highlight store aisle winner for habit; online can still be overall cheapest in list order.
+    isCheapest: bestStore
+      ? row.merchantId === bestStore.merchantId &&
+        (row.locationId ?? null) === (bestStore.locationId ?? null)
+      : row.priceCents === best,
   }));
 }
 
@@ -451,6 +466,7 @@ export function compareBasket(
       locationId: locId,
       merchantName: merchant.name,
       branchName: merchant.location?.name ?? null,
+      channel: merchantChannel(merchant),
       totalCents: total,
       cashbackCents: cashback,
       promoCents,
@@ -476,10 +492,19 @@ export function compareBasket(
       const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
       return da - db;
     });
-  const bestNet = sorted[0]?.netCents;
-  return sorted.map((r, i) => ({
+  // Habit = shop a Nairobi aisle. Prefer cheapest *store*; online still ranks.
+  const storePick =
+    sorted.find((r) => r.channel === "store" && r.coverage > 0) ?? null;
+  const onlinePick =
+    sorted.find((r) => r.channel === "online" && r.coverage > 0) ?? null;
+  const winner = storePick ?? onlinePick ?? sorted[0];
+  return sorted.map((r) => ({
     ...r,
-    isRecommended: i === 0 && r.coverage > 0 && r.netCents === bestNet,
+    isRecommended:
+      !!winner &&
+      r.merchantId === winner.merchantId &&
+      (r.locationId ?? null) === (winner.locationId ?? null) &&
+      r.coverage > 0,
   }));
 }
 

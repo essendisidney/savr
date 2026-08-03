@@ -646,13 +646,20 @@ function PricesInner() {
                                     {r.address ? ` · ${r.address}` : ""}
                                   </p>
                                 )}
+                                {r.channel === "online" && (
+                                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                                    Online · scrape — confirm vs aisle
+                                  </p>
+                                )}
                                 <p
                                   className={`mt-0.5 text-xs font-semibold ${
                                     r.isCheapest ? "text-savr-signal" : "text-savr-mute"
                                   }`}
                                 >
                                   {r.isCheapest
-                                    ? "Lowest price"
+                                    ? r.channel === "online"
+                                      ? "Lowest online"
+                                      : "Lowest store price"
                                     : `+${formatKes(r.deltaCents)} vs cheapest`}
                                   {dist ? ` · ${dist}` : ""}
                                   {r.promoCents > 0
