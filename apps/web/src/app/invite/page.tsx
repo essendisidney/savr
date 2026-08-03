@@ -15,7 +15,7 @@ function InviteInner() {
   const store = (params.get("store") ?? "Savr").slice(0, 40);
   const nextPath = params.get("next") || "/basket?staples=1";
   const safeNext = nextPath.startsWith("/") ? nextPath : "/basket?staples=1";
-  const carriesBasket = safeNext.includes("list=");
+  const carriesBasket = safeNext.includes("list=") || safeNext.startsWith("/l/");
   const cents = Math.round(saveKes * 100);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -63,7 +63,9 @@ function InviteInner() {
                 amountCents={cents}
                 detail={
                   carriesBasket
-                    ? "Same basket they compared — see where you’d shop before you spend."
+                    ? safeNext.startsWith("/l/")
+                      ? "Same household list — add items together, then compare before you spend."
+                      : "Same basket they compared — see where you’d shop before you spend."
                     : "Real Nairobi basket math — compare before your next shop."
                 }
               />
@@ -80,11 +82,13 @@ function InviteInner() {
 
             <div className="space-y-3">
               <Link href={safeNext} className="btn-primary flex w-full justify-center">
-                {carriesBasket
-                  ? "Compare their basket"
-                  : safeNext.includes("staples=1")
-                    ? "Compare this week’s staples"
-                    : "Open Savr"}
+                {safeNext.startsWith("/l/")
+                  ? "Open household list"
+                  : carriesBasket
+                    ? "Compare their basket"
+                    : safeNext.includes("staples=1")
+                      ? "Compare this week’s staples"
+                      : "Open Savr"}
               </Link>
               <Link
                 href="/check"

@@ -566,6 +566,18 @@ export async function enableListShare(
   return { token, url: `${origin}/l/${token}` };
 }
 
+/** Save draft + enable live `/l/{token}` so household can add without a frozen snapshot. */
+export async function shareDraftAsLiveList(params: {
+  name: string;
+  items: ListItem[];
+}): Promise<{ listId: string; token: string; url: string } | { error: string }> {
+  const saved = await saveShoppingList(params);
+  if ("error" in saved) return saved;
+  const shared = await enableListShare(saved.listId);
+  if ("error" in shared) return shared;
+  return { listId: saved.listId, token: shared.token, url: shared.url };
+}
+
 export async function loadSharedList(
   token: string,
 ): Promise<{ name: string; items: ListItem[] } | { error: string }> {

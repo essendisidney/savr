@@ -11,6 +11,7 @@ import {
   loadSavedList,
   loadSharedList,
   saveShoppingList,
+  shareDraftAsLiveList,
   type SavedListSummary,
 } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
@@ -82,6 +83,7 @@ function BasketInner() {
   const [sharingDraft, setSharingDraft] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [lockedShareReady, setLockedShareReady] = useState(false);
+  const [liveSharePath, setLiveSharePath] = useState<string | null>(null);
   const punchRef = useRef<HTMLDivElement>(null);
   const askText = (searchParams.get("ask") ?? "").trim();
   const {
@@ -247,6 +249,7 @@ function BasketInner() {
 
   useEffect(() => {
     setLockedShareReady(false);
+    setLiveSharePath(null);
   }, [items]);
 
   const recommended = results.find((r) => r.isRecommended);
@@ -260,8 +263,9 @@ function BasketInner() {
       cashbackCents: recommended.cashbackCents,
       listName: listName.trim() || "Weekly shop",
       items,
+      nextPath: liveSharePath,
     });
-  }, [recommended, saved, listName, items]);
+  }, [recommended, saved, listName, items, liveSharePath]);
 
   const suggestions = useMemo(() => {
     if (!catalog || !query.trim()) return [];
@@ -356,11 +360,13 @@ function BasketInner() {
     if (viaWhatsApp) {
       window.open(whatsAppShareUrl(payload), "_blank", "noopener,noreferrer");
       await refreshLists();
+      setLiveSharePath(`/l/${outcome.token}`);
       setStatus("Opening WhatsApp — household can add items on the link.");
       return;
     }
     const result = await sharePayload(payload);
     await refreshLists();
+    setLiveSharePath(`/l/${outcome.token}`);
     if (result === "shared") setStatus("List shared — household can add items on the link.");
     else if (result === "copied") setStatus("Share link copied — they can add items too.");
     else setStatus(`Share link: ${outcome.url}`);
@@ -372,6 +378,37 @@ function BasketInner() {
     setStatus(null);
     const name = resolvedListName();
     if (name !== listName) setListName(name);
+
+    if (user) {
+      const outcome = await shareDraftAsLiveList({ name, items });
+      setSharingDraft(false);
+      if ("error" in outcome) {
+        setStatus(outcome.error);
+        return;
+      }
+      setLiveSharePath(`/l/${outcome.token}`);
+      const payload = buildListShare({
+        listName: name,
+        url: outcome.url,
+        itemCount: items.length,
+      });
+      track("list_share", {
+        via: viaWhatsApp ? "whatsapp_live" : "live",
+        items: items.length,
+      });
+      await refreshLists();
+      if (viaWhatsApp) {
+        window.open(whatsAppShareUrl(payload), "_blank", "noopener,noreferrer");
+        setStatus("Opening WhatsApp — household can add items on the live link.");
+        return;
+      }
+      const result = await sharePayload(payload);
+      if (result === "shared") setStatus("Live list shared — household can add items.");
+      else if (result === "copied") setStatus("Live link copied — they can add items too.");
+      else setStatus(`Share link: ${outcome.url}`);
+      return;
+    }
+
     const url = buildListShareUrl(name, items);
     setSharingDraft(false);
     if (!url) {
@@ -389,13 +426,15 @@ function BasketInner() {
     });
     if (viaWhatsApp) {
       window.open(whatsAppShareUrl(payload), "_blank", "noopener,noreferrer");
-      setStatus("Opening WhatsApp — they can open the list with no sign-in.");
+      setStatus("Opening WhatsApp — snapshot link. Sign in to share a live list they can edit.");
       return;
     }
     const result = await sharePayload(payload);
-    if (result === "shared") setStatus("List shared — no sign-in needed for them to open it.");
-    else if (result === "copied") setStatus("Share link copied.");
-    else setStatus(`Share link: ${url}`);
+    if (result === "shared") {
+      setStatus("Snapshot shared — sign in next time for a live household list.");
+    } else if (result === "copied") {
+      setStatus("Snapshot link copied — sign in for a live list they can edit.");
+    } else setStatus(`Share link: ${url}`);
   }
 
   async function choose(merchantId: string) {
@@ -770,7 +809,7 @@ function BasketInner() {
                       onClick={() => onShareCurrent(true)}
                       className="font-semibold text-savr-forest hover:underline disabled:opacity-50"
                     >
-                      {sharingDraft ? "…" : "WhatsApp list"}
+                      {sharingDraft ? "…" : user ? "WhatsApp live list" : "WhatsApp list"}
                     </button>
                     <button
                       type="button"
