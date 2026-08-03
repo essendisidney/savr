@@ -5,6 +5,7 @@ import { submitCrowdsourcePrice } from "@/lib/actions";
 import { formatKes } from "@/lib/compare";
 import { formatPriceFreshness, freshnessClassName, formatBasketTrend, formatPriceTrend, trendClassName, confidenceClassName, tipCountLabel } from "@/lib/freshness";
 import { formatDistanceKm } from "@/lib/geo";
+import { buildPriceTipShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
 import type { BasketResult, LineItemPrice } from "@/lib/types";
 
@@ -43,6 +44,7 @@ export function RankList({
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
+  const [tipShare, setTipShare] = useState<SharePayload | null>(null);
 
   const maxTotal = Math.max(...results.map((r) => r.totalCents), 1);
   const nets = results.map((r) => r.netCents);
@@ -63,10 +65,14 @@ export function RankList({
     merchantId: string,
     locationId: string | null,
     productId: string,
+    productName: string,
+    merchantName: string,
+    branchName?: string | null,
   ) {
     e.preventDefault();
     setTipBusy(true);
     setTipStatus(null);
+    setTipShare(null);
     const res = await submitCrowdsourcePrice({
       merchantId,
       locationId,
@@ -78,11 +84,22 @@ export function RankList({
       setTipStatus(res.error);
       return;
     }
+    const priceCents = Math.round(Number(tipPrice) * 100);
+    const share = buildPriceTipShare({
+      productName,
+      productId,
+      merchantName,
+      branchName,
+      priceCents,
+    });
     const shoppers = tipCountLabel(res.tipCount) ?? "1 shopper";
-    setTipStatus(`Thanks — ${shoppers} tipped this shelf · confidence up.`);
+    setTipShare(share);
+    setTipStatus(`Thanks — ${shoppers} tipped this shelf · opening WhatsApp…`);
     setTipKey(null);
     setTipPrice("");
     track("basket_coverage_tip", { merchantId, locationId, productId, tipCount: res.tipCount });
+    track("share_save", { via: "whatsapp_price_tip", productId });
+    window.open(whatsAppShareUrl(share), "_blank", "noopener,noreferrer");
     await onPriceTipped?.();
   }
 
@@ -431,7 +448,15 @@ export function RankList({
                               <form
                                 className="mt-1 flex flex-wrap items-center gap-2"
                                 onSubmit={(e) =>
-                                  onTip(e, r.merchantId, r.locationId, line.productId)
+                                  onTip(
+                                    e,
+                                    r.merchantId,
+                                    r.locationId,
+                                    line.productId,
+                                    line.name,
+                                    r.merchantName,
+                                    r.branchName,
+                                  )
                                 }
                               >
                                 <input
@@ -478,6 +503,18 @@ export function RankList({
                 >
                   {tipStatus}
                 </p>
+              )}
+              {open && tipShare && tipKey == null && (
+                <button
+                  type="button"
+                  className="btn-ghost mt-2 py-2 text-sm"
+                  onClick={() => {
+                    track("share_save", { via: "whatsapp_price_tip_retry" });
+                    window.open(whatsAppShareUrl(tipShare), "_blank", "noopener,noreferrer");
+                  }}
+                >
+                  WhatsApp this tip again
+                </button>
               )}
 
               {open && tipKey == null && (

@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { bestAskProductMatch, compareProduct, formatKes } from "@/lib/compare";
 import { askQuote } from "@/lib/intents";
+import { buildPriceTipShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
 import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
@@ -46,6 +47,7 @@ function PricesInner() {
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
+  const [tipShare, setTipShare] = useState<SharePayload | null>(null);
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
   const answerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +105,7 @@ function PricesInner() {
     setTipStatus(null);
     setTipPrice("");
     setTipRowKey(null);
+    setTipShare(null);
   }, [selectedId]);
 
   useEffect(() => {
@@ -112,37 +115,6 @@ function PricesInner() {
     }
     void isWatchingProduct(selectedId).then(setWatching);
   }, [user, selectedId]);
-
-  async function tipShelf(args: {
-    merchantId: string;
-    locationId: string | null;
-    priceKes: number;
-  }) {
-    if (!selectedId) return;
-    setTipBusy(true);
-    setTipStatus(null);
-    const res = await submitCrowdsourcePrice({
-      merchantId: args.merchantId,
-      locationId: args.locationId,
-      productId: selectedId,
-      priceKes: args.priceKes,
-    });
-    setTipBusy(false);
-    if ("error" in res) {
-      setTipStatus(res.error);
-      return;
-    }
-    track("price_tip", { productId: selectedId, merchantId: args.merchantId });
-    setTipStatus(
-      `Thanks — ${
-        res.tipCount === 1 ? "1 shopper" : `${res.tipCount} shoppers`
-      } tipped this shelf · confidence should rise.`,
-    );
-    setTipPrice("");
-    setTipRowKey(null);
-    const c = await loadCatalog();
-    setCatalog(c);
-  }
 
   const selected: Product | null = useMemo(() => {
     if (!catalog || !selectedId) return null;
@@ -197,6 +169,66 @@ function PricesInner() {
   const saved =
     cheapest && dearest ? dearest.priceCents - cheapest.priceCents : 0;
   const maxPrice = Math.max(...results.map((r) => r.priceCents), 1);
+
+  async function tipShelf(args: {
+    merchantId: string;
+    locationId: string | null;
+    priceKes: number;
+    merchantName?: string;
+    branchName?: string | null;
+  }) {
+    if (!selectedId || !selected) return;
+    setTipBusy(true);
+    setTipStatus(null);
+    setTipShare(null);
+    const res = await submitCrowdsourcePrice({
+      merchantId: args.merchantId,
+      locationId: args.locationId,
+      productId: selectedId,
+      priceKes: args.priceKes,
+    });
+    setTipBusy(false);
+    if ("error" in res) {
+      setTipStatus(res.error);
+      return;
+    }
+    track("price_tip", { productId: selectedId, merchantId: args.merchantId });
+    const branch =
+      tipBranches.find(
+        (b) =>
+          b.merchantId === args.merchantId &&
+          (args.locationId == null || b.locationId === args.locationId),
+      ) ?? null;
+    const rankHit = results.find(
+      (r) =>
+        r.merchantId === args.merchantId &&
+        (r.locationId ?? null) === (args.locationId ?? null),
+    );
+    const merchantName =
+      args.merchantName ?? rankHit?.merchantName ?? branch?.label.split(" · ")[0] ?? "Store";
+    const branchName =
+      args.branchName ?? rankHit?.branchName ?? branch?.label.split(" · ")[1] ?? null;
+    const priceCents = Math.round(args.priceKes * 100);
+    const share = buildPriceTipShare({
+      productName: selected.name,
+      productId: selectedId,
+      merchantName,
+      branchName,
+      priceCents,
+    });
+    setTipShare(share);
+    setTipStatus(
+      `Thanks — ${
+        res.tipCount === 1 ? "1 shopper" : `${res.tipCount} shoppers`
+      } tipped this shelf · opening WhatsApp so someone else tips too.`,
+    );
+    setTipPrice("");
+    setTipRowKey(null);
+    track("share_save", { via: "whatsapp_price_tip", productId: selectedId });
+    window.open(whatsAppShareUrl(share), "_blank", "noopener,noreferrer");
+    const c = await loadCatalog();
+    setCatalog(c);
+  }
 
   if (loading) {
     return (
@@ -662,6 +694,8 @@ function PricesInner() {
                                   merchantId: r.merchantId,
                                   locationId: r.locationId,
                                   priceKes: Number(tipPrice),
+                                  merchantName: r.merchantName,
+                                  branchName: r.branchName,
                                 });
                               }}
                             >
@@ -704,11 +738,51 @@ function PricesInner() {
                               {tipStatus}
                             </p>
                           )}
+                          {tipping && tipShare && (
+                            <button
+                              type="button"
+                              className="btn-ghost mt-2 py-2 text-sm"
+                              onClick={() => {
+                                track("share_save", {
+                                  via: "whatsapp_price_tip_retry",
+                                  productId: selectedId,
+                                });
+                                window.open(
+                                  whatsAppShareUrl(tipShare),
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                );
+                              }}
+                            >
+                              WhatsApp this tip again
+                            </button>
+                          )}
                         </div>
                       </li>
                     );
                   })}
                 </ol>
+
+                {tipShare && !tipRowKey && (
+                  <div className="card flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
+                    <p className="text-sm text-savr-mute">
+                      Tip saved — share it so a friend tips the next shelf.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => {
+                        track("share_save", {
+                          via: "whatsapp_price_tip_retry",
+                          productId: selectedId,
+                        });
+                        window.open(whatsAppShareUrl(tipShare), "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      WhatsApp this tip
+                    </button>
+                  </div>
+                )}
 
                 <p className="text-sm text-savr-mute">
                   Building a full list?{" "}

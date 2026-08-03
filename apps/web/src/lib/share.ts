@@ -187,6 +187,26 @@ export function buildRideShare(params: {
   };
 }
 
+/** After a shelf tip — recruit the next tipper with an honest verified price. */
+export function buildPriceTipShare(params: {
+  productName: string;
+  productId: string;
+  merchantName: string;
+  branchName?: string | null;
+  priceCents: number;
+}): SharePayload {
+  const place = params.branchName?.trim()
+    ? `${params.merchantName} · ${params.branchName.trim()}`
+    : params.merchantName;
+  const next = `/prices?id=${encodeURIComponent(params.productId)}&q=${encodeURIComponent(params.productName)}`;
+  const url = inviteUrl(params.priceCents / 100, params.merchantName, next);
+  return {
+    title: "Price tip on Savr",
+    text: `Just verified ${params.productName} at ${place} — ${formatKes(params.priceCents)} on the shelf. Tip what you see too — keeps Nairobi prices honest. Before you spend, Savr it.`,
+    url,
+  };
+}
+
 export async function sharePayload(payload: SharePayload): Promise<"shared" | "copied" | "failed"> {
   const full = `${payload.text}\n${payload.url}`;
   try {
