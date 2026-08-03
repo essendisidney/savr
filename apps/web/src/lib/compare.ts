@@ -12,6 +12,7 @@ import type {
 } from "./types";
 import { haversineKm, type GeoPoint } from "./geo";
 import { aggregateConfidence, priceConfidence } from "./freshness";
+import { askSearchTokens } from "./intents";
 import { compareRidesForRoute } from "./rides";
 import { WEEKLY_30 } from "./weekly-30";
 
@@ -129,14 +130,17 @@ export function searchProducts(
 ) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  const tokens = q.split(/[^a-z0-9+]+/).filter((t) => t.length > 2);
+  const tokens = askSearchTokens(q);
+  const fallbackTokens = tokens.length
+    ? tokens
+    : q.split(/[^a-z0-9+]+/).filter((t) => t.length > 2);
   return catalog.products
     .filter((p) => !excludeIds.includes(p.id))
     .map((p) => {
       const hay = `${p.name} ${p.brand ?? ""} ${p.category}`.toLowerCase();
       let score = 0;
       if (hay.includes(q)) score += 100;
-      for (const t of tokens) {
+      for (const t of fallbackTokens) {
         if (hay.includes(t)) score += 10;
       }
       return { p, score };
@@ -149,7 +153,9 @@ export function searchProducts(
 
 /** Best single product for an Ask free-text query. */
 export function bestAskProductMatch(catalog: Catalog, raw: string) {
-  const hits = searchProducts(catalog, raw, [], 1);
+  const tokens = askSearchTokens(raw);
+  const probe = tokens.length ? tokens.join(" ") : raw;
+  const hits = searchProducts(catalog, probe, [], 1);
   return hits[0] ?? null;
 }
 

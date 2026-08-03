@@ -28,9 +28,9 @@ export const SPEND_INTENTS: SpendIntent[] = [
   },
   {
     id: "medicine",
-    label: "Need medicine",
-    href: "/prices?q=panadol",
-    hint: "Panadol and OTC shelf prices",
+    label: "Need toothpaste",
+    href: "/prices?q=toothpaste",
+    hint: "Compare personal care across stores",
   },
   {
     id: "watch",
@@ -45,10 +45,10 @@ export const SPEND_INTENTS: SpendIntent[] = [
     hint: "Green / yellow / red — where Nairobi saves",
   },
   {
-    id: "phone",
-    label: "Buy a phone",
-    href: "/prices?q=samsung",
-    hint: "Compare one item across stores",
+    id: "oil",
+    label: "Compare cooking oil",
+    href: "/prices?q=cooking%20oil",
+    hint: "One item across Nairobi shelves",
   },
   {
     id: "check",
@@ -69,11 +69,56 @@ export const ASK_PLACEHOLDERS = [
   "Find the cheapest cooking oil…",
   "Best taxi to the airport…",
   "Where is fuel cheapest near me…",
-  "Need medicine tonight…",
+  "Cheapest bread near Westlands…",
   "Could I have saved on my last shop…",
   "Compare rice across Naivas…",
-  "Cheapest bread near Westlands…",
+  "Milk prices…",
 ];
+
+/** Everyday staples people type — prefer Prices over map/rides when present. */
+const PRODUCTISH = new Set([
+  "bread",
+  "milk",
+  "rice",
+  "oil",
+  "sugar",
+  "flour",
+  "maize",
+  "ugali",
+  "eggs",
+  "egg",
+  "tea",
+  "soap",
+  "detergent",
+  "tissue",
+  "toothpaste",
+  "salt",
+  "beans",
+  "ndengu",
+  "sukuma",
+  "tomato",
+  "tomatoes",
+  "onion",
+  "onions",
+  "potato",
+  "potatoes",
+  "banana",
+  "bananas",
+  "chicken",
+  "yoghurt",
+  "yogurt",
+  "butter",
+  "margarine",
+  "noodles",
+  "spaghetti",
+  "peanut",
+  "uht",
+  "cooking",
+  "loaf",
+  "panadol",
+  "paracetamol",
+  "medicine",
+]);
 
 const ASK_STOP = new Set([
   "a",
@@ -101,6 +146,17 @@ const ASK_STOP = new Set([
   "want",
   "buy",
   "get",
+  "across",
+  "compare",
+  "price",
+  "prices",
+  "westlands",
+  "nairobi",
+  "naivas",
+  "carrefour",
+  "quickmart",
+  "cbd",
+  "airport",
 ]);
 
 /** Attach original Ask text so destinations can show an answer, not a cold tool. */
@@ -118,34 +174,6 @@ export function askQuote(raw: string, max = 72): string {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
-/** Route free-text Ask Savr queries to the right surface (rules, not LLM). */
-export function routeAskQuery(raw: string): string {
-  const trimmed = raw.trim();
-  const q = trimmed.toLowerCase();
-  if (!q) return "/ask";
-
-  if (/\b(taxi|uber|bolt|little|ride|airport|cbd)\b/.test(q)) {
-    return withAskParam("/rides", trimmed);
-  }
-  if (/\b(fuel|petrol|diesel|fill\s*up|station)\b/.test(q)) {
-    return withAskParam("/fuel", trimmed);
-  }
-  if (/\b(watch|wishlist|alert|drop|notify)\b/.test(q)) {
-    return withAskParam("/saved", trimmed);
-  }
-  if (/\b(map|nearby|near me|directions)\b/.test(q)) {
-    return withAskParam("/map", trimmed);
-  }
-  // Full-basket intents only — single items (bread, milk, oil…) go to /prices below.
-  if (/\b(family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/.test(q)) {
-    return withAskParam("/basket?staples=1", trimmed);
-  }
-  if (/\b(missed|could i|receipt|after)\b/.test(q)) {
-    return withAskParam("/check", trimmed);
-  }
-  return withAskParam(`/prices?q=${encodeURIComponent(trimmed)}`, trimmed);
-}
-
 /** Meaningful tokens from an Ask string for product matching. */
 export function askSearchTokens(raw: string): string[] {
   return raw
@@ -153,6 +181,81 @@ export function askSearchTokens(raw: string): string[] {
     .split(/[^a-z0-9+]+/)
     .map((t) => t.trim())
     .filter((t) => t.length > 2 && !ASK_STOP.has(t));
+}
+
+/** Compact q= for Prices — product tokens when present, else full Ask. */
+export function askPriceQuery(raw: string): string {
+  const tokens = askSearchTokens(raw);
+  if (tokens.length) return tokens.slice(0, 4).join(" ");
+  return raw.trim().slice(0, 80);
+}
+
+function hasProductish(q: string): boolean {
+  const tokens = q.toLowerCase().split(/[^a-z0-9+]+/).filter(Boolean);
+  return tokens.some((t) => PRODUCTISH.has(t));
+}
+
+function pricesPath(raw: string): string {
+  const q = askPriceQuery(raw);
+  return withAskParam(`/prices?q=${encodeURIComponent(q)}`, raw);
+}
+
+/** Route free-text Ask Savr queries to the right surface (rules, not LLM). */
+export function routeAskQuery(raw: string): string {
+  const trimmed = raw.trim();
+  const q = trimmed.toLowerCase();
+  if (!q) return "/ask";
+
+  const productish = hasProductish(q);
+
+  // Product asks win over geo/ride keywords (“bread near me”, “milk in CBD”).
+  if (productish) {
+    if (/\b(watch|wishlist|alert|notify)\b/.test(q) && !/\b(price\s+drop|drop\s+on)\b/.test(q)) {
+      return withAskParam("/saved", trimmed);
+    }
+    if (/\b(missed|could i|receipt|after\s+(a\s+)?shop|last\s+shop)\b/.test(q)) {
+      return withAskParam("/check", trimmed);
+    }
+    if (/\b(family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/.test(q) && !/\b(compare|cheapest|price)\b/.test(q)) {
+      return withAskParam("/basket?staples=1", trimmed);
+    }
+    return pricesPath(trimmed);
+  }
+
+  if (
+    /\b(taxi|uber|bolt|little|ride)\b/.test(q) ||
+    (/\b(airport|cbd)\b/.test(q) && /\b(taxi|uber|bolt|little|ride|to|from)\b/.test(q))
+  ) {
+    return withAskParam("/rides", trimmed);
+  }
+  // Bare airport only when it’s clearly a trip (not “airport snacks”).
+  if (
+    /\b(to|from)\s+(the\s+)?airport\b/.test(q) ||
+    (/\bairport\b/.test(q) && /\b(taxi|uber|bolt|little|ride)\b/.test(q)) ||
+    /\bbest\s+taxi\b/.test(q)
+  ) {
+    return withAskParam("/rides", trimmed);
+  }
+  if (/\b(fuel|petrol|diesel|fill\s*up)\b/.test(q) || (/\bstation\b/.test(q) && /\b(fuel|petrol|diesel|gas)\b/.test(q))) {
+    return withAskParam("/fuel", trimmed);
+  }
+  if (/\b(watch|wishlist|alert|notify)\b/.test(q) || /\bprice\s+drop\b/.test(q)) {
+    return withAskParam("/saved", trimmed);
+  }
+  if (/\b(map|nearby|near\s+me|directions)\b/.test(q)) {
+    return withAskParam("/map", trimmed);
+  }
+  if (/\b(family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/.test(q)) {
+    return withAskParam("/basket?staples=1", trimmed);
+  }
+  if (/\b(missed|could i|receipt|after\s+(a\s+)?shop|last\s+shop)\b/.test(q)) {
+    return withAskParam("/check", trimmed);
+  }
+  if (/\b(medicine|panadol|paracetamol|pharmacy)\b/.test(q)) {
+    return pricesPath(trimmed);
+  }
+
+  return pricesPath(trimmed);
 }
 
 /** Rough “what that save buys” — emotional framing, not a receipt. */

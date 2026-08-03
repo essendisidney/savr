@@ -15,7 +15,7 @@ import {
 } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
-import { askQuote } from "@/lib/intents";
+import { askPriceQuery, askQuote } from "@/lib/intents";
 import { buildReceiptShare, whatsAppShareUrl } from "@/lib/share";
 import { track } from "@/lib/track";
 import { EmptyState } from "@/components/EmptyState";
@@ -111,6 +111,12 @@ function SavedInner() {
   }
 
   if (!user) {
+    const pricesNext = askText
+      ? `/prices?q=${encodeURIComponent(askPriceQuery(askText))}&ask=${encodeURIComponent(askText)}`
+      : "/prices?q=cooking%20oil";
+    const loginNext = askText
+      ? `/login?next=${encodeURIComponent(`/saved?ask=${encodeURIComponent(askText)}`)}`
+      : "/login?next=/saved";
     return (
       <PageFrame>
         <div className="page-hero relative overflow-hidden border-b border-white/40">
@@ -118,16 +124,30 @@ function SavedInner() {
           <div className="relative mx-auto max-w-2xl px-4 py-10 md:px-6">
             <p className="page-eyebrow">Saved</p>
             <h1 className="page-title mt-2.5 text-3xl">Your lists & wins</h1>
+            {askText ? (
+              <p className="mt-2.5 text-sm leading-relaxed text-savr-mute">
+                For “{askQuote(askText)}” — sign in to watch drops, or compare the price now.
+              </p>
+            ) : null}
           </div>
         </div>
         <PageShell>
           <EmptyState
-            title="Sign in to keep lists"
-            body="Saved baskets, watchlist drops, shop receipts, and shop-again history live here."
+            title={askText ? "Sign in to watch this" : "Sign in to keep lists"}
+            body={
+              askText
+                ? "Watches need an account. Or jump straight to Prices and compare first."
+                : "Saved baskets, watchlist drops, shop receipts, and shop-again history live here."
+            }
             action={
-              <Link href="/login?next=/saved" className="btn-primary">
-                Sign in
-              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Link href={loginNext} className="btn-primary">
+                  Sign in
+                </Link>
+                <Link href={pricesNext} className="btn-ghost">
+                  Compare prices first
+                </Link>
+              </div>
             }
           />
         </PageShell>
@@ -149,6 +169,19 @@ function SavedInner() {
               ? `For “${askQuote(askText)}” — catch a drop or re-punch a past shop.`
               : "Reopen a list, catch a drop, or revisit what a trip really cost you."}
           </p>
+          {askText ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href={`/prices?q=${encodeURIComponent(askPriceQuery(askText))}&ask=${encodeURIComponent(askText)}`}
+                className="btn-primary"
+              >
+                Compare that price
+              </Link>
+              <Link href="/check" className="btn-ghost">
+                Log a shop
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
 

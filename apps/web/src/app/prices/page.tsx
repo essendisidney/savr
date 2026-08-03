@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   isWatchingProduct,
   submitCrowdsourcePrice,
@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { bestAskProductMatch, compareProduct, formatKes } from "@/lib/compare";
+import { askQuote } from "@/lib/intents";
 import { track } from "@/lib/track";
 import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
@@ -23,6 +24,14 @@ import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 
+const RECOVERY_CHIPS = [
+  { label: "Bread", q: "bread" },
+  { label: "Milk", q: "milk" },
+  { label: "Cooking oil", q: "cooking oil" },
+  { label: "Rice", q: "rice" },
+  { label: "Sugar", q: "sugar" },
+];
+
 function PricesInner() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -31,12 +40,14 @@ function PricesInner() {
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("id"));
   const [category, setCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [askMatched, setAskMatched] = useState(false);
   const [tipBranchKey, setTipBranchKey] = useState("");
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
+  const answerRef = useRef<HTMLDivElement>(null);
   const askText = (searchParams.get("ask") ?? "").trim();
   const fromAsk = Boolean(askText || searchParams.get("q"));
   const {
@@ -56,14 +67,19 @@ function PricesInner() {
       const id = searchParams.get("id");
       if (id && c.products.some((p) => p.id === id)) {
         setSelectedId(id);
+        setAskMatched(false);
       } else if (!id) {
         const q = (searchParams.get("q") ?? askText).trim();
         if (q) {
           const hit = bestAskProductMatch(c, q);
           if (hit) {
             setSelectedId(hit.id);
-            setQuery(hit.name);
+            setQuery("");
+            setAskMatched(true);
             track("ask_price_match", { productId: hit.id, q: q.slice(0, 80) });
+          } else {
+            setAskMatched(false);
+            setQuery(q);
           }
         }
       }
@@ -73,6 +89,14 @@ function PricesInner() {
       }
     });
   }, [searchParams, askText]);
+
+  useEffect(() => {
+    if (!askMatched || !selectedId || loading) return;
+    const t = window.setTimeout(() => {
+      answerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [askMatched, selectedId, loading]);
 
   useEffect(() => {
     setTipStatus(null);
@@ -175,18 +199,64 @@ function PricesInner() {
 
       <div className="page-band">
         <PageShell>
-          <div className="space-y-8">
-            {askText && selected && cheapest && (
+          <div className="flex flex-col gap-8">
+            {(askText || fromAsk) && selected && cheapest && (
               <p className="text-sm text-savr-mute">
-                Ask Savr matched{" "}
-                <span className="font-semibold text-savr-ink">{selected.name}</span>
+                {askText ? (
+                  <>
+                    For “{askQuote(askText)}” — matched{" "}
+                    <span className="font-semibold text-savr-ink">{selected.name}</span>
+                  </>
+                ) : (
+                  <>
+                    Matched <span className="font-semibold text-savr-ink">{selected.name}</span>
+                  </>
+                )}
                 {" — "}
                 best shelf is about{" "}
                 <span className="font-semibold text-savr-forest">{formatKes(cheapest.priceCents)}</span>
                 {saved > 0 ? ` · keep ~${formatKes(saved)} vs the priciest` : ""}.
+                {" "}Next: pick a store below, or watch this price.
               </p>
             )}
-            <div>
+
+            {fromAsk && !selected && !loading && (
+              <EmptyState
+                title={`No match for “${askQuote(askText || query || "that")}”`}
+                body="Try a staple we track — or compare a full weekly basket."
+                action={
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {RECOVERY_CHIPS.map((chip) => (
+                      <Link
+                        key={chip.q}
+                        href={`/prices?q=${encodeURIComponent(chip.q)}&ask=${encodeURIComponent(chip.label)}`}
+                        className="btn-ghost px-3 py-2 text-sm"
+                      >
+                        {chip.label}
+                      </Link>
+                    ))}
+                    <Link href="/basket?staples=1" className="btn-primary">
+                      Weekly staples
+                    </Link>
+                  </div>
+                }
+              />
+            )}
+
+            <div className={askMatched && selected ? "order-2" : "order-1"}>
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
+                  {askMatched && selected ? "Wrong item? Pick another" : "Find a product"}
+                </p>
+                {askMatched && selected && (
+                  <Link
+                    href="/basket?staples=1"
+                    className="text-xs font-semibold text-savr-forest hover:underline"
+                  >
+                    Or compare a full basket →
+                  </Link>
+                )}
+              </div>
               <div className="mb-3 flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -221,7 +291,10 @@ function PricesInner() {
                 id="price-search"
                 type="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setAskMatched(false);
+                }}
                 placeholder="Milk, bread, rice, oil…"
                 className="w-full border border-savr-ink/[0.12] bg-white px-4 py-3.5 text-[15px] text-savr-ink outline-none transition placeholder:text-savr-mute focus:border-savr-forest"
                 autoComplete="off"
@@ -236,6 +309,7 @@ function PricesInner() {
                         onClick={() => {
                           setSelectedId(p.id);
                           setQuery("");
+                          setAskMatched(false);
                         }}
                         className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition ${
                           active
@@ -280,11 +354,14 @@ function PricesInner() {
             </div>
 
             {selected && results.length > 0 && (
-              <>
+              <div
+                ref={answerRef}
+                className={`space-y-8 ${askMatched ? "order-1" : "order-2"}`}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-mute">
-                      Comparing
+                      Prices by place
                     </p>
                     <h2 className="mt-1 font-display text-2xl font-bold tracking-tightish text-savr-ink md:text-3xl">
                       {selected.name}
@@ -611,7 +688,7 @@ function PricesInner() {
                     </p>
                   )}
                 </section>
-              </>
+              </div>
             )}
 
             {selected && results.length === 0 && (
@@ -679,7 +756,7 @@ function PricesInner() {
               </div>
             )}
 
-            {!selected && (
+            {!selected && !fromAsk && (
               <p className="text-sm text-savr-mute">
                 Pick a product above to rank Naivas, Quickmart, Carrefour, Chandarana, and Eastmatt.
               </p>

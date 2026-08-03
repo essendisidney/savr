@@ -13,6 +13,7 @@ import {
 import { loadCatalog } from "@/lib/catalog";
 import {
   computeMissedSavings,
+  defaultListFromCatalog,
   formatKes,
   lineItemsForMerchant,
   searchProducts,
@@ -95,6 +96,22 @@ function CheckInner() {
     setTipProductId(null);
     setTipStatus(null);
     setSaveStatus(null);
+  }
+
+  function useWeeklyStaples() {
+    if (!catalog) return;
+    const staples = defaultListFromCatalog(catalog);
+    if (!staples.length) {
+      setListNote("No staples in catalog right now — add items by search.");
+      return;
+    }
+    setItems(staples);
+    setListName("Weekly staples");
+    setListNote(`Loaded ${staples.length} weekly staples — tip what you paid, then see the miss.`);
+    setTipProductId(null);
+    setTipStatus(null);
+    setSaveStatus(null);
+    track("check_load_staples", { items: staples.length });
   }
 
   const grocery = useMemo(
@@ -321,10 +338,25 @@ function CheckInner() {
           <div className="space-y-9">
             {askText && (
               <p className="text-sm text-savr-mute">
-                Ask Savr routed this as a{" "}
-                <span className="font-semibold text-savr-ink">post-shop check</span> — pick the
-                branch, confirm what you bought, then WhatsApp the punch.
+                For “{askQuote(askText)}” — pick the branch you used, load what you bought, then see
+                the miss or win. Next: tip shelf prices if they differ.
               </p>
+            )}
+            {askText && items.length === 0 && (
+              <div className="flex flex-wrap gap-2">
+                {draftHint && draftHint.items.length > 0 ? (
+                  <button type="button" onClick={useBasketDraft} className="btn-primary">
+                    Use my basket list
+                  </button>
+                ) : (
+                  <button type="button" onClick={useWeeklyStaples} className="btn-primary">
+                    Load weekly staples
+                  </button>
+                )}
+                <Link href="/basket?staples=1" className="btn-ghost">
+                  Compare before next shop
+                </Link>
+              </div>
             )}
             {missed && (
               <SavingsMoment
@@ -455,9 +487,9 @@ function CheckInner() {
                             Use basket draft
                           </button>
                         ) : (
-                          <Link href="/basket" className="btn-ghost">
-                            Open basket
-                          </Link>
+                          <button type="button" onClick={useWeeklyStaples} className="btn-primary">
+                            Load weekly staples
+                          </button>
                         )
                       }
                     />
