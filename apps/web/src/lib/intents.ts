@@ -136,7 +136,8 @@ export function routeAskQuery(raw: string): string {
   if (/\b(map|nearby|near me|directions)\b/.test(q)) {
     return withAskParam("/map", trimmed);
   }
-  if (/\b(family|basket|grocer|weekly shop|feed|staples|milk|bread|rice)\b/.test(q)) {
+  // Full-basket intents only — single items (bread, milk, oil…) go to /prices below.
+  if (/\b(family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/.test(q)) {
     return withAskParam("/basket?staples=1", trimmed);
   }
   if (/\b(missed|could i|receipt|after)\b/.test(q)) {
