@@ -24,6 +24,7 @@ import {
   quickAddChips,
   searchProducts,
 } from "@/lib/compare";
+import { catalogHonesty } from "@/lib/data-honesty";
 import { useShopperOrigin } from "@/lib/geo";
 import {
   buildListShareUrl,
@@ -514,14 +515,22 @@ function BasketInner() {
         title={askText ? "Here’s where to shop" : "Where should you shop?"}
         subtitle={
           askText
-            ? `For “${askText.length > 72 ? `${askText.slice(0, 72)}…` : askText}” — branches ranked by total cost.`
-            : "One list. Branches ranked by total cost — then share or lock."
+            ? `For “${askText.length > 72 ? `${askText.slice(0, 72)}…` : askText}” — branches ranked by total · ${catalogHonesty(catalog).label}.`
+            : `One list. Branches ranked by total · ${catalogHonesty(catalog).label} — then share or lock.`
         }
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
+            {catalogHonesty(catalog).banner && (
+              <p className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                {catalogHonesty(catalog).banner}{" "}
+                <Link href="/ops" className="font-semibold underline">
+                  Soft launch ops →
+                </Link>
+              </p>
+            )}
             {askText && recommended && items.length > 0 && (
               <div className="space-y-2">
                 <p className="text-sm text-savr-mute">

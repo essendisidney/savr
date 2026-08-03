@@ -10,6 +10,7 @@ import { LoadingBlock } from "@/components/LoadingBlock";
 import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
+import { catalogHonesty, fuelHonesty } from "@/lib/data-honesty";
 import { haversineKm, useShopperOrigin } from "@/lib/geo";
 import { askQuote } from "@/lib/intents";
 import type { MapPoint, ValueTier } from "@/components/NairobiMap";
@@ -56,6 +57,7 @@ function MapInner() {
   const [points, setPoints] = useState<MapPoint[]>([]);
   const [selected, setSelected] = useState<MapPoint | null>(null);
   const [loading, setLoading] = useState(true);
+  const [honestyNote, setHonestyNote] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "grocery" | "fuel">("all");
   const {
     origin,
@@ -80,6 +82,10 @@ function MapInner() {
     void (async () => {
       const [catalog, fuel] = await Promise.all([loadCatalog(), loadFuelStations("petrol")]);
       if (cancelled) return;
+      const g = catalogHonesty(catalog);
+      const f = fuelHonesty(fuel.stations, fuel.source);
+      const notes = [g.banner, f.banner].filter(Boolean);
+      setHonestyNote(notes[0] ?? null);
       const staples = defaultListFromCatalog(catalog);
       const basketRanks = staples.length ? compareBasket(catalog, staples, origin) : [];
       const byBranch = new Map(
@@ -197,8 +203,8 @@ function MapInner() {
           </h1>
           <p className="mt-3.5 max-w-lg text-[15px] leading-relaxed text-savr-mute">
             {askText
-              ? `For “${askQuote(askText)}” — green is best value, yellow middle, red expensive.`
-              : "Green = best value. Yellow = middle. Red = expensive. Grocery pins use a weekly staples basket; fuel pins use petrol per litre."}
+              ? `For “${askQuote(askText)}” — green is best value, yellow middle, red expensive. Confirm on shelf / board.`
+              : "Green = best value. Yellow = middle. Red = expensive. Ranks use catalog + tips — confirm before you spend."}
           </p>
           {askText && (
             <p className="mt-2 max-w-lg text-sm text-savr-mute">
@@ -221,6 +227,11 @@ function MapInner() {
             />
           ) : (
             <div className="space-y-4">
+              {honestyNote && (
+                <p className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
+                  {honestyNote}
+                </p>
+              )}
               <ShopperOriginBar
                 label={geoLabel}
                 source={geoSource}

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { submitCrowdsourceFuelPrice } from "@/lib/actions";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
+import { fuelHonesty } from "@/lib/data-honesty";
 import { loadFuelPrefsDraft, saveFuelPrefsDraft } from "@/lib/fuel-draft";
 import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
@@ -135,10 +136,9 @@ function FuelInner() {
     worst && best ? worst.priceCentsPerLitre - best.priceCentsPerLitre : 0;
   const maxPrice = Math.max(...ranked.map((s) => s.priceCentsPerLitre), 1);
   const fuelLabel = fuelType === "diesel" ? "diesel" : "petrol";
-  const isDemo = source === "fallback";
-  const sourceLabel = isDemo
-    ? "demo nearby prices (not live pumps)"
-    : "live catalog / shopper tips";
+  const honesty = fuelHonesty(stations, source);
+  const isDemo = honesty.mode === "demo";
+  const sourceLabel = honesty.label;
 
   if (loading) {
     return (
@@ -166,10 +166,9 @@ function FuelInner() {
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
-            {isDemo && (
+            {honesty.banner && (
               <p className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
-                These ranks are illustrative seed prices — not live pump boards. Tip a real station
-                once the live catalog is online.
+                {honesty.banner}
               </p>
             )}
             {askText && best && (
@@ -301,7 +300,11 @@ function FuelInner() {
                             >
                               {isDemo
                                 ? "Demo pump price"
-                                : `Cashback estimate ${formatKes(s.cashbackCents)} · Net ${formatKes(s.priceCentsPerLitre - s.cashbackCents)}/L`}
+                                : s.cashbackCents > 0
+                                  ? `Cashback estimate ${formatKes(s.cashbackCents)} · Net ${formatKes(s.priceCentsPerLitre - s.cashbackCents)}/L`
+                                  : honesty.mode === "seed"
+                                    ? "Catalog seed · confirm at board"
+                                    : "Pump price · tip to keep honest"}
                             </p>
                             {(() => {
                               if (isDemo) {

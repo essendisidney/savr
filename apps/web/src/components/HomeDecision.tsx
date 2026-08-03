@@ -13,6 +13,7 @@ import {
 } from "@/lib/basket-draft";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, formatKes } from "@/lib/compare";
+import { fuelSavingsCredible } from "@/lib/data-honesty";
 import {
   ASK_PLACEHOLDERS,
   POPULAR_ASKS,
@@ -125,7 +126,7 @@ export function HomeDecision() {
       const prices = fuel.stations
         .map((s) => s.priceCentsPerLitre)
         .filter((p) => Number.isFinite(p) && p > 0);
-      if (prices.length >= 2) {
+      if (prices.length >= 2 && fuelSavingsCredible(fuel.stations, fuel.source)) {
         const lo = Math.min(...prices);
         const hi = Math.max(...prices);
         const perLitre = hi - lo;
@@ -135,7 +136,7 @@ export function HomeDecision() {
             id: "fuel",
             eyebrow: "Fuel",
             title: "Cheaper petrol is nearby",
-            body: `Up to ${formatKes(perLitre)}/L vs the priciest station — about ${formatKes(tank)} on a 40L fill.`,
+            body: `Up to ${formatKes(perLitre)}/L vs the priciest station — about ${formatKes(tank)} on a 40L fill. Confirm at the board.`,
             href: "/fuel",
             cta: "See stations →",
             amountCents: tank,
@@ -385,16 +386,16 @@ export function HomeDecision() {
         </div>
 
         <div className="home-stack alive-stack animate-rise-delay-2 mt-9">
-          {/* Savr AI / opportunity — large */}
+          {/* Opportunity — rule-based, not AI theatre */}
           {ready && opportunities.length >= 2 ? (
             <div className="home-card-hero alive-card">
-              <p className="home-eyebrow home-eyebrow-on-light">Savr AI</p>
+              <p className="home-eyebrow home-eyebrow-on-light">Today’s opportunity</p>
               <p className="mt-2.5 font-display text-xl font-bold tracking-tightish text-savr-ink md:text-[1.65rem]">
                 I found {opportunities.length} ways you can save today
               </p>
               <p className="home-amount mt-2">{formatKes(waysTotal)}</p>
               <p className="mt-2 text-[13px] leading-relaxed text-savr-mute">
-                Potential across basket, fuel, and watches — not a promise, a path.
+                Potential across basket, fuel, and watches — not a promise, a path. Confirm on shelf.
               </p>
               <ul className="mt-5 space-y-2">
                 {opportunities.map((o) => (

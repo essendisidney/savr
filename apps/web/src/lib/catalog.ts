@@ -72,7 +72,6 @@ const fallbackCatalog: Catalog = {
     { id: "p-noodles", name: "Instant Noodles 5-pack", brand: "Indomie", category: "staples", unit: "piece" },
   ],
   prices: (() => {
-    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
     const rows: { merchantId: string; productId: string; priceCents: number }[] = [
       { merchantId: "m-naivas", productId: "p-milk", priceCents: 7500 },
       { merchantId: "m-naivas", productId: "p-bread", priceCents: 7000 },
@@ -105,10 +104,13 @@ const fallbackCatalog: Catalog = {
       { merchantId: "m-carrefour", productId: "p-soda", priceCents: 18200 },
       { merchantId: "m-carrefour", productId: "p-noodles", priceCents: 15200 },
     ];
-    return rows.map((row, i) => ({
+    // Offline demo — no invented “last week” trends or fresh clocks.
+    return rows.map((row) => ({
       ...row,
-      prevPriceCents: i % 5 === 0 ? Math.round(row.priceCents * 0.94) : Math.round(row.priceCents * 1.06),
-      prevObservedAt: weekAgo,
+      source: "fallback",
+      observedAt: null,
+      prevPriceCents: null,
+      prevObservedAt: null,
     }));
   })(),
   cashbackRules: [
@@ -323,7 +325,8 @@ export async function loadFuelStations(
         brand: s.brand ?? s.name,
         fuelType,
         priceCentsPerLitre: match.price_cents_per_litre,
-        cashbackCents: fuelType === "diesel" ? 1200 : 1500,
+        // No invented pump cashback until real partner rules exist.
+        cashbackCents: 0,
         distanceKm: null,
         lat,
         lng,
@@ -468,7 +471,7 @@ function loadFuelStationsFallback(fuelType: FuelType = "petrol") {
       brand: s.brand,
       fuelType,
       priceCentsPerLitre: fuelType === "diesel" ? s.diesel : s.price,
-      cashbackCents: fuelType === "diesel" ? Math.min(s.cashback, 1200) : s.cashback,
+      cashbackCents: 0,
       distanceKm: null,
       lat: s.lat,
       lng: s.lng,

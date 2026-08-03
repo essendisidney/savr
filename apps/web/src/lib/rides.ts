@@ -73,8 +73,8 @@ export type RideQuoteResult = {
 };
 
 /**
- * Nairobi ride quotes from distance + time-of-day surge.
- * Deep-link to partner apps for booking.
+ * Nairobi ride fare *estimates* from distance + time-of-day surge.
+ * Not live Bolt/Uber/Little API quotes — deep-link to partner apps to confirm.
  */
 export function buildRideQuotes(pickup: string, destination: string, now = new Date()): RideQuoteResult {
   const from = resolveRidePlace(pickup);
@@ -94,26 +94,27 @@ export function buildRideQuotes(pickup: string, destination: string, now = new D
   const destQ = encodeURIComponent(destination.trim() || "Nairobi");
   const pickQ = encodeURIComponent(pickup.trim() || "Westlands");
 
+  // No invented partner cashback — rank by fare estimate only.
   const partners: Omit<RideQuote, "netCents" | "isEstimated">[] = [
     {
       partner: "Bolt",
       priceCents: Math.round(base * (0.92 + (seed % 5) * 0.01)),
       etaMin: Math.max(3, Math.round(4 + km * 0.35 * Math.min(surge, 1.25))),
-      cashbackCents: 2000,
+      cashbackCents: 0,
       deepLink: `https://bolt.eu/en-ke/?pickup=${pickQ}&destination=${destQ}`,
     },
     {
       partner: "Little",
       priceCents: Math.round(base * (0.98 + (seed % 7) * 0.012)),
       etaMin: Math.max(4, Math.round(5 + km * 0.4 * Math.min(surge, 1.25))),
-      cashbackCents: 1500,
+      cashbackCents: 0,
       deepLink: `https://little.africa/?from=${pickQ}&to=${destQ}`,
     },
     {
       partner: "Uber",
       priceCents: Math.round(base * (1.05 + (seed % 4) * 0.015)),
       etaMin: Math.max(3, Math.round(4 + km * 0.38 * Math.min(surge, 1.25))),
-      cashbackCents: 1000,
+      cashbackCents: 0,
       deepLink: `https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${destQ}`,
     },
   ];
@@ -121,10 +122,10 @@ export function buildRideQuotes(pickup: string, destination: string, now = new D
   const quotes = partners
     .map((p) => ({
       ...p,
-      netCents: p.priceCents - p.cashbackCents,
+      netCents: p.priceCents,
       isEstimated: true as const,
     }))
-    .sort((a, b) => a.netCents - b.netCents);
+    .sort((a, b) => a.priceCents - b.priceCents);
 
   return {
     quotes,

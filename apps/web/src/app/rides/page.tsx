@@ -130,7 +130,7 @@ function RidesInner() {
 
   const best = quotes[0];
   const worst = quotes[quotes.length - 1];
-  const saved = worst && best ? worst.netCents - best.netCents : 0;
+  const saved = worst && best ? worst.priceCents - best.priceCents : 0;
   const maxPrice = Math.max(...quotes.map((q) => q.priceCents), 1);
   const share = useMemo(() => {
     if (!best || saved <= 0) return undefined;
@@ -150,21 +150,24 @@ function RidesInner() {
     <PageFrame>
       <PageHero
         theme="rides"
-        title={askText ? "Here’s the cheaper ride" : "Who gets you there for less?"}
+        title={askText ? "Here’s the cheaper ride estimate" : "Who looks cheaper?"}
         subtitle={
           askText
-            ? `For “${askQuote(askText)}” — Bolt, Uber, Little ranked before you request.`
-            : "Bolt, Uber, Little — ranked before you request. Your last route stays on this phone."
+            ? `For “${askQuote(askText)}” — Savr estimates only (not live Bolt/Uber/Little quotes). Confirm in-app.`
+            : "Savr estimates from distance + time-of-day — not live partner APIs. Confirm fare in their app before you request."
         }
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
+            <p className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              Estimated fares · not live partner quotes. Open the app to confirm price and surge.
+            </p>
             {askText && (
               <p className="text-sm text-savr-mute">
                 Ask Savr routed this as a{" "}
-                <span className="font-semibold text-savr-ink">ride compare</span>
+                <span className="font-semibold text-savr-ink">ride estimate</span>
                 {destination ? (
                   <>
                     {" "}
@@ -283,9 +286,9 @@ function RidesInner() {
 
             {best && (
               <SavingsMoment
-                amountLabel={`Take ${best.partner}`}
+                amountLabel={`Try ${best.partner}`}
                 amountCents={saved}
-                detail={`Save vs priciest net · +${formatKes(best.cashbackCents)} cashback · ${pickup} → ${destination}`}
+                detail={`Vs priciest estimate · ${pickup} → ${destination} · confirm in-app`}
                 share={share}
               />
             )}
@@ -314,29 +317,20 @@ function RidesInner() {
                           <p className="font-display text-2xl font-bold tracking-tightish">
                             {q.partner}
                           </p>
-                          <p className={`text-sm ${i === 0 ? "text-savr-mute" : "text-savr-mute"}`}>
-                            ETA ~{q.etaMin} min · Cashback {formatKes(q.cashbackCents)}
-                          </p>
-                          <p
-                            className={`mt-0.5 text-xs font-semibold ${
-                              i === 0 ? "text-savr-forest" : "text-savr-mute"
-                            }`}
-                          >
-                            Net {formatKes(q.netCents)}
+                          <p className="text-sm text-savr-mute">
+                            ETA ~{q.etaMin} min · Estimate only
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-display text-2xl font-bold tabular-nums">
-                          {formatKes(q.priceCents)}
+                          ~{formatKes(q.priceCents)}
                         </p>
                         <a
                           href={q.deepLink}
                           target="_blank"
                           rel="noreferrer"
-                          className={`text-sm font-semibold ${
-                            i === 0 ? "text-savr-forest" : "text-savr-forest"
-                          } hover:underline`}
+                          className="text-sm font-semibold text-savr-forest hover:underline"
                         >
                           Open app →
                         </a>

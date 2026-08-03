@@ -181,13 +181,13 @@ export function buildRideShare(params: {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
   return {
-    title: "Saved with Savr",
-    text: `Savr says take ${params.partner} to ${params.destination} — keep about ${amount} vs the priciest quote. Before you spend, Savr it.`,
+    title: "Savr ride estimate",
+    text: `Savr estimate: ${params.partner} looks cheaper to ${params.destination} (~${amount} vs the priciest estimate). Not a live partner quote — confirm in their app. Before you spend, Savr it.`,
     url: `${origin}/rides`,
   };
 }
 
-/** After a shelf tip — recruit the next tipper with an honest verified price. */
+/** After a shelf tip — recruit the next tipper without overclaiming “verified”. */
 export function buildPriceTipShare(params: {
   productName: string;
   productId: string;
@@ -202,7 +202,7 @@ export function buildPriceTipShare(params: {
   const url = inviteUrl(params.priceCents / 100, params.merchantName, next);
   return {
     title: "Price tip on Savr",
-    text: `Just verified ${params.productName} at ${place} — ${formatKes(params.priceCents)} on the shelf. Tip what you see too — keeps Nairobi prices honest. Before you spend, Savr it.`,
+    text: `Shopper tipped ${params.productName} at ${place} — ${formatKes(params.priceCents)} on the shelf. Tip what you see too — keeps Nairobi prices honest. Before you spend, Savr it.`,
     url,
   };
 }

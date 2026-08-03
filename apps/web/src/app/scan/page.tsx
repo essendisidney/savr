@@ -97,8 +97,15 @@ export default function ScanPage() {
           : `Matched → ${p.name}`,
     );
     track("scan_match", { via: next.via, productId: p.id });
-    const price = c.prices.find((row) => row.productId === p.id);
+    // Prefill tip only from tip/merchant shelves — never seed (tempts rubber-stamping).
+    const price = c.prices.find(
+      (row) =>
+        row.productId === p.id &&
+        row.source &&
+        !["seed", "ops", "catalog", "fallback"].includes(row.source.toLowerCase()),
+    );
     if (price) setTipPrice(String(Math.round(price.priceCents / 100)));
+    else setTipPrice("");
     coolUntilRef.current = Date.now() + 2200;
   }, []);
 

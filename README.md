@@ -78,7 +78,7 @@ Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
 - [ ] `INVITE_GATE_ENABLED` + `INVITE_COOKIE_SECRET` set
 - [ ] Support email / WhatsApp
 - [ ] **Weekly 30 shelf walk** — fill `ops/weekly-30-walk.csv` (or Merchant → Download Weekly 30) at 2–3 branches, upload via `/merchant`
-- [x] Seed refresh cadence for grocery + fuel — `node scripts/refresh-seed-freshness.js` then apply the printed SQL
+- [ ] Do **not** bump seed `observed_at` to now (breaks trust) — replace seed with walks/tips
 - [ ] M-Pesa: dry-run OK for beta; paste keys + set `MPESA_DRY_RUN=false` for real B2C
 - [x] Terms / Privacy linked
 

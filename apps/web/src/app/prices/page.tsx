@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
 import { bestAskProductMatch, askRecoveryProducts, compareProduct, formatKes } from "@/lib/compare";
+import { catalogHonesty } from "@/lib/data-honesty";
 import { askQuote } from "@/lib/intents";
 import { buildPriceTipShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
@@ -266,9 +267,9 @@ function PricesInner() {
         subtitle={
           askText
             ? `For “${askText.length > 72 ? `${askText.slice(0, 72)}…` : askText}”${
-                selected ? ` · matched ${selected.name}` : ""
+                selected ? ` · best guess ${selected.name}` : ""
               }`
-            : `Search ${catalog?.products.length ?? "…"} staples · live Nairobi prices · ${catalog?.source ?? "…"}`
+            : `Search ${catalog?.products.length ?? "…"} staples · ${catalogHonesty(catalog).label}`
         }
         action={{ href: "/basket", label: "Full basket compare" }}
       />
@@ -276,16 +277,24 @@ function PricesInner() {
       <div className="page-band">
         <PageShell>
           <div className="flex flex-col gap-8">
+            {catalogHonesty(catalog).banner && (
+              <p className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                {catalogHonesty(catalog).banner}{" "}
+                <Link href="/ops" className="font-semibold underline">
+                  Soft launch ops →
+                </Link>
+              </p>
+            )}
             {(askText || fromAsk) && selected && cheapest && (
               <p className="text-sm text-savr-mute">
                 {askText ? (
                   <>
-                    For “{askQuote(askText)}” — matched{" "}
+                    For “{askQuote(askText)}” — best guess{" "}
                     <span className="font-semibold text-savr-ink">{selected.name}</span>
                   </>
                 ) : (
                   <>
-                    Matched <span className="font-semibold text-savr-ink">{selected.name}</span>
+                    Best guess <span className="font-semibold text-savr-ink">{selected.name}</span>
                   </>
                 )}
                 {" — "}

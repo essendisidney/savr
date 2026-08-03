@@ -5,8 +5,16 @@ const DAY_MS = 86_400_000;
 
 export function formatPriceFreshness(
   observedAt: string | null | undefined,
-  _source?: string | null,
+  source?: string | null,
 ): { label: string; stale: boolean } {
+  const src = (source ?? "").toLowerCase().trim();
+  // Seed / offline demo clocks are not shelf walks — never say “just now”.
+  if (src === "seed" || src === "ops" || src === "catalog") {
+    return { label: "Catalog seed · confirm on shelf", stale: true };
+  }
+  if (src === "fallback") {
+    return { label: "Demo price · not a live shelf", stale: true };
+  }
   if (!observedAt) {
     return { label: "", stale: false };
   }
