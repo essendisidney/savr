@@ -846,3 +846,15 @@ a.home-card-map:hover {
     padding-bottom: var(--page-pad-bottom);
   }
 }
+
+/* Scan page — html5-qrcode host */
+#savr-scan-reader {
+  min-height: 280px;
+}
+#savr-scan-reader video {
+  object-fit: cover !important;
+  border-radius: 0 !important;
+}
+#savr-scan-reader img {
+  display: none;
+}
