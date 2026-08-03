@@ -11,7 +11,7 @@ import {
 } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { loadCatalog } from "@/lib/catalog";
-import { compareProduct, formatKes } from "@/lib/compare";
+import { bestAskProductMatch, compareProduct, formatKes } from "@/lib/compare";
 import { track } from "@/lib/track";
 import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
@@ -37,6 +37,8 @@ function PricesInner() {
   const [tipStatus, setTipStatus] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
+  const askText = (searchParams.get("ask") ?? "").trim();
+  const fromAsk = Boolean(askText || searchParams.get("q"));
   const {
     origin,
     source: geoSource,
@@ -54,13 +56,23 @@ function PricesInner() {
       const id = searchParams.get("id");
       if (id && c.products.some((p) => p.id === id)) {
         setSelectedId(id);
+      } else if (!id) {
+        const q = (searchParams.get("q") ?? askText).trim();
+        if (q) {
+          const hit = bestAskProductMatch(c, q);
+          if (hit) {
+            setSelectedId(hit.id);
+            setQuery(hit.name);
+            track("ask_price_match", { productId: hit.id, q: q.slice(0, 80) });
+          }
+        }
       }
       const grocery = c.merchants.filter((m) => m.category === "grocery" && m.location?.id);
       if (grocery[0]) {
         setTipBranchKey(`${grocery[0].id}|${grocery[0].locationId ?? grocery[0].location?.id}`);
       }
     });
-  }, [searchParams]);
+  }, [searchParams, askText]);
 
   useEffect(() => {
     setTipStatus(null);
@@ -144,14 +156,36 @@ function PricesInner() {
     <PageFrame>
       <PageHero
         theme="prices"
-        title="Where is it cheaper?"
-        subtitle={`Search ${catalog?.products.length ?? "…"} staples · live Nairobi prices · ${catalog?.source ?? "…"}`}
+        title={
+          askText || fromAsk
+            ? cheapest
+              ? `Cheapest: ${cheapest.merchantName}`
+              : "Here’s the price check"
+            : "Where is it cheaper?"
+        }
+        subtitle={
+          askText
+            ? `For “${askText.length > 72 ? `${askText.slice(0, 72)}…` : askText}”${
+                selected ? ` · matched ${selected.name}` : ""
+              }`
+            : `Search ${catalog?.products.length ?? "…"} staples · live Nairobi prices · ${catalog?.source ?? "…"}`
+        }
         action={{ href: "/basket", label: "Full basket compare" }}
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
+            {askText && selected && cheapest && (
+              <p className="text-sm text-savr-mute">
+                Ask Savr matched{" "}
+                <span className="font-semibold text-savr-ink">{selected.name}</span>
+                {" — "}
+                best shelf is about{" "}
+                <span className="font-semibold text-savr-forest">{formatKes(cheapest.priceCents)}</span>
+                {saved > 0 ? ` · keep ~${formatKes(saved)} vs the priciest` : ""}.
+              </p>
+            )}
             <div>
               <div className="mb-3 flex flex-wrap gap-2">
                 <button

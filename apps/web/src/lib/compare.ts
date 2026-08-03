@@ -119,13 +119,28 @@ export function searchProducts(
 ) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
+  const tokens = q.split(/[^a-z0-9+]+/).filter((t) => t.length > 2);
   return catalog.products
     .filter((p) => !excludeIds.includes(p.id))
-    .filter((p) => {
+    .map((p) => {
       const hay = `${p.name} ${p.brand ?? ""} ${p.category}`.toLowerCase();
-      return hay.includes(q);
+      let score = 0;
+      if (hay.includes(q)) score += 100;
+      for (const t of tokens) {
+        if (hay.includes(t)) score += 10;
+      }
+      return { p, score };
     })
-    .slice(0, limit);
+    .filter((row) => row.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((row) => row.p);
+}
+
+/** Best single product for an Ask free-text query. */
+export function bestAskProductMatch(catalog: Catalog, raw: string) {
+  const hits = searchProducts(catalog, raw, [], 1);
+  return hits[0] ?? null;
 }
 
 function distanceForMerchant(merchant: Merchant, origin?: GeoPoint | null): number | null {

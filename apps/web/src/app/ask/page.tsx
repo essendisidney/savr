@@ -33,11 +33,11 @@ export default function AskPage() {
             Ask Savr
           </p>
           <h1 className="mt-2 font-display text-[1.85rem] font-bold tracking-tightish text-savr-ink md:text-4xl">
-            What do you need to decide?
+            Ask — then see the answer
           </h1>
           <p className="mt-3 text-[15px] text-savr-mute">
-            Speak like a human. Savr routes you to the best compare surface — basket, rides, fuel,
-            map, or a single price.
+            Speak like a human. Savr opens the right compare with your question still on screen —
+            basket ranks, a matched price, rides, or fuel.
           </p>
         </div>
       </div>

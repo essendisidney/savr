@@ -73,30 +73,76 @@ export const ASK_PLACEHOLDERS = [
   "Could I have saved on my last shop…",
 ];
 
+const ASK_STOP = new Set([
+  "a",
+  "an",
+  "the",
+  "to",
+  "for",
+  "my",
+  "me",
+  "near",
+  "nearby",
+  "find",
+  "cheapest",
+  "cheap",
+  "best",
+  "where",
+  "is",
+  "are",
+  "need",
+  "tonight",
+  "under",
+  "kes",
+  "about",
+  "please",
+  "want",
+  "buy",
+  "get",
+]);
+
+/** Attach original Ask text so destinations can show an answer, not a cold tool. */
+export function withAskParam(path: string, raw: string): string {
+  const ask = raw.trim().slice(0, 120);
+  if (!ask) return path;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}ask=${encodeURIComponent(ask)}`;
+}
+
 /** Route free-text Ask Savr queries to the right surface (rules, not LLM). */
 export function routeAskQuery(raw: string): string {
-  const q = raw.trim().toLowerCase();
+  const trimmed = raw.trim();
+  const q = trimmed.toLowerCase();
   if (!q) return "/ask";
 
   if (/\b(taxi|uber|bolt|little|ride|airport|cbd)\b/.test(q)) {
-    return "/rides";
+    return withAskParam("/rides", trimmed);
   }
   if (/\b(fuel|petrol|diesel|fill\s*up|station)\b/.test(q)) {
-    return "/fuel";
+    return withAskParam("/fuel", trimmed);
   }
   if (/\b(watch|wishlist|alert|drop|notify)\b/.test(q)) {
-    return "/saved";
+    return withAskParam("/saved", trimmed);
   }
   if (/\b(map|nearby|near me|directions)\b/.test(q)) {
-    return "/map";
+    return withAskParam("/map", trimmed);
   }
   if (/\b(family|basket|grocer|weekly shop|feed|staples|milk|bread|rice)\b/.test(q)) {
-    return "/basket?staples=1";
+    return withAskParam("/basket?staples=1", trimmed);
   }
   if (/\b(missed|could i|receipt|after)\b/.test(q)) {
-    return "/check";
+    return withAskParam("/check", trimmed);
   }
-  return `/prices?q=${encodeURIComponent(raw.trim())}`;
+  return withAskParam(`/prices?q=${encodeURIComponent(trimmed)}`, trimmed);
+}
+
+/** Meaningful tokens from an Ask string for product matching. */
+export function askSearchTokens(raw: string): string[] {
+  return raw
+    .toLowerCase()
+    .split(/[^a-z0-9+]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 2 && !ASK_STOP.has(t));
 }
 
 /** Rough “what that save buys” — emotional framing, not a receipt. */

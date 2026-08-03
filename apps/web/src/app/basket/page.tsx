@@ -81,6 +81,7 @@ function BasketInner() {
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [sharingDraft, setSharingDraft] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  const askText = (searchParams.get("ask") ?? "").trim();
   const {
     origin,
     source: geoSource,
@@ -442,13 +443,33 @@ function BasketInner() {
     <PageFrame>
       <PageHero
         theme="basket"
-        title="Where should you shop?"
-        subtitle="One list. Branches ranked by total cost — then share or lock."
+        title={askText ? "Here’s where to shop" : "Where should you shop?"}
+        subtitle={
+          askText
+            ? `For “${askText.length > 72 ? `${askText.slice(0, 72)}…` : askText}” — branches ranked by total cost.`
+            : "One list. Branches ranked by total cost — then share or lock."
+        }
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
+            {askText && recommended && items.length > 0 && (
+              <p className="text-sm text-savr-mute">
+                Ask Savr routed this as a{" "}
+                <span className="font-semibold text-savr-ink">basket compare</span>
+                {saved > 0 ? (
+                  <>
+                    {" "}
+                    — you could keep about{" "}
+                    <span className="font-semibold text-savr-forest">{formatKes(saved)}</span> at{" "}
+                    {recommended.merchantName}.
+                  </>
+                ) : (
+                  "."
+                )}
+              </p>
+            )}
             {recommended && items.length > 0 && (
               <SavingsMoment
                 amountLabel="You could keep"
