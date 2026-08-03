@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { logShopReceipt, submitCrowdsourcePrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import {
@@ -16,6 +17,7 @@ import {
   lineItemsForMerchant,
   searchProducts,
 } from "@/lib/compare";
+import { askQuote } from "@/lib/intents";
 import type { Catalog, ListItem } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -26,6 +28,25 @@ import { buildMissedShare, buildWinShare, sharePayload, whatsAppShareUrl } from 
 import { track } from "@/lib/track";
 
 export default function CheckPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
+          <PageShell>
+            <LoadingBlock rows={4} />
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <CheckInner />
+    </Suspense>
+  );
+}
+
+function CheckInner() {
+  const searchParams = useSearchParams();
+  const askText = (searchParams.get("ask") ?? "").trim();
   const { user } = useAuth();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [paidKey, setPaidKey] = useState("");
@@ -286,14 +307,25 @@ export default function CheckPage() {
     <PageFrame>
       <PageHero
         theme="check"
-        title="Could you have saved?"
-        subtitle="Pull your basket draft, tip what you paid, and save the trip — no photo needed."
+        title={askText ? "Let’s check that shop" : "Could you have saved?"}
+        subtitle={
+          askText
+            ? `For “${askQuote(askText)}” — tip what you paid and see the miss or win.`
+            : "Pull your basket draft, tip what you paid, and save the trip — no photo needed."
+        }
         action={{ href: "/basket", label: "Compare before next shop" }}
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-9">
+            {askText && (
+              <p className="text-sm text-savr-mute">
+                Ask Savr routed this as a{" "}
+                <span className="font-semibold text-savr-ink">post-shop check</span> — pick the
+                branch, confirm what you bought, then WhatsApp the punch.
+              </p>
+            )}
             {missed && (
               <SavingsMoment
                 amountLabel={missed.alreadyOptimal ? "You already won" : "You could have kept"}

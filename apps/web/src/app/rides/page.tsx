@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { formatKes } from "@/lib/compare";
+import { askQuote } from "@/lib/intents";
 import { loadRideRouteDraft, saveRideRouteDraft } from "@/lib/ride-draft";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { LoadingBlock } from "@/components/LoadingBlock";
 import { buildRideShare } from "@/lib/share";
 import { getSupabase } from "@/lib/supabase";
 import type { RideQuote } from "@/lib/types";
@@ -22,6 +25,25 @@ const PRESETS = [
 ];
 
 export default function RidesPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
+          <PageShell>
+            <LoadingBlock rows={3} />
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <RidesInner />
+    </Suspense>
+  );
+}
+
+function RidesInner() {
+  const searchParams = useSearchParams();
+  const askText = (searchParams.get("ask") ?? "").trim();
   const [pickup, setPickup] = useState("Westlands");
   const [destination, setDestination] = useState("Airport");
   const [ready, setReady] = useState(false);
@@ -36,8 +58,16 @@ export default function RidesPage() {
       setPickup(draft.pickup);
       setDestination(draft.destination);
     }
+    if (askText) {
+      const q = askText.toLowerCase();
+      if (/\b(airport|jkia)\b/.test(q)) setDestination("Airport");
+      else if (/\b(cbd|town)\b/.test(q)) setDestination("CBD");
+      else if (/\bwestlands\b/.test(q)) setDestination("Westlands");
+      else if (/\bkilimani\b/.test(q)) setDestination("Kilimani");
+      else if (/\bkaren\b/.test(q)) setDestination("Karen");
+    }
     setReady(true);
-  }, []);
+  }, [askText]);
 
   useEffect(() => {
     if (!ready) return;
@@ -120,13 +150,32 @@ export default function RidesPage() {
     <PageFrame>
       <PageHero
         theme="rides"
-        title="Who gets you there for less?"
-        subtitle="Bolt, Uber, Little — ranked before you request. Your last route stays on this phone."
+        title={askText ? "Here’s the cheaper ride" : "Who gets you there for less?"}
+        subtitle={
+          askText
+            ? `For “${askQuote(askText)}” — Bolt, Uber, Little ranked before you request.`
+            : "Bolt, Uber, Little — ranked before you request. Your last route stays on this phone."
+        }
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
+            {askText && (
+              <p className="text-sm text-savr-mute">
+                Ask Savr routed this as a{" "}
+                <span className="font-semibold text-savr-ink">ride compare</span>
+                {destination ? (
+                  <>
+                    {" "}
+                    — destination set toward{" "}
+                    <span className="font-semibold text-savr-ink">{destination}</span>.
+                  </>
+                ) : (
+                  "."
+                )}
+              </p>
+            )}
             <div className="animate-rise grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
               <label className="block space-y-2">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">

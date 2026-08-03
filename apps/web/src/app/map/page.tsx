@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { EmptyState } from "@/components/EmptyState";
@@ -10,6 +11,7 @@ import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare";
 import { haversineKm, useShopperOrigin } from "@/lib/geo";
+import { askQuote } from "@/lib/intents";
 import type { MapPoint, ValueTier } from "@/components/NairobiMap";
 
 const NairobiMap = dynamic(() => import("@/components/NairobiMap").then((m) => m.NairobiMap), {
@@ -32,6 +34,25 @@ function tierFromRank(index: number, n: number): ValueTier {
 }
 
 export default function MapPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
+          <PageShell>
+            <LoadingBlock rows={3} />
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <MapInner />
+    </Suspense>
+  );
+}
+
+function MapInner() {
+  const searchParams = useSearchParams();
+  const askText = (searchParams.get("ask") ?? "").trim();
   const [points, setPoints] = useState<MapPoint[]>([]);
   const [selected, setSelected] = useState<MapPoint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +66,12 @@ export default function MapPage() {
     useMyLocation,
     setEstate,
   } = useShopperOrigin();
+
+  useEffect(() => {
+    if (!askText) return;
+    if (/\bfuel|petrol|diesel|station\b/i.test(askText)) setFilter("fuel");
+    else if (/\bgrocer|shop|market|supermarket\b/i.test(askText)) setFilter("grocery");
+  }, [askText]);
 
   const onSelect = useCallback((p: MapPoint) => setSelected(p), []);
 
@@ -167,12 +194,20 @@ export default function MapPage() {
             Value map
           </p>
           <h1 className="mt-2 max-w-2xl font-display text-[clamp(1.85rem,4.5vw,2.75rem)] font-extrabold tracking-tightish text-savr-ink">
-            Where Nairobi saves money
+            {askText ? "Here’s nearby value" : "Where Nairobi saves money"}
           </h1>
           <p className="mt-3 max-w-lg text-[15px] text-savr-mute">
-            Green = best value. Yellow = middle. Red = expensive. Grocery pins use a weekly staples
-            basket; fuel pins use petrol per litre.
+            {askText
+              ? `For “${askQuote(askText)}” — green is best value, yellow middle, red expensive.`
+              : "Green = best value. Yellow = middle. Red = expensive. Grocery pins use a weekly staples basket; fuel pins use petrol per litre."}
           </p>
+          {askText && (
+            <p className="mt-2 max-w-lg text-sm text-savr-mute">
+              Ask Savr opened the{" "}
+              <span className="font-semibold text-savr-ink">value map</span>
+              {filter !== "all" ? ` · showing ${filter}` : ""}.
+            </p>
+          )}
         </div>
       </div>
 

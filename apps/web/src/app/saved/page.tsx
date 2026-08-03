@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   fetchSavedLists,
   loadRecentReceipts,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
+import { askQuote } from "@/lib/intents";
 import { buildReceiptShare, whatsAppShareUrl } from "@/lib/share";
 import { track } from "@/lib/track";
 import { EmptyState } from "@/components/EmptyState";
@@ -21,6 +23,25 @@ import { LoadingBlock } from "@/components/LoadingBlock";
 import { PageFrame, PageShell } from "@/components/PageShell";
 
 export default function SavedPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
+          <PageShell>
+            <LoadingBlock rows={4} />
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <SavedInner />
+    </Suspense>
+  );
+}
+
+function SavedInner() {
+  const searchParams = useSearchParams();
+  const askText = (searchParams.get("ask") ?? "").trim();
   const { user, loading: authLoading } = useAuth();
   const [lists, setLists] = useState<SavedListSummary[]>([]);
   const [history, setHistory] = useState<
@@ -125,10 +146,12 @@ export default function SavedPage() {
             Saved
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tightish text-savr-ink">
-            Lists, watches & shops
+            {askText ? "Your watches & shops" : "Lists, watches & shops"}
           </h1>
           <p className="mt-2 text-sm text-savr-mute">
-            Reopen a list, catch a drop, or revisit what a trip really cost you.
+            {askText
+              ? `For “${askQuote(askText)}” — catch a drop or re-punch a past shop.`
+              : "Reopen a list, catch a drop, or revisit what a trip really cost you."}
           </p>
         </div>
       </div>

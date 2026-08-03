@@ -109,6 +109,13 @@ export function withAskParam(path: string, raw: string): string {
   return `${path}${sep}ask=${encodeURIComponent(ask)}`;
 }
 
+/** Short quoted Ask for heroes / answer strips. */
+export function askQuote(raw: string, max = 72): string {
+  const t = raw.trim();
+  if (!t) return "";
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+}
+
 /** Route free-text Ask Savr queries to the right surface (rules, not LLM). */
 export function routeAskQuery(raw: string): string {
   const trimmed = raw.trim();

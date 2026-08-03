@@ -1,12 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { submitCrowdsourceFuelPrice } from "@/lib/actions";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
 import { loadFuelPrefsDraft, saveFuelPrefsDraft } from "@/lib/fuel-draft";
 import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
+import { askQuote } from "@/lib/intents";
 import { track } from "@/lib/track";
 import type { FuelStation, FuelType } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -19,6 +21,25 @@ import { LoadingBlock } from "@/components/LoadingBlock";
 type SortMode = "price" | "distance" | "value";
 
 export default function FuelPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
+          <PageShell>
+            <LoadingBlock rows={4} />
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <FuelInner />
+    </Suspense>
+  );
+}
+
+function FuelInner() {
+  const searchParams = useSearchParams();
+  const askText = (searchParams.get("ask") ?? "").trim();
   const [stations, setStations] = useState<FuelStation[]>([]);
   const [source, setSource] = useState("…");
   const [loading, setLoading] = useState(true);
@@ -45,8 +66,9 @@ export default function FuelPage() {
       setFuelType(draft.fuelType);
       setSort(draft.sort);
     }
+    if (askText && /\bdiesel\b/i.test(askText)) setFuelType("diesel");
     setPrefsReady(true);
-  }, []);
+  }, [askText]);
 
   useEffect(() => {
     if (!prefsReady) return;
@@ -128,13 +150,38 @@ export default function FuelPage() {
     <PageFrame>
       <PageHero
         theme="fuel"
-        title="Fill up smarter"
-        subtitle={`Nearby ${fuelLabel} prices · ${source}. Your fuel type and sort stay on this phone.`}
+        title={askText ? "Here’s cheaper fuel nearby" : "Fill up smarter"}
+        subtitle={
+          askText
+            ? `For “${askQuote(askText)}” — nearby ${fuelLabel} · ${source}.`
+            : `Nearby ${fuelLabel} prices · ${source}. Your fuel type and sort stay on this phone.`
+        }
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
+            {askText && best && (
+              <p className="text-sm text-savr-mute">
+                Ask Savr routed this as a{" "}
+                <span className="font-semibold text-savr-ink">fuel compare</span>
+                {" — "}
+                best nearby is{" "}
+                <span className="font-semibold text-savr-ink">{best.brand}</span>
+                {savedPerLitre > 0 ? (
+                  <>
+                    {" "}
+                    · keep about{" "}
+                    <span className="font-semibold text-savr-forest">
+                      {formatKes(savedPerLitre)}
+                    </span>{" "}
+                    per litre vs the priciest.
+                  </>
+                ) : (
+                  "."
+                )}
+              </p>
+            )}
             {best && (
               <SavingsMoment
                 amountLabel={`Go to ${best.brand}`}
