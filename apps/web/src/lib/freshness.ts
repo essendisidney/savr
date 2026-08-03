@@ -12,6 +12,9 @@ export function formatPriceFreshness(
   if (src === "seed" || src === "ops" || src === "catalog") {
     return { label: "Catalog seed · confirm on shelf", stale: true };
   }
+  if (src === "scrape") {
+    return { label: "Online scrape · confirm on shelf", stale: true };
+  }
   if (src === "fallback") {
     return { label: "Demo price · not a live shelf", stale: true };
   }
@@ -64,6 +67,9 @@ function sourceTrust(source: string | null | undefined): {
   }
   if (s === "seed" || s === "ops" || s === "catalog") {
     return { points: 18, label: "catalog seed" };
+  }
+  if (s === "scrape") {
+    return { points: 16, label: "online scrape" };
   }
   if (!s) return { points: 12, label: "unknown source" };
   return { points: 16, label: s };

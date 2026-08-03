@@ -25,3 +25,8 @@ apps/mobile/web/
 supabase/.branches/
 supabase/.temp/
 *.iml
+ops/scrape-report-*.json
+tmp-*.js
+tmp-*.json
+tmp-*.html
+apps/web/tsconfig.tsbuildinfo

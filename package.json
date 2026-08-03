@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "dev:web": "npm --prefix apps/web run dev",
-    "build:web": "npm --prefix apps/web run build"
+    "build:web": "npm --prefix apps/web run build",
+    "scrape:prices": "node -r ./scripts/scrapers/resolve-web-modules.js scripts/scrapers/run.js",
+    "scrape:prices:apply": "node -r ./scripts/scrapers/resolve-web-modules.js scripts/scrapers/run.js --apply"
   }
 }

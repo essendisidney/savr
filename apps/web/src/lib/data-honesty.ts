@@ -22,7 +22,7 @@ function isTipOrMerchant(source: string | null | undefined): boolean {
 
 function isSeedish(source: string | null | undefined): boolean {
   const s = (source ?? "").toLowerCase().trim();
-  return !s || s === "seed" || s === "ops" || s === "catalog" || s === "fallback";
+  return !s || s === "seed" || s === "ops" || s === "catalog" || s === "fallback" || s === "scrape";
 }
 
 /** Grocery catalog honesty for Prices / Basket / Home. */

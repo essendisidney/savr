@@ -19,7 +19,8 @@ type CheckId =
   | "tip"
   | "tippers"
   | "sms"
-  | "support";
+  | "support"
+  | "scrape";
 
 const STEPS: {
   id: CheckId;
@@ -66,6 +67,13 @@ const STEPS: {
     id: "support",
     title: "Support email / WhatsApp",
     body: "NEXT_PUBLIC_SUPPORT_EMAIL and NEXT_PUBLIC_SUPPORT_WHATSAPP on Vercel.",
+  },
+  {
+    id: "scrape",
+    title: "Optional: online scrape (Jumia)",
+    body: "CLI densifies online prices as source=scrape — never overwrites tips/merchant. Shelf truth still needs walks.",
+    href: "https://github.com/essendisidney/savr/blob/main/scripts/scrapers/README.md",
+    hrefLabel: "Scraper docs →",
   },
 ];
 
