@@ -280,9 +280,9 @@ export function HomeDecision() {
     <div className="home-stage relative min-h-[calc(100svh-3.5rem)] overflow-hidden">
       <div className="home-stage-glow pointer-events-none absolute inset-0" aria-hidden />
       <div className="home-stage-mesh pointer-events-none absolute inset-0" aria-hidden />
-      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-52 opacity-[0.12]" aria-hidden />
+      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-40 opacity-[0.08]" aria-hidden />
 
-      <div className="relative mx-auto flex max-w-lg flex-col px-4 pb-20 pt-11 md:px-6 md:pb-24 md:pt-16">
+      <div className="relative z-10 mx-auto flex max-w-lg flex-col px-4 pb-28 pt-11 md:px-6 md:pb-32 md:pt-16">
         <p className="home-eyebrow animate-rise">
           {greeting}
           {name !== "there" ? `, ${name}` : ""}

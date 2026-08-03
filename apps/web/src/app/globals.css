@@ -315,10 +315,12 @@ body {
 }
 
 .home-city {
+  z-index: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 160' fill='none'%3E%3Cpath fill='%23042419' d='M0 160V98h28v62H0zm40 0V72h36v88H40zm48 0V110h22v50H88zm34 0V64h40v96h-40zm52 0V88h28v72h-28zm40 0V48h48v112h-48zm60 0V78h32v82h-32zm44 0V102h24v58h-24zm36 0V56h44v104h-44zm56 0V84h30v76h-30zm42 0V70h38v90h-38zm50 0V92h26v68h-26zm38 0V60h42v100h-42zm54 0V108h20v52h-20zm32 0V74h36v86h-36zm48 0V96h28v64h-28z'/%3E%3Ccircle cx='120' cy='40' r='3' fill='%2300c853' opacity='.5'/%3E%3Ccircle cx='310' cy='28' r='2.5' fill='%232563eb' opacity='.45'/%3E%3Ccircle cx='520' cy='36' r='3' fill='%2300c853' opacity='.4'/%3E%3Ccircle cx='680' cy='44' r='2.5' fill='%232563eb' opacity='.35'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center bottom;
   background-size: min(920px, 140%) 100%;
+  mask-image: linear-gradient(to top, black 0%, transparent 85%);
 }
 
 .home-eyebrow {
@@ -575,7 +577,7 @@ a.home-card-mid:hover,
 .home-card-sm {
   border-radius: 1.15rem;
   border: 1px solid rgba(4, 36, 25, 0.045);
-  background: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.92);
   padding: 1rem 1.15rem;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -583,9 +585,9 @@ a.home-card-mid:hover,
 
 .home-card-map {
   border-radius: 1.35rem;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.85) 0%, rgba(236, 242, 255, 0.8) 100%);
+    linear-gradient(140deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 246, 255, 0.94) 100%);
   padding: 1.2rem 1.25rem;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
