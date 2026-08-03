@@ -198,6 +198,92 @@ body {
   box-shadow: 0 26px 56px -28px rgba(0, 200, 83, 0.45);
 }
 
+.home-card-hero {
+  border-radius: 1.35rem;
+  border: 1px solid rgba(0, 200, 83, 0.2);
+  background:
+    linear-gradient(148deg, rgba(255, 255, 255, 0.97) 0%, rgba(236, 253, 245, 0.95) 48%, rgba(239, 246, 255, 0.88) 100%);
+  padding: 1.35rem 1.4rem 1.45rem;
+  box-shadow: 0 24px 56px -30px rgba(0, 200, 83, 0.4);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+a.home-card-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 28px 60px -28px rgba(0, 200, 83, 0.48);
+}
+
+.home-card-mid {
+  border-radius: 1.2rem;
+  border: 1px solid rgba(4, 36, 25, 0.07);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 16px 40px -32px rgba(11, 18, 32, 0.35);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+a.home-card-mid:hover {
+  border-color: rgba(0, 200, 83, 0.28);
+  transform: translateY(-1px);
+}
+
+.home-card-sm {
+  border-radius: 1rem;
+  border: 1px solid rgba(4, 36, 25, 0.05);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 0.95rem 1.1rem;
+}
+
+.home-card-map {
+  border-radius: 1.2rem;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(239, 246, 255, 0.85) 100%);
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 16px 40px -32px rgba(37, 99, 235, 0.3);
+  transition: transform 0.2s ease;
+}
+
+a.home-card-map:hover {
+  transform: translateY(-1px);
+}
+
+.home-map-thumb {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.85rem;
+  flex-shrink: 0;
+  background:
+    radial-gradient(circle at 30% 35%, #00c853 0 6px, transparent 7px),
+    radial-gradient(circle at 70% 55%, #2563eb 0 5px, transparent 6px),
+    radial-gradient(circle at 55% 25%, #f59e0b 0 4px, transparent 5px),
+    linear-gradient(145deg, #e8f5e9, #e3f2fd);
+  box-shadow: inset 0 0 0 1px rgba(4, 36, 25, 0.06);
+}
+
+.home-ask-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex-shrink: 0;
+  border-radius: 0.85rem;
+  color: #042419;
+  background: rgba(4, 36, 25, 0.04);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.home-ask-icon:hover {
+  background: rgba(0, 200, 83, 0.12);
+  color: #009624;
+}
+
+.home-ask-icon:disabled {
+  opacity: 0.55;
+}
+
 @media (max-width: 767px) {
   main {
     padding-bottom: var(--page-pad-bottom);

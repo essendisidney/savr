@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadProfile, loadWallet, loadWatchlist } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
@@ -11,7 +11,7 @@ import {
   loadLastComparedAt,
   type HomeBasketCta,
 } from "@/lib/basket-draft";
-import { loadCatalog } from "@/lib/catalog";
+import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, formatKes } from "@/lib/compare";
 import {
   ASK_PLACEHOLDERS,
@@ -19,6 +19,7 @@ import {
   savingsBuys,
   weekdayPulse,
 } from "@/lib/intents";
+import { loadRecentAsks, pushRecentAsk } from "@/lib/recent-asks";
 
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -34,19 +35,22 @@ function firstName(full: string | null | undefined, email: string | null | undef
   return "there";
 }
 
-type Insight = {
+type Opportunity = {
+  id: string;
   eyebrow: string;
   title: string;
   body: string;
   href: string;
   cta: string;
-  amountCents?: number;
+  amountCents: number;
 };
 
 export function HomeDecision() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("there");
+  const [balanceCents, setBalanceCents] = useState(0);
   const [todayCents, setTodayCents] = useState(0);
   const [lifetimeCents, setLifetimeCents] = useState(0);
   const [query, setQuery] = useState("");
@@ -54,13 +58,22 @@ export function HomeDecision() {
   const [placeholderKey, setPlaceholderKey] = useState(0);
   const [cta, setCta] = useState<HomeBasketCta>(() => homeBasketCta(null, null));
   const [continueSaveCents, setContinueSaveCents] = useState(0);
-  const [insight, setInsight] = useState<Insight | null>(null);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [nearby, setNearby] = useState({ grocery: 0, fuel: 0 });
+  const [recent, setRecent] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const hour = useMemo(() => new Date().getHours(), []);
   const greeting = greetingForHour(hour);
   const pulse = useMemo(() => weekdayPulse(), []);
+
+  useEffect(() => {
+    setRecent(loadRecentAsks());
+    setCta(homeBasketCta(loadBasketDraft(), loadLastComparedAt()));
+  }, []);
 
   useEffect(() => {
     let i = 0;
@@ -73,16 +86,19 @@ export function HomeDecision() {
   }, []);
 
   useEffect(() => {
-    setCta(homeBasketCta(loadBasketDraft(), loadLastComparedAt()));
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
     void (async () => {
       const draft = loadBasketDraft();
-      const catalog = await loadCatalog();
+      const [catalog, fuel] = await Promise.all([
+        loadCatalog(),
+        loadFuelStations("petrol"),
+      ]);
       if (cancelled) return;
 
+      const groceryN = catalog.merchants.filter((m) => m.category === "grocery").length;
+      setNearby({ grocery: groceryN, fuel: fuel.stations.length });
+
+      const ways: Opportunity[] = [];
       let saveCents = 0;
       if (draft?.items.length) {
         const ranks = compareBasket(catalog, draft.items);
@@ -90,28 +106,54 @@ export function HomeDecision() {
         const worst = ranks[ranks.length - 1];
         if (best && worst) saveCents = Math.max(0, worst.netCents - best.netCents);
         setContinueSaveCents(saveCents);
+        if (saveCents >= 500) {
+          ways.push({
+            id: "basket",
+            eyebrow: "Basket",
+            title: "Your list could keep this",
+            body: savingsBuys(saveCents) ?? "Compare before anyone shops.",
+            href: "/basket",
+            cta: "Continue basket →",
+            amountCents: saveCents,
+          });
+        }
       } else {
         setContinueSaveCents(0);
       }
 
-      if (authLoading) return;
+      const prices = fuel.stations
+        .map((s) => s.priceCentsPerLitre)
+        .filter((p) => Number.isFinite(p) && p > 0);
+      if (prices.length >= 2) {
+        const lo = Math.min(...prices);
+        const hi = Math.max(...prices);
+        const perLitre = hi - lo;
+        if (perLitre >= 200) {
+          const tank = perLitre * 40;
+          ways.push({
+            id: "fuel",
+            eyebrow: "Fuel",
+            title: "Cheaper petrol is nearby",
+            body: `Up to ${formatKes(perLitre)}/L vs the priciest station — about ${formatKes(tank)} on a 40L fill.`,
+            href: "/fuel",
+            cta: "See stations →",
+            amountCents: tank,
+          });
+        }
+      }
+
+      if (authLoading) {
+        setOpportunities(ways.slice(0, 3));
+        setReady(true);
+        return;
+      }
 
       if (!user) {
         setName("there");
+        setBalanceCents(0);
         setTodayCents(0);
         setLifetimeCents(0);
-        if (saveCents >= 500) {
-          setInsight({
-            eyebrow: "Today’s opportunity",
-            title: "Your list is ready to beat the priciest store",
-            body: savingsBuys(saveCents) ?? "Finish comparing before anyone shops.",
-            href: "/basket",
-            cta: "See where to shop →",
-            amountCents: saveCents,
-          });
-        } else {
-          setInsight(null);
-        }
+        setOpportunities(ways.slice(0, 3));
         setReady(true);
         return;
       }
@@ -126,48 +168,40 @@ export function HomeDecision() {
       const full =
         "error" in profile ? (user.user_metadata?.full_name as string | undefined) : profile.fullName;
       setName(firstName(full, user.email));
+      setBalanceCents(wallet.balanceCents ?? 0);
       setTodayCents(wallet.todaySavingsCents ?? 0);
       setLifetimeCents(wallet.lifetimeSavingsCents ?? 0);
 
       const drop =
         watchRes.drops?.find((d) => d.unread) ?? watchRes.drops?.[0] ?? null;
       if (drop && drop.dropCents >= 500) {
-        setInsight({
-          eyebrow: "Today’s opportunity",
-          title: `${drop.productName} just got cheaper`,
-          body:
-            drop.dropCents > 0
-              ? `${formatKes(drop.dropCents)} below your watch${
-                  drop.merchantName ? ` · ${drop.merchantName}` : ""
-                }`
-              : "Something moved on a price you watch.",
+        ways.unshift({
+          id: "drop",
+          eyebrow: "Price drop",
+          title: `${drop.productName} got cheaper`,
+          body: `${formatKes(drop.dropCents)} below your watch${
+            drop.merchantName ? ` · ${drop.merchantName}` : ""
+          }`,
           href: drop.unread ? "/alerts" : drop.href,
           cta: "See drop →",
           amountCents: drop.dropCents,
         });
-      } else if (saveCents >= 500) {
-        setInsight({
-          eyebrow: "Today’s opportunity",
-          title: "Your list is ready to beat the priciest store",
-          body: savingsBuys(saveCents) ?? "Pick the winning branch before anyone spends.",
-          href: "/basket",
-          cta: "Continue →",
-          amountCents: saveCents,
-        });
-      } else if ((wallet.todaySavingsCents ?? 0) > 0) {
+      }
+
+      if ((wallet.todaySavingsCents ?? 0) >= 500 && !ways.some((w) => w.id === "today")) {
         const kept = wallet.todaySavingsCents ?? 0;
-        setInsight({
-          eyebrow: "Already working",
-          title: "You locked in a smarter choice today",
-          body: savingsBuys(kept) ?? "From decisions you already made.",
+        ways.push({
+          id: "today",
+          eyebrow: "Today",
+          title: "Already locked in",
+          body: savingsBuys(kept) ?? "From smarter choices you made today.",
           href: "/wallet",
           cta: "Open wallet →",
           amountCents: kept,
         });
-      } else {
-        setInsight(null);
       }
 
+      setOpportunities(ways.slice(0, 3));
       setReady(true);
     })();
     return () => {
@@ -175,64 +209,110 @@ export function HomeDecision() {
     };
   }, [user, authLoading]);
 
-  function onAsk(e: FormEvent) {
-    e.preventDefault();
-    const trimmed = query.trim();
+  function goAsk(raw: string) {
+    const trimmed = raw.trim();
     if (!trimmed) {
       router.push("/ask");
       return;
     }
+    pushRecentAsk(trimmed);
+    setRecent(loadRecentAsks());
     setAsking(true);
     window.setTimeout(() => {
       router.push(routeAskQuery(trimmed));
-    }, 420);
+    }, 520);
   }
 
-  const heroLine = !ready
-    ? "Before you spend anything today…"
-    : insight
-      ? "Savr already found a way to save you money."
-      : todayCents > 0
-        ? `You’ve kept ${formatKes(todayCents)} today — ask what’s next.`
-        : "Before you spend anything today, ask Savr.";
+  function onAsk(e: FormEvent) {
+    e.preventDefault();
+    goAsk(query);
+  }
 
-  const showContinueAsSecondary = Boolean(insight && insight.href === cta.href);
-  const showContinueBlock = !insight || insight.href !== cta.href;
+  function onVoice() {
+    setVoiceError(null);
+    const SpeechRecognition =
+      typeof window !== "undefined"
+        ? (window as unknown as {
+            SpeechRecognition?: new () => SpeechRecognitionLike;
+            webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+          }).SpeechRecognition ||
+          (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike })
+            .webkitSpeechRecognition
+        : undefined;
+
+    if (!SpeechRecognition) {
+      setVoiceError("Voice isn’t supported in this browser — type instead.");
+      inputRef.current?.focus();
+      return;
+    }
+
+    const rec = new SpeechRecognition();
+    rec.lang = "en-KE";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    setListening(true);
+    rec.onresult = (event) => {
+      const text = event.results?.[0]?.[0]?.transcript?.trim() ?? "";
+      setListening(false);
+      if (text) {
+        setQuery(text);
+        goAsk(text);
+      }
+    };
+    rec.onerror = () => {
+      setListening(false);
+      setVoiceError("Couldn’t hear that — try again or type.");
+    };
+    rec.onend = () => setListening(false);
+    try {
+      rec.start();
+    } catch {
+      setListening(false);
+      setVoiceError("Microphone blocked — type instead.");
+    }
+  }
+
+  const primary = opportunities[0] ?? null;
+  const waysTotal = opportunities.reduce((s, o) => s + o.amountCents, 0);
+  const nearbyOffers = nearby.grocery + nearby.fuel;
 
   return (
     <div className="home-stage relative min-h-[calc(100svh-3.5rem)] overflow-hidden">
       <div className="home-stage-glow pointer-events-none absolute inset-0" aria-hidden />
-      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-44 opacity-[0.14]" aria-hidden />
+      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-48 opacity-[0.16]" aria-hidden />
 
-      <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-lg flex-col justify-center px-4 py-12 md:px-6 md:py-16">
+      <div className="relative mx-auto flex max-w-lg flex-col px-4 pb-16 pt-10 md:px-6 md:pb-20 md:pt-14">
         <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.22em] text-savr-forest">
           {greeting}
           {name !== "there" ? `, ${name}` : ""}
         </p>
 
-        <p className="animate-rise mt-3 font-display text-[3.25rem] font-extrabold leading-none tracking-tightish text-savr-ink md:text-6xl">
+        <p className="animate-rise mt-2 font-display text-[2.75rem] font-extrabold leading-none tracking-tightish text-savr-ink md:text-5xl">
           Savr
         </p>
 
-        <h1 className="animate-rise-delay mt-5 max-w-md text-[1.35rem] font-medium leading-snug text-savr-ink/85 md:text-2xl">
-          {heroLine}
-        </h1>
-
-        {!insight && (
-          <p className="animate-rise-delay mt-2 max-w-md text-sm text-savr-mute">{pulse}</p>
+        <p className="animate-rise-delay mt-4 max-w-md text-[1.15rem] font-medium leading-snug text-savr-ink/85 md:text-xl">
+          {ready && primary
+            ? "Before you spend anything today — Savr already sees where you can save."
+            : "Before you spend anything today, Ask Savr."}
+        </p>
+        {!primary && (
+          <p className="animate-rise-delay mt-1.5 text-sm text-savr-mute">{pulse}</p>
         )}
 
-        <form onSubmit={onAsk} className="animate-rise-delay-2 mt-8">
+        {/* HERO — Ask */}
+        <form onSubmit={onAsk} className="animate-rise-delay-2 mt-7">
           <label className="sr-only" htmlFor="savr-home-ask">
             Ask Savr
           </label>
-          <div className={`home-ask ${asking ? "home-ask-busy" : ""}`}>
-            <div className="flex items-center gap-3 px-4 sm:px-5">
-              <span className="shrink-0 text-[13px] font-bold tracking-wide text-savr-forest">
+          <div className={`home-ask ${asking || listening ? "home-ask-busy" : ""}`}>
+            <div className="flex w-full items-center gap-2 px-3.5 sm:gap-3 sm:px-5">
+              <span className="hidden shrink-0 text-[13px] font-bold tracking-wide text-savr-forest sm:inline">
                 Ask Savr
               </span>
-              <div className="relative min-h-[1.5rem] w-full">
+              <div className="relative min-h-[1.5rem] min-w-0 flex-1">
                 <input
+                  ref={inputRef}
                   id="savr-home-ask"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -245,7 +325,7 @@ export function HomeDecision() {
                 {!query && (
                   <span
                     key={placeholderKey}
-                    className="home-ask-placeholder pointer-events-none absolute inset-0 flex items-center text-[16px] text-savr-mute/55"
+                    className="home-ask-placeholder pointer-events-none absolute inset-0 flex items-center text-[15px] text-savr-mute/55 sm:text-[16px]"
                     aria-hidden
                   >
                     {placeholder}
@@ -253,107 +333,257 @@ export function HomeDecision() {
                 )}
               </div>
               <button
+                type="button"
+                onClick={onVoice}
+                disabled={asking || listening}
+                className="home-ask-icon"
+                aria-label="Voice ask"
+                title="Voice"
+              >
+                <MicIcon active={listening} />
+              </button>
+              <Link
+                href="/check"
+                className="home-ask-icon"
+                aria-label="Scan or check a shop"
+                title="Scan / check"
+              >
+                <ScanIcon />
+              </Link>
+              <button
                 type="submit"
                 disabled={asking}
-                className="btn-primary shrink-0 px-4 py-2.5 text-sm disabled:opacity-70"
+                className="btn-primary shrink-0 px-3.5 py-2.5 text-sm disabled:opacity-70 sm:px-4"
               >
                 {asking ? "…" : "Go"}
               </button>
             </div>
           </div>
-          {asking && (
-            <p className="mt-3 text-sm font-medium text-savr-forest animate-pulse">
-              Looking for the smartest path…
+          {(asking || listening) && (
+            <p className="mt-3 text-sm font-medium text-savr-forest">
+              {listening ? "Listening…" : "Savr is looking for the smartest path…"}
             </p>
+          )}
+          {voiceError && (
+            <p className="mt-2 text-sm text-amber-800">{voiceError}</p>
           )}
         </form>
 
-        <div className="animate-rise-delay-2 mt-10 space-y-6">
-          {insight && (
-            <Link href={insight.href} className="home-opportunity block">
+        <div className="animate-rise-delay-2 mt-8 space-y-4">
+          {/* Savr AI / opportunity — large */}
+          {ready && opportunities.length >= 2 ? (
+            <div className="home-card-hero">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
-                {insight.eyebrow}
+                Savr AI
               </p>
-              {insight.amountCents != null && insight.amountCents >= 500 ? (
-                <p className="mt-2 font-display text-4xl font-extrabold tracking-tightish tabular-nums text-savr-ink md:text-5xl">
-                  {formatKes(insight.amountCents)}
-                </p>
-              ) : null}
-              <p
-                className={`font-display font-bold tracking-tightish text-savr-ink ${
-                  insight.amountCents != null && insight.amountCents >= 500
-                    ? "mt-1 text-lg"
-                    : "mt-2 text-xl"
-                }`}
-              >
-                {insight.title}
+              <p className="mt-2 font-display text-xl font-bold tracking-tightish text-savr-ink md:text-2xl">
+                I found {opportunities.length} ways you can save today
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-savr-mute">{insight.body}</p>
-              <p className="mt-3 text-sm font-semibold text-savr-forest">{insight.cta}</p>
-            </Link>
-          )}
-
-          {showContinueBlock && (
-            <div className={insight ? "border-t border-savr-ink/[0.06] pt-5" : ""}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                Continue
+              <p className="mt-1 font-display text-4xl font-extrabold tabular-nums text-savr-ink md:text-5xl">
+                {formatKes(waysTotal)}
               </p>
-              <Link
-                href={cta.href}
-                className="mt-2 flex items-start justify-between gap-3 transition hover:opacity-90"
-              >
-                <div>
-                  <p className="font-display text-lg font-bold tracking-tightish text-savr-ink">
-                    {cta.label}
-                  </p>
-                  <p className="mt-1 text-sm text-savr-mute">{cta.detail}</p>
-                  {continueSaveCents >= 500 && cta.href.startsWith("/basket") && !insight && (
-                    <>
-                      <p className="mt-2 font-display text-2xl font-extrabold tabular-nums text-savr-forest">
-                        ~{formatKes(continueSaveCents)}
-                      </p>
-                      {(() => {
-                        const buys = savingsBuys(continueSaveCents);
-                        return buys ? <p className="mt-1 text-sm text-savr-mute">{buys}</p> : null;
-                      })()}
-                    </>
-                  )}
-                </div>
-                <span className="shrink-0 pt-1 text-sm font-semibold text-savr-forest">→</span>
-              </Link>
-              {cta.secondaryHref && cta.secondaryLabel && (
-                <Link
-                  href={cta.secondaryHref}
-                  className="mt-3 inline-block text-sm font-semibold text-savr-mute transition hover:text-savr-forest hover:underline"
-                >
-                  {cta.secondaryLabel} →
-                </Link>
-              )}
+              <p className="mt-1 text-sm text-savr-mute">
+                Potential across basket, fuel, and watches — not a promise, a path.
+              </p>
+              <ul className="mt-4 space-y-2">
+                {opportunities.map((o) => (
+                  <li key={o.id}>
+                    <Link
+                      href={o.href}
+                      className="flex items-center justify-between gap-3 rounded-xl bg-white/55 px-3 py-2.5 transition hover:bg-white/90"
+                    >
+                      <span>
+                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-savr-mute">
+                          {o.eyebrow}
+                        </span>
+                        <span className="text-sm font-semibold text-savr-ink">{o.title}</span>
+                      </span>
+                      <span className="shrink-0 font-display text-base font-bold tabular-nums text-savr-forest">
+                        {formatKes(o.amountCents)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          )}
-
-          {showContinueAsSecondary && cta.secondaryHref && cta.secondaryLabel && (
-            <Link
-              href={cta.secondaryHref}
-              className="inline-block text-sm font-semibold text-savr-mute transition hover:text-savr-forest hover:underline"
-            >
-              {cta.secondaryLabel} →
+          ) : primary ? (
+            <Link href={primary.href} className="home-card-hero block">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
+                Today’s opportunity
+              </p>
+              <p className="mt-2 font-display text-4xl font-extrabold tabular-nums text-savr-ink md:text-5xl">
+                {formatKes(primary.amountCents)}
+              </p>
+              <p className="mt-2 font-display text-lg font-bold text-savr-ink">{primary.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-savr-mute">{primary.body}</p>
+              <p className="mt-3 text-sm font-semibold text-savr-forest">{primary.cta}</p>
             </Link>
-          )}
+          ) : null}
 
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-savr-ink/[0.06] pt-5 text-sm text-savr-mute">
-            <Link href="/map" className="font-semibold transition hover:text-savr-forest">
-              Nearby value →
+          {/* Continue — medium */}
+          <div className="home-card-mid">
+            <Link href={cta.href} className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                  Continue
+                </p>
+                <p className="mt-1.5 font-display text-lg font-bold tracking-tightish text-savr-ink">
+                  {cta.label}
+                </p>
+                <p className="mt-1 text-sm text-savr-mute">{cta.detail}</p>
+              </div>
+              {continueSaveCents >= 500 ? (
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-savr-mute">
+                    Potential
+                  </p>
+                  <p className="font-display text-2xl font-extrabold tabular-nums text-savr-forest">
+                    {formatKes(continueSaveCents)}
+                  </p>
+                </div>
+              ) : (
+                <span className="pt-1 text-sm font-semibold text-savr-forest">→</span>
+              )}
             </Link>
-            {ready && lifetimeCents > 0 && (
-              <Link href="/wallet" className="transition hover:text-savr-forest">
-                Lifetime kept{" "}
-                <span className="font-semibold text-savr-ink">{formatKes(lifetimeCents)}</span>
+            {cta.secondaryHref && cta.secondaryLabel && (
+              <Link
+                href={cta.secondaryHref}
+                className="mt-3 inline-block text-sm font-semibold text-savr-mute hover:text-savr-forest hover:underline"
+              >
+                {cta.secondaryLabel} →
               </Link>
             )}
           </div>
+
+          {/* Wallet — medium */}
+          <Link href="/wallet" className="home-card-mid block">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                  Wallet
+                </p>
+                <p className="mt-1.5 font-display text-lg font-bold text-savr-ink">
+                  {user
+                    ? balanceCents > 0
+                      ? `${formatKes(balanceCents)} cashback`
+                      : todayCents > 0
+                        ? `${formatKes(todayCents)} kept today`
+                        : "Your savings ledger"
+                    : "Sign in to keep cashback"}
+                </p>
+              </div>
+              <span className="text-sm font-semibold text-savr-forest">→</span>
+            </div>
+          </Link>
+
+          {/* Recent — small */}
+          {recent.length > 0 && (
+            <div className="home-card-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                Recent
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {recent.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => goAsk(r)}
+                    className="rounded-full border border-savr-ink/[0.08] bg-white/80 px-3 py-1.5 text-left text-xs font-semibold text-savr-ink transition hover:border-savr-forest/30 hover:text-savr-forest"
+                  >
+                    {r.length > 28 ? `${r.slice(0, 28)}…` : r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Nearby map preview — medium */}
+          <Link href="/map" className="home-card-map block">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                  Nearby
+                </p>
+                <p className="mt-1.5 font-display text-lg font-bold text-savr-ink">
+                  {nearbyOffers > 0
+                    ? `${nearby.grocery} supermarket${nearby.grocery === 1 ? "" : "s"} · ${nearby.fuel} fuel`
+                    : "Value map"}
+                </p>
+                <p className="mt-1 text-sm text-savr-mute">
+                  {nearbyOffers > 0
+                    ? `${nearbyOffers} places Savr can rank near you`
+                    : "See where Nairobi saves"}
+                </p>
+              </div>
+              <span className="home-map-thumb" aria-hidden />
+            </div>
+          </Link>
+
+          {/* Lifetime — small */}
+          {ready && lifetimeCents > 0 && (
+            <div className="home-card-sm flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                  Lifetime saved
+                </p>
+                <p className="mt-1 font-display text-xl font-bold tabular-nums text-savr-ink">
+                  {formatKes(lifetimeCents)}
+                </p>
+              </div>
+              <Link href="/wallet" className="text-sm font-semibold text-savr-forest">
+                Wallet →
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start: () => void;
+  onresult: ((event: { results?: SpeechRecognitionResultList }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+};
+
+function MicIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect
+        x="9"
+        y="3"
+        width="6"
+        height="11"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth={active ? 2.2 : 1.7}
+      />
+      <path
+        d="M6 11a6 6 0 0 0 12 0M12 17v3"
+        stroke="currentColor"
+        strokeWidth={active ? 2.2 : 1.7}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ScanIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 8V5h3M16 5h3v3M19 16v3h-3M8 19H5v-3"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M7 12h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
   );
 }
