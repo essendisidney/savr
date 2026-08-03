@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { logShopReceipt, submitCrowdsourcePrice } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import {
@@ -22,7 +22,7 @@ import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
-import { buildMissedShare, buildWinShare } from "@/lib/share";
+import { buildMissedShare, buildWinShare, sharePayload, whatsAppShareUrl } from "@/lib/share";
 import { track } from "@/lib/track";
 
 export default function CheckPage() {
@@ -42,6 +42,7 @@ export default function CheckPage() {
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [savedShareReady, setSavedShareReady] = useState(false);
+  const punchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadCatalog().then((c) => {
@@ -213,15 +214,61 @@ export default function CheckPage() {
       return;
     }
     setSavedShareReady(true);
-    setSaveStatus(
-      missed.alreadyOptimal
-        ? "Shop saved — WhatsApp your win so someone else checks before they spend."
-        : `Shop saved — ${formatKes(missed.missedCents)} left on the table. Share it before you forget.`,
-    );
     track("shop_receipt_saved", {
       missedCents: missed.missedCents,
       alreadyOptimal: missed.alreadyOptimal,
     });
+
+    const punch = share;
+    if (punch) {
+      track("share_save", {
+        via: "whatsapp_autosave",
+        amountKes: Math.round(
+          (missed.alreadyOptimal ? missed.paidCashbackCents : missed.missedCents) / 100,
+        ),
+      });
+      window.open(whatsAppShareUrl(punch), "_blank", "noopener,noreferrer");
+      setSaveStatus(
+        missed.alreadyOptimal
+          ? "Saved — opening WhatsApp so someone else checks first."
+          : `Saved — ${formatKes(missed.missedCents)} left on the table. Opening WhatsApp…`,
+      );
+    } else {
+      setSaveStatus(
+        missed.alreadyOptimal
+          ? "Shop saved — WhatsApp your win so someone else checks before they spend."
+          : `Shop saved — ${formatKes(missed.missedCents)} left on the table. Share it before you forget.`,
+      );
+    }
+
+    requestAnimationFrame(() => {
+      punchRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
+  async function onPunchShare() {
+    if (!share) return;
+    track("share_save", {
+      via: "sheet_postsave",
+      amountKes: Math.round(
+        ((missed?.alreadyOptimal ? missed.paidCashbackCents : missed?.missedCents) ?? 0) / 100,
+      ),
+    });
+    const result = await sharePayload(share);
+    if (result === "shared") setSaveStatus("Shared.");
+    else if (result === "copied") setSaveStatus("Link copied — paste it in WhatsApp.");
+  }
+
+  function onPunchWhatsApp() {
+    if (!share) return;
+    track("share_save", {
+      via: "whatsapp_postsave",
+      amountKes: Math.round(
+        ((missed?.alreadyOptimal ? missed.paidCashbackCents : missed?.missedCents) ?? 0) / 100,
+      ),
+    });
+    window.open(whatsAppShareUrl(share), "_blank", "noopener,noreferrer");
+    setSaveStatus("Opening WhatsApp…");
   }
 
   if (loading || !catalog) {
@@ -525,29 +572,68 @@ export default function CheckPage() {
                       </p>
                     )}
 
-                    <div className="border-t border-savr-ink/[0.06] pt-4">
-                      {user ? (
-                        <button
-                          type="button"
-                          disabled={saveBusy}
-                          onClick={onSaveReceipt}
-                          className="btn-primary w-full disabled:opacity-50"
-                        >
-                          {saveBusy ? "Saving…" : "Save this shop"}
-                        </button>
+                    <div ref={punchRef} className="border-t border-savr-ink/[0.06] pt-4">
+                      {savedShareReady && share ? (
+                        <div className="space-y-3">
+                          <button
+                            type="button"
+                            onClick={onPunchWhatsApp}
+                            className="btn-primary w-full py-3.5 text-base"
+                          >
+                            {missed.alreadyOptimal
+                              ? "WhatsApp this win"
+                              : "WhatsApp this miss"}
+                          </button>
+                          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+                            <button
+                              type="button"
+                              onClick={onPunchShare}
+                              className="font-semibold text-savr-mute hover:text-savr-ink hover:underline"
+                            >
+                              Share another way
+                            </button>
+                            <Link
+                              href="/basket"
+                              className="font-semibold text-savr-forest hover:underline"
+                            >
+                              Compare before next shop
+                            </Link>
+                          </div>
+                          {saveStatus && (
+                            <p className="text-center text-sm font-semibold text-savr-forest">
+                              {saveStatus}
+                            </p>
+                          )}
+                        </div>
+                      ) : user ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={saveBusy}
+                            onClick={onSaveReceipt}
+                            className="btn-primary w-full disabled:opacity-50"
+                          >
+                            {saveBusy ? "Saving…" : "Save this shop"}
+                          </button>
+                          <p className="mt-2 text-xs text-savr-mute">
+                            Keeps a receipt on Saved — then WhatsApp the punch before you forget.
+                          </p>
+                          {saveStatus && (
+                            <p className="mt-2 text-sm font-semibold text-savr-forest">{saveStatus}</p>
+                          )}
+                        </>
                       ) : (
-                        <Link
-                          href="/login?next=/check"
-                          className="btn-primary flex w-full justify-center"
-                        >
-                          Sign in to save this shop
-                        </Link>
-                      )}
-                      <p className="mt-2 text-xs text-savr-mute">
-                        Keeps a receipt on Saved — no photo, just the miss you can learn from.
-                      </p>
-                      {saveStatus && (
-                        <p className="mt-2 text-sm font-semibold text-savr-forest">{saveStatus}</p>
+                        <>
+                          <Link
+                            href="/login?next=/check"
+                            className="btn-primary flex w-full justify-center"
+                          >
+                            Sign in to save this shop
+                          </Link>
+                          <p className="mt-2 text-xs text-savr-mute">
+                            Keeps a receipt on Saved — no photo, just the miss you can learn from.
+                          </p>
+                        </>
                       )}
                     </div>
                   </div>
