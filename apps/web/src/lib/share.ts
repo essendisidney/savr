@@ -103,6 +103,27 @@ export function buildMissedShare(params: {
   };
 }
 
+/** Rebuild a Check punch from a Saved receipt (no line items needed). */
+export function buildReceiptShare(params: {
+  paidMerchantName: string;
+  bestMerchantName: string;
+  paidTotalCents: number;
+  missedCents: number;
+  alreadyOptimal: boolean;
+}): SharePayload {
+  if (params.alreadyOptimal || params.missedCents <= 0) {
+    return buildWinShare({
+      merchantName: params.paidMerchantName,
+      paidCents: params.paidTotalCents,
+    });
+  }
+  return buildMissedShare({
+    missedCents: params.missedCents,
+    paidMerchantName: params.paidMerchantName,
+    bestMerchantName: params.bestMerchantName,
+  });
+}
+
 /** Shared when they already picked the smart store. */
 export function buildWinShare(params: {
   merchantName: string;

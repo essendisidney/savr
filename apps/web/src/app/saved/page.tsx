@@ -14,6 +14,8 @@ import {
 } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { formatKes } from "@/lib/compare";
+import { buildReceiptShare, whatsAppShareUrl } from "@/lib/share";
+import { track } from "@/lib/track";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { PageFrame, PageShell } from "@/components/PageShell";
@@ -27,6 +29,25 @@ export default function SavedPage() {
   const [watches, setWatches] = useState<WatchItem[]>([]);
   const [receipts, setReceipts] = useState<ShopReceiptSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+
+  function onWhatsAppReceipt(r: ShopReceiptSummary) {
+    const share = buildReceiptShare(r);
+    track("share_save", {
+      via: "whatsapp_saved_receipt",
+      win: r.alreadyOptimal || r.missedCents <= 0,
+      receiptId: r.id,
+    });
+    setSharingId(r.id);
+    window.open(whatsAppShareUrl(share), "_blank", "noopener,noreferrer");
+    setShareStatus(
+      r.alreadyOptimal || r.missedCents <= 0
+        ? "Opening WhatsApp — share the win."
+        : "Opening WhatsApp — share the miss before next shop.",
+    );
+    window.setTimeout(() => setSharingId(null), 800);
+  }
 
   useEffect(() => {
     if (authLoading) return;
@@ -131,32 +152,51 @@ export default function SavedPage() {
               }
             />
           ) : (
-            <ul className="space-y-2">
-              {receipts.map((r) => (
-                <li key={r.id} className="card flex items-center justify-between gap-3 px-4 py-3.5">
-                  <div className="min-w-0">
-                    <span className="block font-semibold text-savr-ink">{r.paidMerchantName}</span>
-                    <span className="text-xs text-savr-mute">
-                      {r.when}
-                      {r.alreadyOptimal
-                        ? " · smart pick"
-                        : ` · vs ${r.bestMerchantName}`}
-                    </span>
-                  </div>
-                  <span
-                    className={`shrink-0 font-display text-lg font-bold tabular-nums ${
-                      r.alreadyOptimal || r.missedCents <= 0
-                        ? "text-savr-forest"
-                        : "text-amber-800"
-                    }`}
-                  >
-                    {r.alreadyOptimal || r.missedCents <= 0
-                      ? formatKes(r.paidTotalCents)
-                      : `−${formatKes(r.missedCents)}`}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              {shareStatus && (
+                <p className="text-sm font-semibold text-savr-forest">{shareStatus}</p>
+              )}
+              <ul className="space-y-2">
+                {receipts.map((r) => {
+                  const isWin = r.alreadyOptimal || r.missedCents <= 0;
+                  return (
+                    <li key={r.id} className="card space-y-3 px-4 py-3.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="block font-semibold text-savr-ink">
+                            {r.paidMerchantName}
+                          </span>
+                          <span className="text-xs text-savr-mute">
+                            {r.when}
+                            {isWin ? " · smart pick" : ` · vs ${r.bestMerchantName}`}
+                          </span>
+                        </div>
+                        <span
+                          className={`shrink-0 font-display text-lg font-bold tabular-nums ${
+                            isWin ? "text-savr-forest" : "text-amber-800"
+                          }`}
+                        >
+                          {isWin
+                            ? formatKes(r.paidTotalCents)
+                            : `−${formatKes(r.missedCents)}`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onWhatsAppReceipt(r)}
+                        className="btn-ghost w-full py-2.5 text-sm"
+                      >
+                        {sharingId === r.id
+                          ? "Opening…"
+                          : isWin
+                            ? "WhatsApp this win"
+                            : "WhatsApp this miss"}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
         </section>
 
