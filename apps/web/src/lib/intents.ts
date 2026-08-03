@@ -65,11 +65,12 @@ export const SPEND_INTENTS: SpendIntent[] = [
 ];
 
 export const ASK_PLACEHOLDERS = [
-  "Feed a family of 4 under KES 5,000…",
+  "Weekly groceries under KES 5,000…",
   "Find the cheapest cooking oil…",
   "Best taxi to the airport…",
   "Where is fuel cheapest near me…",
   "Need medicine tonight…",
+  "Could I have saved on my last shop…",
 ];
 
 /** Route free-text Ask Savr queries to the right surface (rules, not LLM). */

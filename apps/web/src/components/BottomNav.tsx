@@ -27,8 +27,6 @@ const tabs = [
       p.startsWith("/prices") ||
       p.startsWith("/basket") ||
       p.startsWith("/rides") ||
-      p.startsWith("/fuel") ||
-      p.startsWith("/map") ||
       p.startsWith("/check"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -49,9 +47,30 @@ const tabs = [
     ),
   },
   {
+    href: "/map",
+    label: "Nearby",
+    match: (p: string) => p.startsWith("/map") || p.startsWith("/fuel"),
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M9 4.5 3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5 9 4.5Z"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9 4.5v13M15 6.5v13"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/wallet",
     label: "Wallet",
-    match: (p: string) => p.startsWith("/wallet"),
+    match: (p: string) => p.startsWith("/wallet") || p.startsWith("/alerts"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
@@ -69,24 +88,10 @@ const tabs = [
     ),
   },
   {
-    href: "/saved",
-    label: "Saved",
-    match: (p: string) => p.startsWith("/saved") || p.startsWith("/alerts"),
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M12 20s-6.5-4.35-6.5-9.2A3.8 3.8 0 0 1 12 7.2a3.8 3.8 0 0 1 6.5 3.6C18.5 15.65 12 20 12 20Z"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
     href: "/account",
     label: "You",
-    match: (p: string) => p.startsWith("/account") || p.startsWith("/login"),
+    match: (p: string) =>
+      p.startsWith("/account") || p.startsWith("/login") || p.startsWith("/saved"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
         <circle
