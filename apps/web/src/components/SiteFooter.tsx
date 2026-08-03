@@ -29,6 +29,9 @@ export function SiteFooter() {
           <Link href="/ops" className="font-semibold text-savr-mute transition hover:text-savr-forest">
             Soft launch
           </Link>
+          <Link href="/scan" className="font-semibold text-savr-mute transition hover:text-savr-forest">
+            Scan
+          </Link>
           <a href={supportMailto()} className="font-semibold text-savr-mute transition hover:text-savr-forest">
             {supportEmail()}
           </a>

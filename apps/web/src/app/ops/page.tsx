@@ -48,9 +48,9 @@ const STEPS: {
   {
     id: "tip",
     title: "Tip one shelf yourself",
-    body: "Prices → Tip this shelf → WhatsApp the punch. Prove the loop works.",
-    href: "/prices?q=bread&ask=bread",
-    hrefLabel: "Tip bread →",
+    body: "Scan a pack or open Prices → Tip this shelf → WhatsApp. Prove the loop works.",
+    href: "/scan",
+    hrefLabel: "Open scanner →",
   },
   {
     id: "tippers",
@@ -167,6 +167,9 @@ export default function SoftLaunchOpsPage() {
                 </button>
                 <Link href="/merchant" className="btn-ghost">
                   Upload after walk
+                </Link>
+                <Link href="/scan" className="btn-ghost">
+                  Scan to tip
                 </Link>
               </div>
               {dlStatus && <p className="text-sm font-medium text-savr-forest">{dlStatus}</p>}

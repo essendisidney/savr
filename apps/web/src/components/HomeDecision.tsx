@@ -343,10 +343,10 @@ export function HomeDecision() {
                 <MicIcon active={listening} />
               </button>
               <Link
-                href="/check"
+                href="/scan"
                 className="home-ask-icon"
-                aria-label="Scan or check a shop"
-                title="Scan / check"
+                aria-label="Scan barcode to tip a shelf"
+                title="Scan to tip"
               >
                 <ScanIcon />
               </Link>
@@ -485,7 +485,17 @@ export function HomeDecision() {
               Weekly 30 shelf walk
             </p>
             <p className="mt-1 text-[13px] text-savr-mute">
-              Download CSV · walk branches · upload — real prices beat more UI
+              Download CSV · walk branches · upload — or scan packs to tip
+            </p>
+          </Link>
+
+          <Link href="/scan" className="home-card-sm alive-card block">
+            <p className="home-eyebrow home-eyebrow-mute">Capture</p>
+            <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
+              Scan to tip
+            </p>
+            <p className="mt-1 text-[13px] text-savr-mute">
+              Barcode or Savr QR → confirm KES → same tip as Prices
             </p>
           </Link>
 
