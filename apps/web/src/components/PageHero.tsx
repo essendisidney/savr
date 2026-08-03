@@ -27,21 +27,20 @@ export function PageHero({
   const t = themes[theme];
 
   return (
-    <section className="border-b border-savr-ink/[0.05]">
-      <div className="relative mx-auto max-w-5xl px-4 pb-8 pt-10 md:px-6 md:pb-10 md:pt-14">
-        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
-          {t.label}
-        </p>
-        <h1 className="animate-rise-delay mt-2 max-w-2xl font-display text-[clamp(1.85rem,4.5vw,2.75rem)] font-extrabold leading-[1.1] tracking-tightish text-savr-ink">
+    <section className="page-hero relative overflow-hidden border-b border-white/40">
+      <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
+      <div className="relative mx-auto max-w-5xl px-4 pb-9 pt-11 md:px-6 md:pb-11 md:pt-14">
+        <p className="page-eyebrow animate-rise">{t.label}</p>
+        <h1 className="page-title animate-rise-delay mt-2.5 max-w-2xl text-[clamp(1.9rem,4.6vw,2.85rem)]">
           {title}
         </h1>
         {subtitle && (
-          <p className="animate-rise-delay-2 mt-3 max-w-lg text-[15px] leading-relaxed text-savr-mute md:text-base">
+          <p className="animate-rise-delay-2 mt-3.5 max-w-lg text-[15px] leading-relaxed text-savr-mute md:text-base">
             {subtitle}
           </p>
         )}
         {action && (
-          <Link href={action.href} className="btn-primary mt-6 inline-flex animate-rise-delay-2">
+          <Link href={action.href} className="btn-primary mt-7 inline-flex animate-rise-delay-2">
             {action.label}
           </Link>
         )}

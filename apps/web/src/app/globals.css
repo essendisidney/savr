@@ -7,7 +7,11 @@
   --page-pad-bottom: 5.5rem;
   --savr-emerald: #00c853;
   --savr-accent: #2563eb;
-  --savr-bg: #f8fafc;
+  --savr-bg: #f4faf6;
+  --savr-glass: rgba(255, 255, 255, 0.72);
+  --savr-glass-border: rgba(255, 255, 255, 0.7);
+  --savr-shadow: 0 18px 48px -34px rgba(11, 18, 32, 0.38);
+  --savr-shadow-lift: 0 24px 56px -30px rgba(0, 200, 83, 0.28);
 }
 
 html {
@@ -21,9 +25,10 @@ html {
 body {
   background-color: var(--savr-bg);
   background-image:
-    radial-gradient(ellipse 80% 50% at 100% -10%, rgba(0, 200, 83, 0.1), transparent 55%),
-    radial-gradient(ellipse 60% 40% at -5% 0%, rgba(37, 99, 235, 0.07), transparent 50%),
-    linear-gradient(180deg, #fbfdff 0%, #f8fafc 45%, #f1f5f9 100%);
+    radial-gradient(ellipse 95% 55% at 50% -12%, rgba(0, 200, 83, 0.16), transparent 55%),
+    radial-gradient(ellipse 55% 42% at 100% 8%, rgba(37, 99, 235, 0.09), transparent 52%),
+    radial-gradient(ellipse 45% 38% at -5% 70%, rgba(0, 230, 118, 0.07), transparent 50%),
+    linear-gradient(165deg, #f4faf6 0%, #fbfcfd 42%, #f0f5fb 100%);
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
@@ -32,7 +37,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Grain overlay must not steal scroll or override child position (fixed/sticky). */
+/* Grain + soft mesh — every page inherits Savr atmosphere */
 .grain-bg {
   position: relative;
   isolation: isolate;
@@ -44,8 +49,22 @@ body {
   position: absolute;
   inset: 0;
   z-index: -1;
-  opacity: 0.028;
+  opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.grain-bg::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.55;
+  background-image:
+    linear-gradient(rgba(4, 36, 25, 0.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(4, 36, 25, 0.016) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 75% 60% at 50% 20%, black 15%, transparent 78%);
 }
 
 .hero-plane {
@@ -58,11 +77,59 @@ body {
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-savr-forest px-5 py-3.5 text-[15px] font-semibold tracking-tight text-white shadow-[0_12px_28px_-16px_rgba(0,200,83,0.75)] transition duration-soft hover:bg-[#00b34a] hover:shadow-[0_14px_32px_-14px_rgba(0,200,83,0.85)] active:translate-y-px disabled:opacity-50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(160deg, #00e676 0%, #00c853 45%, #00a844 100%);
+  padding: 0.875rem 1.25rem;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  box-shadow: 0 12px 28px -14px rgba(0, 200, 83, 0.85);
+  transition: filter 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 14px 32px -12px rgba(0, 200, 83, 0.9);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
 }
 
 .btn-ghost {
-  @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-savr-ink/10 bg-white/70 px-5 py-3.5 text-[15px] font-medium text-savr-ink backdrop-blur-md transition duration-soft hover:border-savr-forest/30 hover:bg-white active:translate-y-px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(4, 36, 25, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.875rem 1.25rem;
+  font-size: 15px;
+  font-weight: 500;
+  color: #0b1220;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.2s ease;
+}
+
+.btn-ghost:hover {
+  border-color: rgba(0, 200, 83, 0.28);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.btn-ghost:active {
+  transform: translateY(1px);
 }
 
 .btn-ghost-on-dark {
@@ -74,15 +141,50 @@ body {
 }
 
 .field {
-  @apply w-full rounded-2xl border border-savr-ink/[0.08] bg-white px-4 py-3.5 text-[15px] text-savr-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] outline-none transition duration-soft placeholder:text-savr-mute/55 focus:border-savr-forest/40 focus:ring-4 focus:ring-savr-forest/10;
+  width: 100%;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(4, 36, 25, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.82));
+  padding: 0.9rem 1.05rem;
+  font-size: 15px;
+  color: #0b1220;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 10px 28px -24px rgba(11, 18, 32, 0.35);
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.field::placeholder {
+  color: rgba(100, 116, 139, 0.55);
+}
+
+.field:focus {
+  border-color: rgba(0, 200, 83, 0.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 0 0 4px rgba(0, 200, 83, 0.1),
+    0 12px 32px -22px rgba(11, 18, 32, 0.4);
 }
 
 .surface {
-  @apply rounded-card border border-savr-ink/[0.05] bg-white/75 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur-md;
+  border-radius: 1.25rem;
+  border: 1px solid var(--savr-glass-border);
+  background: var(--savr-glass);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .panel {
-  @apply rounded-card border border-savr-ink/[0.06] bg-white shadow-[0_18px_50px_-36px_rgba(11,18,32,0.28)];
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.72));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    var(--savr-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .rank-bar {
@@ -91,33 +193,107 @@ body {
 
 .savings-moment {
   background: linear-gradient(128deg, #00e676 0%, #00c853 38%, #009624 72%, #2563eb 140%);
-  box-shadow: 0 22px 50px -28px rgba(0, 200, 83, 0.45);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 22px 50px -28px rgba(0, 200, 83, 0.5);
 }
 
 .page-band {
+  position: relative;
   background:
-    radial-gradient(720px 240px at 100% 0%, rgba(0, 200, 83, 0.08), transparent 62%),
-    radial-gradient(560px 220px at 0% 100%, rgba(37, 99, 235, 0.06), transparent 58%);
+    radial-gradient(780px 260px at 100% 0%, rgba(0, 200, 83, 0.1), transparent 62%),
+    radial-gradient(620px 240px at 0% 100%, rgba(37, 99, 235, 0.07), transparent 58%);
+}
+
+.page-hero {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 100%);
+}
+
+.page-hero-glow {
+  background:
+    radial-gradient(ellipse 70% 80% at 0% 0%, rgba(0, 200, 83, 0.12), transparent 55%),
+    radial-gradient(ellipse 50% 60% at 100% 20%, rgba(37, 99, 235, 0.08), transparent 50%);
+}
+
+.page-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #00a844;
+}
+
+.page-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  color: #0b1220;
 }
 
 .glass-card {
-  @apply rounded-card-lg border border-white/60 bg-white/70 shadow-[0_20px_50px_-32px_rgba(11,18,32,0.35)] backdrop-blur-xl;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 20px 50px -32px rgba(11, 18, 32, 0.35);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .card {
-  @apply rounded-card border border-savr-ink/[0.06] bg-white/90 shadow-[0_14px_40px_-32px_rgba(11,18,32,0.28)] transition duration-soft;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.75));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 14px 40px -32px rgba(11, 18, 32, 0.32);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+  border-color: rgba(0, 200, 83, 0.18);
 }
 
 .card-winner {
-  @apply rounded-card-lg border border-savr-forest/25 bg-gradient-to-br from-white via-white to-savr-forest/[0.08] shadow-[0_22px_50px_-28px_rgba(0,200,83,0.4)] ring-1 ring-savr-forest/15;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(0, 200, 83, 0.22);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(236, 253, 245, 0.88));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 0 0 1px rgba(0, 200, 83, 0.1),
+    0 22px 50px -28px rgba(0, 200, 83, 0.4);
 }
 
 .chip {
-  @apply rounded-full border border-savr-ink/[0.08] bg-white/80 px-3.5 py-2 text-sm font-semibold text-savr-mute transition duration-soft hover:border-savr-forest/30 hover:text-savr-forest;
+  border-radius: 999px;
+  border: 1px solid rgba(4, 36, 25, 0.07);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.5rem 0.9rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+  transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease;
+}
+
+.chip:hover {
+  border-color: rgba(0, 200, 83, 0.28);
+  color: #009624;
 }
 
 .chip-active {
-  @apply rounded-full border border-transparent bg-savr-forest px-3.5 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_-14px_rgba(0,200,83,0.65)];
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: linear-gradient(160deg, #00e676, #00c853 50%, #00a844);
+  padding: 0.5rem 0.9rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 10px 24px -14px rgba(0, 200, 83, 0.7);
 }
 
 /* Home — premium atmosphere, glass, hierarchy */

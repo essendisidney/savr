@@ -188,15 +188,14 @@ function MapInner() {
 
   return (
     <PageFrame>
-      <div className="border-b border-savr-ink/[0.05]">
-        <div className="mx-auto max-w-5xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
-            Value map
-          </p>
-          <h1 className="mt-2 max-w-2xl font-display text-[clamp(1.85rem,4.5vw,2.75rem)] font-extrabold tracking-tightish text-savr-ink">
+      <div className="page-hero relative overflow-hidden border-b border-white/40">
+        <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
+        <div className="relative mx-auto max-w-5xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
+          <p className="page-eyebrow">Value map</p>
+          <h1 className="page-title mt-2.5 max-w-2xl text-[clamp(1.85rem,4.5vw,2.75rem)]">
             {askText ? "Here’s nearby value" : "Where Nairobi saves money"}
           </h1>
-          <p className="mt-3 max-w-lg text-[15px] text-savr-mute">
+          <p className="mt-3.5 max-w-lg text-[15px] leading-relaxed text-savr-mute">
             {askText
               ? `For “${askQuote(askText)}” — green is best value, yellow middle, red expensive.`
               : "Green = best value. Yellow = middle. Red = expensive. Grocery pins use a weekly staples basket; fuel pins use petrol per litre."}

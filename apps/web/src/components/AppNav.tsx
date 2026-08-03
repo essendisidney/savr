@@ -21,7 +21,7 @@ export function AppNav() {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:h-16 md:px-6">
         <Link
           href="/"
-          className="font-display text-[1.65rem] font-extrabold leading-none tracking-brand text-savr-ink"
+          className="bg-gradient-to-br from-savr-ink via-savr-ink to-savr-forest bg-clip-text font-display text-[1.65rem] font-extrabold leading-none tracking-brand text-transparent"
         >
           Savr
         </Link>

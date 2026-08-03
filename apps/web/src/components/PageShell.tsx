@@ -7,7 +7,7 @@ export function PageShell({
 }) {
   return (
     <div
-      className={`mx-auto px-4 py-8 md:px-6 md:py-12 ${narrow ? "max-w-md" : "max-w-5xl"}`}
+      className={`mx-auto px-4 py-9 md:px-6 md:py-12 ${narrow ? "max-w-md" : "max-w-5xl"}`}
     >
       {children}
     </div>
@@ -15,5 +15,5 @@ export function PageShell({
 }
 
 export function PageFrame({ children }: { children: React.ReactNode }) {
-  return <div className="page-band min-h-[70vh] pb-4">{children}</div>;
+  return <div className="page-band relative min-h-[70vh] pb-6">{children}</div>;
 }

@@ -27,15 +27,14 @@ export default function AskPage() {
 
   return (
     <PageFrame>
-      <div className="border-b border-savr-ink/[0.05]">
-        <div className="mx-auto max-w-2xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
-            Ask Savr
-          </p>
-          <h1 className="mt-2 font-display text-[1.85rem] font-bold tracking-tightish text-savr-ink md:text-4xl">
+      <div className="page-hero relative overflow-hidden border-b border-white/40">
+        <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
+        <div className="relative mx-auto max-w-2xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
+          <p className="page-eyebrow">Ask Savr</p>
+          <h1 className="page-title mt-2.5 text-[clamp(1.85rem,4vw,2.5rem)]">
             Ask — then see the answer
           </h1>
-          <p className="mt-3 text-[15px] text-savr-mute">
+          <p className="mt-3.5 text-[15px] leading-relaxed text-savr-mute">
             Speak like a human. Savr opens the right compare with your question still on screen —
             basket ranks, a matched price, rides, or fuel.
           </p>

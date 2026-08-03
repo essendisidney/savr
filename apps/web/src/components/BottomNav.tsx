@@ -120,7 +120,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-savr-ink/[0.06] bg-white/90 shadow-[0_-12px_40px_-28px_rgba(11,18,32,0.35)] backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-white/50 bg-white/70 shadow-[0_-16px_48px_-28px_rgba(11,18,32,0.35)] backdrop-blur-2xl md:hidden"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       aria-label="Primary"
     >
@@ -131,8 +131,8 @@ export function BottomNav() {
             <li key={tab.href} className="flex-1">
               <Link
                 href={tab.href}
-                className={`flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-semibold tracking-wide ${
-                  active ? "text-savr-forest" : "text-savr-mute"
+                className={`flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-semibold tracking-wide transition ${
+                  active ? "text-savr-forest" : "text-savr-mute hover:text-savr-ink"
                 }`}
               >
                 {tab.icon(active)}
