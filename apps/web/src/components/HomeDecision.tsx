@@ -279,45 +279,44 @@ export function HomeDecision() {
   return (
     <div className="home-stage relative min-h-[calc(100svh-3.5rem)] overflow-hidden">
       <div className="home-stage-glow pointer-events-none absolute inset-0" aria-hidden />
-      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-48 opacity-[0.16]" aria-hidden />
+      <div className="home-stage-mesh pointer-events-none absolute inset-0" aria-hidden />
+      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-52 opacity-[0.12]" aria-hidden />
 
-      <div className="relative mx-auto flex max-w-lg flex-col px-4 pb-16 pt-10 md:px-6 md:pb-20 md:pt-14">
-        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.22em] text-savr-forest">
+      <div className="relative mx-auto flex max-w-lg flex-col px-4 pb-20 pt-11 md:px-6 md:pb-24 md:pt-16">
+        <p className="home-eyebrow animate-rise">
           {greeting}
           {name !== "there" ? `, ${name}` : ""}
         </p>
 
-        <p className="animate-rise mt-2 font-display text-[2.75rem] font-extrabold leading-none tracking-tightish text-savr-ink md:text-5xl">
-          Savr
-        </p>
+        <p className="home-brand animate-rise mt-3">Savr</p>
 
-        <p className="animate-rise-delay mt-4 max-w-md text-[1.15rem] font-medium leading-snug text-savr-ink/85 md:text-xl">
+        <p className="animate-rise-delay mt-5 max-w-md text-[1.2rem] font-medium leading-[1.35] tracking-tightish text-savr-ink/80 md:text-[1.35rem]">
           {ready && primary
             ? "Before you spend anything today — Savr already sees where you can save."
             : "Before you spend anything today, Ask Savr."}
         </p>
         {!primary && (
-          <p className="animate-rise-delay mt-1.5 text-sm text-savr-mute">{pulse}</p>
+          <p className="animate-rise-delay mt-2 text-[13px] leading-relaxed text-savr-mute/90">
+            {pulse}
+          </p>
         )}
 
         {/* HERO — Ask */}
-        <form onSubmit={onAsk} className="animate-rise-delay-2 mt-7">
+        <form onSubmit={onAsk} className="animate-rise-delay-2 mt-8">
           <label className="sr-only" htmlFor="savr-home-ask">
             Ask Savr
           </label>
-          <div className={`home-ask ${asking || listening ? "home-ask-busy" : ""}`}>
+          <div className={`home-ask animate-breathe ${asking || listening ? "home-ask-busy" : ""}`}>
             <div className="flex w-full items-center gap-2 px-3.5 sm:gap-3 sm:px-5">
-              <span className="hidden shrink-0 text-[13px] font-bold tracking-wide text-savr-forest sm:inline">
-                Ask Savr
-              </span>
-              <div className="relative min-h-[1.5rem] min-w-0 flex-1">
+              <span className="home-ask-label hidden sm:inline">Ask Savr</span>
+              <div className="relative min-h-[1.55rem] min-w-0 flex-1">
                 <input
                   ref={inputRef}
                   id="savr-home-ask"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={placeholder}
-                  className="w-full border-0 bg-transparent py-1 text-[16px] text-savr-ink outline-none placeholder:text-transparent"
+                  className="w-full border-0 bg-transparent py-1 text-[16.5px] font-medium tracking-tightish text-savr-ink outline-none placeholder:text-transparent"
                   autoComplete="off"
                   autoFocus
                   disabled={asking}
@@ -325,7 +324,7 @@ export function HomeDecision() {
                 {!query && (
                   <span
                     key={placeholderKey}
-                    className="home-ask-placeholder pointer-events-none absolute inset-0 flex items-center text-[15px] text-savr-mute/55 sm:text-[16px]"
+                    className="home-ask-placeholder pointer-events-none absolute inset-0 flex items-center text-[15px] text-savr-mute/50 sm:text-[16px]"
                     aria-hidden
                   >
                     {placeholder}
@@ -336,7 +335,7 @@ export function HomeDecision() {
                 type="button"
                 onClick={onVoice}
                 disabled={asking || listening}
-                className="home-ask-icon"
+                className={`home-ask-icon ${listening ? "home-ask-icon-live" : ""}`}
                 aria-label="Voice ask"
                 title="Voice"
               >
@@ -353,52 +352,46 @@ export function HomeDecision() {
               <button
                 type="submit"
                 disabled={asking}
-                className="btn-primary shrink-0 px-3.5 py-2.5 text-sm disabled:opacity-70 sm:px-4"
+                className="home-ask-go disabled:opacity-70"
               >
                 {asking ? "…" : "Go"}
               </button>
             </div>
           </div>
           {(asking || listening) && (
-            <p className="mt-3 text-sm font-medium text-savr-forest">
+            <p className="home-status mt-3.5">
+              <span className="home-status-dot" aria-hidden />
               {listening ? "Listening…" : "Savr is looking for the smartest path…"}
             </p>
           )}
           {voiceError && (
-            <p className="mt-2 text-sm text-amber-800">{voiceError}</p>
+            <p className="mt-2 text-sm text-amber-800/90">{voiceError}</p>
           )}
         </form>
 
-        <div className="animate-rise-delay-2 mt-8 space-y-4">
+        <div className="home-stack animate-rise-delay-2 mt-9">
           {/* Savr AI / opportunity — large */}
           {ready && opportunities.length >= 2 ? (
             <div className="home-card-hero">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
-                Savr AI
-              </p>
-              <p className="mt-2 font-display text-xl font-bold tracking-tightish text-savr-ink md:text-2xl">
+              <p className="home-eyebrow home-eyebrow-on-light">Savr AI</p>
+              <p className="mt-2.5 font-display text-xl font-bold tracking-tightish text-savr-ink md:text-[1.65rem]">
                 I found {opportunities.length} ways you can save today
               </p>
-              <p className="mt-1 font-display text-4xl font-extrabold tabular-nums text-savr-ink md:text-5xl">
-                {formatKes(waysTotal)}
-              </p>
-              <p className="mt-1 text-sm text-savr-mute">
+              <p className="home-amount mt-2">{formatKes(waysTotal)}</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-savr-mute">
                 Potential across basket, fuel, and watches — not a promise, a path.
               </p>
-              <ul className="mt-4 space-y-2">
+              <ul className="mt-5 space-y-2">
                 {opportunities.map((o) => (
                   <li key={o.id}>
-                    <Link
-                      href={o.href}
-                      className="flex items-center justify-between gap-3 rounded-xl bg-white/55 px-3 py-2.5 transition hover:bg-white/90"
-                    >
+                    <Link href={o.href} className="home-way-row">
                       <span>
-                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-savr-mute">
+                        <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
                           {o.eyebrow}
                         </span>
-                        <span className="text-sm font-semibold text-savr-ink">{o.title}</span>
+                        <span className="text-[14px] font-semibold text-savr-ink">{o.title}</span>
                       </span>
-                      <span className="shrink-0 font-display text-base font-bold tabular-nums text-savr-forest">
+                      <span className="shrink-0 font-display text-[15px] font-bold tabular-nums text-savr-forest">
                         {formatKes(o.amountCents)}
                       </span>
                     </Link>
@@ -408,15 +401,13 @@ export function HomeDecision() {
             </div>
           ) : primary ? (
             <Link href={primary.href} className="home-card-hero block">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
-                Today’s opportunity
+              <p className="home-eyebrow home-eyebrow-on-light">Today’s opportunity</p>
+              <p className="home-amount mt-3">{formatKes(primary.amountCents)}</p>
+              <p className="mt-2.5 font-display text-lg font-bold tracking-tightish text-savr-ink">
+                {primary.title}
               </p>
-              <p className="mt-2 font-display text-4xl font-extrabold tabular-nums text-savr-ink md:text-5xl">
-                {formatKes(primary.amountCents)}
-              </p>
-              <p className="mt-2 font-display text-lg font-bold text-savr-ink">{primary.title}</p>
-              <p className="mt-1 text-sm leading-relaxed text-savr-mute">{primary.body}</p>
-              <p className="mt-3 text-sm font-semibold text-savr-forest">{primary.cta}</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-savr-mute">{primary.body}</p>
+              <p className="mt-4 text-[13px] font-semibold text-savr-forest">{primary.cta}</p>
             </Link>
           ) : null}
 
@@ -424,20 +415,18 @@ export function HomeDecision() {
           <div className="home-card-mid">
             <Link href={cta.href} className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                  Continue
-                </p>
-                <p className="mt-1.5 font-display text-lg font-bold tracking-tightish text-savr-ink">
+                <p className="home-eyebrow home-eyebrow-mute">Continue</p>
+                <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
                   {cta.label}
                 </p>
-                <p className="mt-1 text-sm text-savr-mute">{cta.detail}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-savr-mute">{cta.detail}</p>
               </div>
               {continueSaveCents >= 500 ? (
                 <div className="text-right">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-savr-mute">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
                     Potential
                   </p>
-                  <p className="font-display text-2xl font-extrabold tabular-nums text-savr-forest">
+                  <p className="mt-0.5 font-display text-2xl font-extrabold tabular-nums tracking-tightish text-savr-forest">
                     {formatKes(continueSaveCents)}
                   </p>
                 </div>
@@ -448,7 +437,7 @@ export function HomeDecision() {
             {cta.secondaryHref && cta.secondaryLabel && (
               <Link
                 href={cta.secondaryHref}
-                className="mt-3 inline-block text-sm font-semibold text-savr-mute hover:text-savr-forest hover:underline"
+                className="mt-3.5 inline-block text-[13px] font-semibold text-savr-mute transition hover:text-savr-forest"
               >
                 {cta.secondaryLabel} →
               </Link>
@@ -459,10 +448,8 @@ export function HomeDecision() {
           <Link href="/wallet" className="home-card-mid block">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                  Wallet
-                </p>
-                <p className="mt-1.5 font-display text-lg font-bold text-savr-ink">
+                <p className="home-eyebrow home-eyebrow-mute">Wallet</p>
+                <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
                   {user
                     ? balanceCents > 0
                       ? `${formatKes(balanceCents)} cashback`
@@ -479,16 +466,14 @@ export function HomeDecision() {
           {/* Recent — small */}
           {recent.length > 0 && (
             <div className="home-card-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                Recent
-              </p>
-              <div className="mt-2.5 flex flex-wrap gap-2">
+              <p className="home-eyebrow home-eyebrow-mute">Recent</p>
+              <div className="mt-3 flex flex-wrap gap-2">
                 {recent.map((r) => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => goAsk(r)}
-                    className="rounded-full border border-savr-ink/[0.08] bg-white/80 px-3 py-1.5 text-left text-xs font-semibold text-savr-ink transition hover:border-savr-forest/30 hover:text-savr-forest"
+                    className="home-chip"
                   >
                     {r.length > 28 ? `${r.slice(0, 28)}…` : r}
                   </button>
@@ -501,15 +486,13 @@ export function HomeDecision() {
           <Link href="/map" className="home-card-map block">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-                  Nearby
-                </p>
-                <p className="mt-1.5 font-display text-lg font-bold text-savr-ink">
+                <p className="home-eyebrow home-eyebrow-on-light">Nearby</p>
+                <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
                   {nearbyOffers > 0
                     ? `${nearby.grocery} supermarket${nearby.grocery === 1 ? "" : "s"} · ${nearby.fuel} fuel`
                     : "Value map"}
                 </p>
-                <p className="mt-1 text-sm text-savr-mute">
+                <p className="mt-1 text-[13px] text-savr-mute">
                   {nearbyOffers > 0
                     ? `${nearbyOffers} places Savr can rank near you`
                     : "See where Nairobi saves"}
@@ -523,14 +506,15 @@ export function HomeDecision() {
           {ready && lifetimeCents > 0 && (
             <div className="home-card-sm flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-                  Lifetime saved
-                </p>
-                <p className="mt-1 font-display text-xl font-bold tabular-nums text-savr-ink">
+                <p className="home-eyebrow home-eyebrow-mute">Lifetime saved</p>
+                <p className="mt-1.5 font-display text-xl font-bold tabular-nums tracking-tightish text-savr-ink">
                   {formatKes(lifetimeCents)}
                 </p>
               </div>
-              <Link href="/wallet" className="text-sm font-semibold text-savr-forest">
+              <Link
+                href="/wallet"
+                className="text-[13px] font-semibold text-savr-forest transition hover:text-savr-ink"
+              >
                 Wallet →
               </Link>
             </div>
