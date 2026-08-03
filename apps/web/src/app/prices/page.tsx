@@ -15,6 +15,7 @@ import { bestAskProductMatch, askRecoveryProducts, compareProduct, formatKes } f
 import { askQuote } from "@/lib/intents";
 import { buildPriceTipShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
+import { markAskRequested, pushUnmatchedAsk } from "@/lib/unmatched-asks";
 import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
 import { formatDistanceKm, useShopperOrigin } from "@/lib/geo";
 import type { Catalog, Product } from "@/lib/types";
@@ -48,6 +49,7 @@ function PricesInner() {
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
   const [tipShare, setTipShare] = useState<SharePayload | null>(null);
+  const [askRequested, setAskRequested] = useState(false);
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
   const answerRef = useRef<HTMLDivElement>(null);
@@ -79,10 +81,14 @@ function PricesInner() {
             setSelectedId(hit.id);
             setQuery("");
             setAskMatched(true);
+            setAskRequested(false);
             track("ask_price_match", { productId: hit.id, q: q.slice(0, 80) });
           } else {
             setAskMatched(false);
             setQuery(q);
+            setAskRequested(false);
+            track("ask_miss", { q: q.slice(0, 80) });
+            pushUnmatchedAsk(q);
           }
         }
       }
@@ -346,7 +352,26 @@ function PricesInner() {
                   <Link href="/basket?staples=1" className="btn-primary">
                     Weekly staples basket
                   </Link>
+                  <button
+                    type="button"
+                    disabled={askRequested}
+                    className="btn-ghost px-3 py-2 text-sm disabled:opacity-60"
+                    onClick={() => {
+                      const q = (askText || query).trim().slice(0, 80);
+                      if (!q) return;
+                      markAskRequested(q);
+                      setAskRequested(true);
+                      track("ask_product_request", { q });
+                    }}
+                  >
+                    {askRequested ? "Request noted" : "Request this item"}
+                  </button>
                 </div>
+                {askRequested && (
+                  <p className="text-sm font-medium text-savr-forest">
+                    Thanks — we logged “{askQuote(askText || query)}” so the catalog can grow from real Nairobi asks.
+                  </p>
+                )}
               </div>
             )}
 

@@ -30,6 +30,7 @@ import {
 } from "@/lib/merchant";
 import { loadCatalog } from "@/lib/catalog";
 import { csvTemplate, parsePriceCsv, weekly30CsvTemplate, type CsvPriceRow } from "@/lib/merchant-csv";
+import { loadUnmatchedAsks, type UnmatchedAsk } from "@/lib/unmatched-asks";
 import type { Product } from "@/lib/types";
 
 export default function MerchantPage() {
@@ -58,6 +59,7 @@ export default function MerchantPage() {
   const [promoEndsAt, setPromoEndsAt] = useState("");
   const [csvRows, setCsvRows] = useState<CsvPriceRow[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+  const [unmatchedAsks, setUnmatchedAsks] = useState<UnmatchedAsk[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -73,6 +75,10 @@ export default function MerchantPage() {
     refresh();
     loadCatalog().then((c) => setCatalogProducts(c.products));
   }, [refresh]);
+
+  useEffect(() => {
+    setUnmatchedAsks(loadUnmatchedAsks().slice(0, 12));
+  }, []);
 
   useEffect(() => {
     if (!selectedId || !myIds.includes(selectedId)) {
@@ -411,6 +417,42 @@ export default function MerchantPage() {
                 </Link>{" "}
                 to register a grocery store or claim an existing chain.
               </p>
+            )}
+
+            {unmatchedAsks.length > 0 && (
+              <section className="card space-y-3 p-4 sm:p-5">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                    Demand from Ask
+                  </p>
+                  <h2 className="mt-1 font-display text-lg font-bold tracking-tightish">
+                    Unmatched searches on this device
+                  </h2>
+                  <p className="mt-1 text-sm text-savr-mute">
+                    Soft-launch signal — phrases shoppers typed that didn’t hit a SKU. Use them to
+                    grow aliases or catalog; Weekly 30 still comes first.
+                  </p>
+                </div>
+                <ul className="divide-y divide-savr-ink/[0.06]">
+                  {unmatchedAsks.map((row) => (
+                    <li
+                      key={row.q}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+                    >
+                      <span className="font-medium text-savr-ink">
+                        “{row.q}”
+                        {row.requested ? (
+                          <span className="ml-2 text-xs font-semibold text-savr-forest">requested</span>
+                        ) : null}
+                      </span>
+                      <span className="text-xs text-savr-mute">
+                        ×{row.count}
+                        {row.at ? ` · ${new Date(row.at).toLocaleDateString("en-KE")}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
 
             {user && (

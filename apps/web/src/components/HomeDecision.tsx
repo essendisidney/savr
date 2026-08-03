@@ -21,6 +21,14 @@ import {
 } from "@/lib/intents";
 import { loadRecentAsks, pushRecentAsk } from "@/lib/recent-asks";
 
+const POPULAR_ASKS = [
+  { label: "Bread", q: "bread" },
+  { label: "Milk", q: "milk" },
+  { label: "Cooking oil", q: "cooking oil" },
+  { label: "Weekly groceries", q: "weekly groceries" },
+  { label: "Fuel nearby", q: "fuel near me" },
+];
+
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
@@ -368,6 +376,20 @@ export function HomeDecision() {
             <p className="mt-2 text-sm text-amber-800/90">{voiceError}</p>
           )}
         </form>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {POPULAR_ASKS.map((chip) => (
+            <button
+              key={chip.q}
+              type="button"
+              disabled={asking}
+              onClick={() => goAsk(chip.q)}
+              className="home-chip"
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
 
         <div className="home-stack alive-stack animate-rise-delay-2 mt-9">
           {/* Savr AI / opportunity — large */}
