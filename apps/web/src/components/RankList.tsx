@@ -87,7 +87,7 @@ export function RankList({
   }
 
   return (
-    <ol className="space-y-4">
+    <ol className="rank-list-alive space-y-4">
       {results.map((r, i) => {
         const width = Math.max(14, (r.totalCents / maxTotal) * 100);
         const key = branchKey(r.merchantId, r.locationId);
@@ -104,7 +104,7 @@ export function RankList({
         return (
           <li
             key={key}
-            className={`animate-rise group relative overflow-hidden transition duration-soft ${
+            className={`group relative overflow-hidden transition duration-soft alive-card ${
               r.isRecommended
                 ? "card-winner scale-[1.01] p-1 shadow-[0_28px_60px_-28px_rgba(0,200,83,0.55)]"
                 : "card hover:border-savr-forest/30"

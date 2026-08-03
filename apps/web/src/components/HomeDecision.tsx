@@ -369,10 +369,10 @@ export function HomeDecision() {
           )}
         </form>
 
-        <div className="home-stack animate-rise-delay-2 mt-9">
+        <div className="home-stack alive-stack animate-rise-delay-2 mt-9">
           {/* Savr AI / opportunity — large */}
           {ready && opportunities.length >= 2 ? (
-            <div className="home-card-hero">
+            <div className="home-card-hero alive-card">
               <p className="home-eyebrow home-eyebrow-on-light">Savr AI</p>
               <p className="mt-2.5 font-display text-xl font-bold tracking-tightish text-savr-ink md:text-[1.65rem]">
                 I found {opportunities.length} ways you can save today
@@ -400,7 +400,7 @@ export function HomeDecision() {
               </ul>
             </div>
           ) : primary ? (
-            <Link href={primary.href} className="home-card-hero block">
+            <Link href={primary.href} className="home-card-hero alive-card block">
               <p className="home-eyebrow home-eyebrow-on-light">Today’s opportunity</p>
               <p className="home-amount mt-3">{formatKes(primary.amountCents)}</p>
               <p className="mt-2.5 font-display text-lg font-bold tracking-tightish text-savr-ink">
@@ -412,7 +412,7 @@ export function HomeDecision() {
           ) : null}
 
           {/* Continue — medium */}
-          <div className="home-card-mid">
+          <div className="home-card-mid alive-card">
             <Link href={cta.href} className="flex items-start justify-between gap-3">
               <div>
                 <p className="home-eyebrow home-eyebrow-mute">Continue</p>
@@ -445,7 +445,7 @@ export function HomeDecision() {
           </div>
 
           {/* Wallet — medium */}
-          <Link href="/wallet" className="home-card-mid block">
+          <Link href="/wallet" className="home-card-mid alive-card block">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="home-eyebrow home-eyebrow-mute">Wallet</p>
@@ -483,7 +483,7 @@ export function HomeDecision() {
           )}
 
           {/* Nearby map preview — medium */}
-          <Link href="/map" className="home-card-map block">
+          <Link href="/map" className="home-card-map alive-card block">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="home-eyebrow home-eyebrow-on-light">Nearby</p>

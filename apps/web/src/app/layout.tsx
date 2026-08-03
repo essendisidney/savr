@@ -58,7 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className={`${display.variable} ${sans.variable} min-h-screen font-sans text-savr-ink antialiased`}
       >
         <Providers>
-          <div className="grain-bg min-h-screen">
+          <div className="grain-bg relative min-h-screen">
+            <div className="alive-aurora" aria-hidden />
             <AppNav />
             <main>{children}</main>
             <SiteFooter />

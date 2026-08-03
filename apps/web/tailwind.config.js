@@ -45,14 +45,40 @@ module.exports = {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.015)" },
         },
+        floaty: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
+        aurora: {
+          "0%, 100%": { opacity: "0.55", transform: "scale(1) translate(0, 0)" },
+          "50%": { opacity: "0.9", transform: "scale(1.08) translate(2%, -1%)" },
+        },
+        shimmer: {
+          "0%": { transform: "translateX(-120%)" },
+          "100%": { transform: "translateX(120%)" },
+        },
+        popIn: {
+          "0%": { opacity: "0", transform: "scale(0.94) translateY(10px)" },
+          "100%": { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        softPulse: {
+          "0%, 100%": { opacity: "0.45", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.15)" },
+        },
       },
       animation: {
         rise: "rise 0.55s cubic-bezier(0.22,1,0.36,1) both",
         "rise-delay": "rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.1s both",
         "rise-delay-2": "rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.2s both",
+        "rise-delay-3": "rise 0.55s cubic-bezier(0.22,1,0.36,1) 0.32s both",
         barGrow: "barGrow 0.7s cubic-bezier(0.22,1,0.36,1) both",
         fadeIn: "fadeIn 0.4s ease both",
         breathe: "breathe 3.2s ease-in-out infinite",
+        floaty: "floaty 5s ease-in-out infinite",
+        aurora: "aurora 10s ease-in-out infinite",
+        shimmer: "shimmer 2.4s ease-in-out infinite",
+        popIn: "popIn 0.55s cubic-bezier(0.22,1,0.36,1) both",
+        softPulse: "softPulse 2.4s ease-in-out infinite",
       },
       transitionDuration: {
         soft: "250ms",

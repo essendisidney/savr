@@ -1,10 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatKes } from "@/lib/compare";
 import { savingsBuys } from "@/lib/intents";
 import { sharePayload, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
+
+function useCountUp(target: number, durationMs = 900) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || target <= 0) {
+      setValue(Math.max(0, target));
+      return;
+    }
+    let frame = 0;
+    const start = performance.now();
+    const from = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(from + (target - from) * eased));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, durationMs]);
+  return value;
+}
 
 export function SavingsMoment({
   amountLabel,
@@ -29,6 +54,7 @@ export function SavingsMoment({
   emphasizeShare?: boolean;
 }) {
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const displayCents = useCountUp(Math.max(0, amountCents));
   const buys = savingsBuys(amountCents);
   const beat =
     paidCents != null &&
@@ -54,7 +80,7 @@ export function SavingsMoment({
   }
 
   return (
-    <div className="savings-moment animate-rise relative overflow-hidden rounded-card-lg">
+    <div className="savings-moment animate-popIn relative overflow-hidden rounded-card-lg">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,197,24,0.55),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(14,159,95,0.45),transparent_50%)]" />
       <div className="relative flex flex-col gap-4 px-5 py-6 sm:px-7 sm:py-7">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
@@ -63,10 +89,12 @@ export function SavingsMoment({
               {amountLabel}
             </p>
             <p className="mt-1 font-display text-5xl font-extrabold tracking-tightish tabular-nums text-savr-ink md:text-6xl">
-              {formatKes(Math.max(0, amountCents))}
+              {formatKes(displayCents)}
             </p>
             {buys && amountCents > 0 && (
-              <p className="mt-2 text-sm font-semibold text-savr-ink/75">{buys}</p>
+              <p className="mt-2 text-sm font-semibold text-savr-ink/75 animate-rise-delay">
+                {buys}
+              </p>
             )}
           </div>
           <p className="max-w-xs text-[15px] font-medium leading-snug text-savr-ink/80 sm:text-right">
@@ -75,7 +103,7 @@ export function SavingsMoment({
         </div>
 
         {beat && (
-          <div className="rounded-2xl bg-savr-ink/10 px-4 py-3 text-sm text-savr-ink">
+          <div className="animate-rise-delay rounded-2xl bg-savr-ink/10 px-4 py-3 text-sm text-savr-ink">
             <p className="font-semibold">You beat the pack</p>
             <p className="mt-1 text-savr-ink/80">
               You&apos;d pay {formatKes(paidCents!)} · average compared store{" "}
@@ -85,7 +113,7 @@ export function SavingsMoment({
         )}
 
         {canShare && (
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 animate-rise-delay-2">
             <button
               type="button"
               onClick={onWhatsApp}
