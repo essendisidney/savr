@@ -75,6 +75,15 @@ export const ASK_PLACEHOLDERS = [
   "Milk prices…",
 ];
 
+/** One-tap Asks — same chips on Home and /ask. */
+export const POPULAR_ASKS = [
+  { label: "Bread", q: "bread" },
+  { label: "Milk", q: "milk" },
+  { label: "Cooking oil", q: "cooking oil" },
+  { label: "Weekly groceries", q: "weekly groceries" },
+  { label: "Fuel nearby", q: "fuel near me" },
+] as const;
+
 /** Everyday staples people type — prefer Prices over map/rides when present. */
 const PRODUCTISH = new Set([
   "bread",

@@ -15,19 +15,12 @@ import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, formatKes } from "@/lib/compare";
 import {
   ASK_PLACEHOLDERS,
+  POPULAR_ASKS,
   routeAskQuery,
   savingsBuys,
   weekdayPulse,
 } from "@/lib/intents";
 import { loadRecentAsks, pushRecentAsk } from "@/lib/recent-asks";
-
-const POPULAR_ASKS = [
-  { label: "Bread", q: "bread" },
-  { label: "Milk", q: "milk" },
-  { label: "Cooking oil", q: "cooking oil" },
-  { label: "Weekly groceries", q: "weekly groceries" },
-  { label: "Fuel nearby", q: "fuel near me" },
-];
 
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";

@@ -523,20 +523,29 @@ function BasketInner() {
         <PageShell>
           <div className="space-y-8">
             {askText && recommended && items.length > 0 && (
-              <p className="text-sm text-savr-mute">
-                Ask Savr routed this as a{" "}
-                <span className="font-semibold text-savr-ink">basket compare</span>
-                {saved > 0 ? (
-                  <>
-                    {" "}
-                    — you could keep about{" "}
-                    <span className="font-semibold text-savr-forest">{formatKes(saved)}</span> at{" "}
-                    {recommended.merchantName}.
-                  </>
-                ) : (
-                  "."
-                )}
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-savr-mute">
+                  For “{askText.length > 72 ? `${askText.slice(0, 72)}…` : askText}” —{" "}
+                  <span className="font-semibold text-savr-ink">basket compare</span>
+                  {saved > 0 ? (
+                    <>
+                      {" "}
+                      · you could keep about{" "}
+                      <span className="font-semibold text-savr-forest">{formatKes(saved)}</span> at{" "}
+                      {recommended.merchantName}.
+                    </>
+                  ) : (
+                    "."
+                  )}
+                </p>
+                <p className="text-sm text-savr-mute">
+                  Next: expand a store and tip a shelf that looks wrong,{" "}
+                  <Link href="/check" className="font-semibold text-savr-forest hover:underline">
+                    check after you shop
+                  </Link>
+                  , or lock the smart pick below.
+                </p>
+              </div>
             )}
             {recommended && items.length > 0 && (
               <div ref={punchRef}>

@@ -4,14 +4,24 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageFrame, PageShell } from "@/components/PageShell";
-import { ASK_PLACEHOLDERS, SPEND_INTENTS, routeAskQuery } from "@/lib/intents";
+import {
+  ASK_PLACEHOLDERS,
+  POPULAR_ASKS,
+  SPEND_INTENTS,
+  routeAskQuery,
+  withAskParam,
+} from "@/lib/intents";
+import { loadRecentAsks, pushRecentAsk } from "@/lib/recent-asks";
 
 export default function AskPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [placeholder, setPlaceholder] = useState(ASK_PLACEHOLDERS[0]);
+  const [recent, setRecent] = useState<string[]>([]);
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => {
+    setRecent(loadRecentAsks());
     let i = 0;
     const t = window.setInterval(() => {
       i = (i + 1) % ASK_PLACEHOLDERS.length;
@@ -20,9 +30,18 @@ export default function AskPage() {
     return () => window.clearInterval(t);
   }, []);
 
+  function goAsk(raw: string) {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    pushRecentAsk(trimmed);
+    setRecent(loadRecentAsks());
+    setAsking(true);
+    router.push(routeAskQuery(trimmed));
+  }
+
   function onAsk(e: FormEvent) {
     e.preventDefault();
-    router.push(routeAskQuery(query));
+    goAsk(query);
   }
 
   return (
@@ -55,12 +74,48 @@ export default function AskPage() {
               className="w-full border-0 bg-transparent py-2 text-[16px] text-savr-ink outline-none placeholder:text-savr-mute/55"
               autoComplete="off"
               autoFocus
+              disabled={asking}
             />
-            <button type="submit" className="btn-primary shrink-0">
-              Ask
+            <button type="submit" disabled={asking} className="btn-primary shrink-0 disabled:opacity-60">
+              {asking ? "…" : "Ask"}
             </button>
           </div>
         </form>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {POPULAR_ASKS.map((chip) => (
+            <button
+              key={chip.q}
+              type="button"
+              disabled={asking}
+              onClick={() => goAsk(chip.q)}
+              className="rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-savr-ink ring-1 ring-savr-ink/10 transition hover:ring-savr-forest/40 disabled:opacity-60"
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
+        {recent.length > 0 && (
+          <div className="mt-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+              Recent
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {recent.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  disabled={asking}
+                  onClick={() => goAsk(r)}
+                  className="rounded-full bg-savr-fog/80 px-3.5 py-2 text-sm font-medium text-savr-ink transition hover:bg-savr-mist disabled:opacity-60"
+                >
+                  {r.length > 32 ? `${r.slice(0, 32)}…` : r}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
           I want to…
@@ -69,7 +124,7 @@ export default function AskPage() {
           {SPEND_INTENTS.map((intent) => (
             <li key={intent.id}>
               <Link
-                href={intent.href}
+                href={withAskParam(intent.href, intent.label)}
                 className="card flex items-center justify-between gap-3 px-4 py-3.5 hover:border-savr-forest/30"
               >
                 <span>
