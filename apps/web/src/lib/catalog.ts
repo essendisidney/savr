@@ -349,7 +349,6 @@ export async function loadFuelStations(
 }
 
 function loadFuelStationsFallback(fuelType: FuelType = "petrol") {
-  const now = new Date().toISOString();
   const petrolSeed: {
     id: string;
     name: string;
@@ -474,7 +473,7 @@ function loadFuelStationsFallback(fuelType: FuelType = "petrol") {
       lat: s.lat,
       lng: s.lng,
       mapsUrl: `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`,
-      observedAt: now,
+      observedAt: null,
       source: "fallback",
     }))
     .sort((a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre);

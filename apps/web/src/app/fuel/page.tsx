@@ -118,7 +118,8 @@ function FuelInner() {
       if (sort === "distance") {
         return (a.distanceKm ?? 999) - (b.distanceKm ?? 999);
       }
-      if (sort === "value") {
+      // Demo seed: ignore hardcoded cashback so "value" isn't inventing savings.
+      if (sort === "value" && source !== "fallback") {
         const va = a.priceCentsPerLitre - a.cashbackCents;
         const vb = b.priceCentsPerLitre - b.cashbackCents;
         if (va !== vb) return va - vb;
@@ -126,7 +127,7 @@ function FuelInner() {
       }
       return a.priceCentsPerLitre - b.priceCentsPerLitre;
     });
-  }, [stations, origin, sort]);
+  }, [stations, origin, sort, source]);
 
   const best = ranked[0];
   const worst = ranked[ranked.length - 1];
@@ -134,6 +135,10 @@ function FuelInner() {
     worst && best ? worst.priceCentsPerLitre - best.priceCentsPerLitre : 0;
   const maxPrice = Math.max(...ranked.map((s) => s.priceCentsPerLitre), 1);
   const fuelLabel = fuelType === "diesel" ? "diesel" : "petrol";
+  const isDemo = source === "fallback";
+  const sourceLabel = isDemo
+    ? "demo nearby prices (not live pumps)"
+    : "live catalog / shopper tips";
 
   if (loading) {
     return (
@@ -153,14 +158,20 @@ function FuelInner() {
         title={askText ? "Here’s cheaper fuel nearby" : "Fill up smarter"}
         subtitle={
           askText
-            ? `For “${askQuote(askText)}” — nearby ${fuelLabel} · ${source}.`
-            : `Nearby ${fuelLabel} prices · ${source}. Your fuel type and sort stay on this phone.`
+            ? `For “${askQuote(askText)}” — nearby ${fuelLabel} · ${sourceLabel}.`
+            : `Nearby ${fuelLabel} · ${sourceLabel}. Your fuel type and sort stay on this phone.`
         }
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
+            {isDemo && (
+              <p className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
+                These ranks are illustrative seed prices — not live pump boards. Tip a real station
+                once the live catalog is online.
+              </p>
+            )}
             {askText && best && (
               <p className="text-sm text-savr-mute">
                 Ask Savr routed this as a{" "}
@@ -175,7 +186,7 @@ function FuelInner() {
                     <span className="font-semibold text-savr-forest">
                       {formatKes(savedPerLitre)}
                     </span>{" "}
-                    per litre vs the priciest.
+                    per litre vs the priciest in this list.
                   </>
                 ) : (
                   "."
@@ -186,7 +197,11 @@ function FuelInner() {
               <SavingsMoment
                 amountLabel={`Go to ${best.brand}`}
                 amountCents={savedPerLitre}
-                detail={`Saved per litre vs the highest ${fuelLabel} station · ${formatDistanceKm(best.distanceKm) ?? "nearby"}`}
+                detail={
+                  isDemo
+                    ? `Spread in this demo list · ${formatDistanceKm(best.distanceKm) ?? "nearby"} — not a confirmed pump save`
+                    : `Saved per litre vs the highest ${fuelLabel} station · ${formatDistanceKm(best.distanceKm) ?? "nearby"}`
+                }
               />
             )}
 
@@ -284,10 +299,18 @@ function FuelInner() {
                                 i === 0 ? "text-savr-signal" : "text-savr-mute"
                               }`}
                             >
-                              Cashback {formatKes(s.cashbackCents)} · Net{" "}
-                              {formatKes(s.priceCentsPerLitre - s.cashbackCents)}/L
+                              {isDemo
+                                ? "Demo pump price"
+                                : `Cashback estimate ${formatKes(s.cashbackCents)} · Net ${formatKes(s.priceCentsPerLitre - s.cashbackCents)}/L`}
                             </p>
                             {(() => {
+                              if (isDemo) {
+                                return (
+                                  <p className="mt-0.5 text-[11px] text-amber-800">
+                                    Illustrative — not a live board
+                                  </p>
+                                );
+                              }
                               const fresh = formatPriceFreshness(s.observedAt, s.source);
                               if (!fresh.label) return null;
                               return (
@@ -355,7 +378,9 @@ function FuelInner() {
               </p>
               {tippableStations.length === 0 ? (
                 <p className="mt-4 text-sm text-savr-mute">
-                  Live stations unavailable — tips open when the catalog is online.
+                  {isDemo
+                    ? "Demo ranks can’t take tips — live stations unlock tips when the catalog is online."
+                    : "Live stations unavailable — tips open when the catalog is online."}
                 </p>
               ) : (
                 <form

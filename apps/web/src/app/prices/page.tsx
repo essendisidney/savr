@@ -42,6 +42,7 @@ function PricesInner() {
   const [loading, setLoading] = useState(true);
   const [askMatched, setAskMatched] = useState(false);
   const [tipBranchKey, setTipBranchKey] = useState("");
+  const [tipRowKey, setTipRowKey] = useState<string | null>(null);
   const [tipPrice, setTipPrice] = useState("");
   const [tipBusy, setTipBusy] = useState(false);
   const [tipStatus, setTipStatus] = useState<string | null>(null);
@@ -101,6 +102,7 @@ function PricesInner() {
   useEffect(() => {
     setTipStatus(null);
     setTipPrice("");
+    setTipRowKey(null);
   }, [selectedId]);
 
   useEffect(() => {
@@ -110,6 +112,37 @@ function PricesInner() {
     }
     void isWatchingProduct(selectedId).then(setWatching);
   }, [user, selectedId]);
+
+  async function tipShelf(args: {
+    merchantId: string;
+    locationId: string | null;
+    priceKes: number;
+  }) {
+    if (!selectedId) return;
+    setTipBusy(true);
+    setTipStatus(null);
+    const res = await submitCrowdsourcePrice({
+      merchantId: args.merchantId,
+      locationId: args.locationId,
+      productId: selectedId,
+      priceKes: args.priceKes,
+    });
+    setTipBusy(false);
+    if ("error" in res) {
+      setTipStatus(res.error);
+      return;
+    }
+    track("price_tip", { productId: selectedId, merchantId: args.merchantId });
+    setTipStatus(
+      `Thanks — ${
+        res.tipCount === 1 ? "1 shopper" : `${res.tipCount} shoppers`
+      } tipped this shelf · confidence should rise.`,
+    );
+    setTipPrice("");
+    setTipRowKey(null);
+    const c = await loadCatalog();
+    setCatalog(c);
+  }
 
   const selected: Product | null = useMemo(() => {
     if (!catalog || !selectedId) return null;
@@ -429,6 +462,25 @@ function PricesInner() {
                     }
                   />
                 )}
+                {cheapest && (
+                  <p className="text-sm text-savr-mute">
+                    Wrong shelf price?{" "}
+                    <button
+                      type="button"
+                      className="font-semibold text-savr-forest hover:underline"
+                      onClick={() => {
+                        const key = `${cheapest.merchantId}:${cheapest.locationId ?? "none"}`;
+                        setTipRowKey(key);
+                        setTipPrice(String(Math.round(cheapest.listCents / 100)));
+                        setTipStatus(null);
+                        answerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                    >
+                      Tip this shelf
+                    </button>{" "}
+                    — next shopper gets a tighter rank.
+                  </p>
+                )}
 
                 <ShopperOriginBar
                   label={geoLabel}
@@ -443,9 +495,17 @@ function PricesInner() {
                   {results.map((r, i) => {
                     const width = Math.max(14, (r.priceCents / maxPrice) * 100);
                     const dist = formatDistanceKm(r.distanceKm);
+                    const rowKey = `${r.merchantId}:${r.locationId ?? "none"}`;
+                    const tipping = tipRowKey === rowKey;
+                    const fresh = formatPriceFreshness(r.observedAt, r.source);
+                    const needsHelp =
+                      Boolean(fresh.stale) ||
+                      r.confidenceLevel === "low" ||
+                      !r.isCheapest;
+                    const tipLabel = needsHelp ? "Tip this shelf" : "Correct price";
                     return (
                       <li
-                        key={`${r.merchantId}:${r.locationId ?? "none"}`}
+                        key={rowKey}
                         className={`animate-rise relative overflow-hidden border ${
                           r.isCheapest
                             ? "card-winner"
@@ -469,19 +529,11 @@ function PricesInner() {
                                 {i + 1}
                               </span>
                               <div>
-                                <p
-                                  className={`font-display text-2xl font-bold tracking-tightish ${
-                                    r.isCheapest ? "text-savr-ink" : "text-savr-ink"
-                                  }`}
-                                >
+                                <p className="font-display text-2xl font-bold tracking-tightish text-savr-ink">
                                   {r.merchantName}
                                 </p>
                                 {r.branchName && (
-                                  <p
-                                    className={`text-xs ${
-                                      r.isCheapest ? "text-savr-mute" : "text-savr-mute"
-                                    }`}
-                                  >
+                                  <p className="text-xs text-savr-mute">
                                     {r.branchName}
                                     {r.address ? ` · ${r.address}` : ""}
                                   </p>
@@ -502,7 +554,6 @@ function PricesInner() {
                                     : ""}
                                 </p>
                                 {(() => {
-                                  const fresh = formatPriceFreshness(r.observedAt, r.source);
                                   const trend = formatPriceTrend(
                                     r.listCents,
                                     r.prevPriceCents,
@@ -547,19 +598,11 @@ function PricesInner() {
                               </div>
                             </div>
                             <div className="text-right">
-                              <p
-                                className={`font-display text-2xl font-bold tracking-tightish tabular-nums ${
-                                  r.isCheapest ? "text-savr-ink" : "text-savr-ink"
-                                }`}
-                              >
+                              <p className="font-display text-2xl font-bold tracking-tightish tabular-nums text-savr-ink">
                                 {formatKes(r.priceCents)}
                               </p>
                               {r.promoCents > 0 && (
-                                <p
-                                  className={`text-xs line-through ${
-                                    r.isCheapest ? "text-savr-mute" : "text-savr-mute"
-                                  }`}
-                                >
+                                <p className="text-xs line-through text-savr-mute">
                                   {formatKes(r.listCents)}
                                 </p>
                               )}
@@ -582,16 +625,85 @@ function PricesInner() {
                             />
                           </div>
 
-                          <a
-                            href={r.mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`mt-4 inline-block text-sm font-semibold ${
-                              r.isCheapest ? "text-savr-signal" : "text-savr-forest"
-                            }`}
-                          >
-                            Directions to store →
-                          </a>
+                          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <a
+                              href={r.mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`text-sm font-semibold ${
+                                r.isCheapest ? "text-savr-signal" : "text-savr-forest"
+                              }`}
+                            >
+                              Directions →
+                            </a>
+                            {!tipping ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTipRowKey(rowKey);
+                                  setTipPrice(String(Math.round(r.listCents / 100)));
+                                  setTipStatus(null);
+                                }}
+                                className={`text-sm font-semibold hover:underline ${
+                                  needsHelp ? "text-savr-forest" : "text-savr-mute"
+                                }`}
+                              >
+                                {tipLabel}
+                              </button>
+                            ) : null}
+                          </div>
+
+                          {tipping && (
+                            <form
+                              className="mt-3 flex flex-wrap items-center gap-2"
+                              onSubmit={async (e: FormEvent) => {
+                                e.preventDefault();
+                                await tipShelf({
+                                  merchantId: r.merchantId,
+                                  locationId: r.locationId,
+                                  priceKes: Number(tipPrice),
+                                });
+                              }}
+                            >
+                              <input
+                                value={tipPrice}
+                                onChange={(ev) => setTipPrice(ev.target.value)}
+                                inputMode="decimal"
+                                placeholder="KES"
+                                aria-label={`Tip shelf price at ${r.merchantName}`}
+                                className="w-28 rounded-xl border border-savr-ink/15 bg-white px-3 py-2 text-sm text-savr-ink outline-none"
+                                autoFocus
+                              />
+                              <button
+                                type="submit"
+                                disabled={tipBusy || !tipPrice.trim()}
+                                className="btn-primary px-3 py-2 text-xs disabled:opacity-50"
+                              >
+                                {tipBusy ? "…" : "Submit tip"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTipRowKey(null);
+                                  setTipStatus(null);
+                                }}
+                                className="text-xs font-semibold text-savr-mute"
+                              >
+                                Cancel
+                              </button>
+                            </form>
+                          )}
+                          {tipping && tipStatus && (
+                            <p
+                              className={`mt-2 text-xs font-medium ${
+                                tipStatus.startsWith("Thanks")
+                                  ? "text-savr-forest"
+                                  : "text-red-700"
+                              }`}
+                            >
+                              {tipStatus}
+                            </p>
+                          )}
                         </div>
                       </li>
                     );
@@ -608,41 +720,23 @@ function PricesInner() {
 
                 <section className="card px-4 py-5 sm:px-5">
                   <h3 className="font-display text-lg font-bold tracking-tightish">
-                    Saw a different price?
+                    Or tip another branch
                   </h3>
                   <p className="mt-1 text-sm text-savr-mute">
-                    Tip what you paid for {selected.name} at a specific branch — raises confidence for that shelf.
+                    Prefer a branch not in the list above — tip {selected.name} there too.
                   </p>
                   <form
                     className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
                     onSubmit={async (e: FormEvent) => {
                       e.preventDefault();
-                      if (!selectedId || !tipBranchKey) return;
+                      if (!tipBranchKey) return;
                       const branch = tipBranches.find((b) => b.key === tipBranchKey);
                       if (!branch) return;
-                      setTipBusy(true);
-                      setTipStatus(null);
-                      const res = await submitCrowdsourcePrice({
+                      await tipShelf({
                         merchantId: branch.merchantId,
                         locationId: branch.locationId,
-                        productId: selectedId,
                         priceKes: Number(tipPrice),
                       });
-                      setTipBusy(false);
-                      if ("error" in res) {
-                        setTipStatus(res.error);
-                        return;
-                      }
-                        setTipStatus(
-                          `Thanks — ${
-                            res.tipCount === 1
-                              ? "1 shopper"
-                              : `${res.tipCount} shoppers`
-                          } tipped this shelf · confidence should rise.`,
-                        );
-                      setTipPrice("");
-                      const c = await loadCatalog();
-                      setCatalog(c);
                     }}
                   >
                     <label className="block space-y-1.5">
@@ -678,7 +772,7 @@ function PricesInner() {
                       {tipBusy ? "Saving…" : "Tip price"}
                     </button>
                   </form>
-                  {tipStatus && (
+                  {!tipRowKey && tipStatus && (
                     <p
                       className={`mt-3 text-sm font-medium ${
                         tipStatus.startsWith("Thanks") ? "text-savr-forest" : "text-red-700"
@@ -705,27 +799,11 @@ function PricesInner() {
                       if (!tipBranchKey) return;
                       const branch = tipBranches.find((b) => b.key === tipBranchKey);
                       if (!branch) return;
-                      setTipBusy(true);
-                      setTipStatus(null);
-                      const res = await submitCrowdsourcePrice({
+                      await tipShelf({
                         merchantId: branch.merchantId,
                         locationId: branch.locationId,
-                        productId: selectedId,
                         priceKes: Number(tipPrice),
                       });
-                      setTipBusy(false);
-                      if ("error" in res) {
-                        setTipStatus(res.error);
-                        return;
-                      }
-                      setTipStatus(
-                        `Thanks — ${
-                          res.tipCount === 1 ? "1 shopper" : `${res.tipCount} shoppers`
-                        } tipped this shelf.`,
-                      );
-                      setTipPrice("");
-                      const c = await loadCatalog();
-                      setCatalog(c);
                     }}
                   >
                     <select
