@@ -1,0 +1,46 @@
+/** Nairobi Weekly 30 — shelf-walk priority SKUs for soft launch trust. */
+
+export type Weekly30Sku = {
+  id: string;
+  name: string;
+  brand: string;
+  aisle: string;
+};
+
+/** Prefer earliest seed IDs so portal CSV matches live catalog. */
+export const WEEKLY_30: Weekly30Sku[] = [
+  { id: "33333333-3333-3333-3333-333333333001", name: "Fresh Milk 500ml", brand: "Brookside", aisle: "Dairy" },
+  { id: "33333333-3333-3333-3333-333333333018", name: "Fresh Milk 1L", brand: "Brookside", aisle: "Dairy" },
+  { id: "33333333-3333-3333-3333-333333333015", name: "Yoghurt 500ml", brand: "Fresha", aisle: "Dairy" },
+  { id: "33333333-3333-3333-3333-333333333016", name: "Butter 500g", brand: "Brookside", aisle: "Dairy" },
+  { id: "33333333-3333-3333-3333-333333333002", name: "White Bread 400g", brand: "Super Loaf", aisle: "Bakery" },
+  { id: "33333333-3333-3333-3333-333333333003", name: "Basmati Rice 2kg", brand: "Pishori", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333004", name: "Sugar 1kg", brand: "Mumias", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333006", name: "Cooking Oil 2L", brand: "Rina", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333008", name: "Maize Flour 2kg", brand: "Jogoo", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333011", name: "Wheat Flour 2kg", brand: "Exe", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333012", name: "Spaghetti 500g", brand: "Indomie", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333038", name: "Instant Noodles 5-pack", brand: "Indomie", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333024", name: "Table Salt 1kg", brand: "Kensalt", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333022", name: "Red Beans 1kg", brand: "Wairimu", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333023", name: "Green Grams 1kg", brand: "Ndengu", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333025", name: "Margarine 500g", brand: "Blue Band", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333039", name: "Peanut Butter 400g", brand: "Tropical Heat", aisle: "Staples" },
+  { id: "33333333-3333-3333-3333-333333333007", name: "Eggs Tray 30", brand: "Kienyeji", aisle: "Protein" },
+  { id: "33333333-3333-3333-3333-333333333045", name: "Chicken Pieces 1kg", brand: "Farmers Choice", aisle: "Protein" },
+  { id: "33333333-3333-3333-3333-333333333009", name: "Tea Leaves 500g", brand: "Kericho Gold", aisle: "Beverages" },
+  { id: "33333333-3333-3333-3333-333333333042", name: "Tomatoes 1kg", brand: "Local", aisle: "Produce" },
+  { id: "33333333-3333-3333-3333-333333333043", name: "Onions 1kg", brand: "Local", aisle: "Produce" },
+  { id: "33333333-3333-3333-3333-333333333041", name: "Bananas 1kg", brand: "Local", aisle: "Produce" },
+  { id: "33333333-3333-3333-3333-333333333049", name: "Sukuma Wiki Bunch", brand: "Local", aisle: "Produce" },
+  { id: "33333333-3333-3333-3333-333333333044", name: "Potatoes 2kg", brand: "Local", aisle: "Produce" },
+  { id: "33333333-3333-3333-3333-333333333005", name: "Bar Soap 800g", brand: "Geisha", aisle: "Household" },
+  { id: "33333333-3333-3333-3333-333333333030", name: "Laundry Detergent 1kg", brand: "Omo", aisle: "Household" },
+  { id: "33333333-3333-3333-3333-333333333014", name: "Tissue Paper 10 pack", brand: "Rosy", aisle: "Household" },
+  { id: "33333333-3333-3333-3333-333333333032", name: "Toothpaste 100ml", brand: "Colgate", aisle: "Personal care" },
+  { id: "33333333-3333-3333-3333-333333333060", name: "UHT Milk 1L", brand: "Brookside", aisle: "Dairy" },
+];
+
+export function weekly30ProductIds(): Set<string> {
+  return new Set(WEEKLY_30.map((s) => s.id));
+}

@@ -8,8 +8,10 @@ Monorepo for Phase 1 (Nairobi): groceries basket compare (wedge), ride quotes, f
 
 | Doc | Purpose |
 |-----|---------|
+| [docs/CONSTITUTION.md](docs/CONSTITUTION.md) | Mission, principles, trust, ethics, decision framework |
 | [docs/VISION.md](docs/VISION.md) | Mission, positioning, 10-year ambition |
 | [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) | 12 platforms — Spending OS / Google of Spending |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | City of modules; entities & engines; when plugs unlock |
 | [docs/WEDGE.md](docs/WEDGE.md) | Why groceries wins Phase 1 |
 | [docs/MVP_PRD.md](docs/MVP_PRD.md) | MVP requirements |
 | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Postgres / Supabase model |
@@ -75,6 +77,7 @@ Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
 - [ ] SMS OTP live on Vercel
 - [ ] `INVITE_GATE_ENABLED` + `INVITE_COOKIE_SECRET` set
 - [ ] Support email / WhatsApp
+- [ ] **Weekly 30 shelf walk** — fill `ops/weekly-30-walk.csv` (or Merchant → Download Weekly 30) at 2–3 branches, upload via `/merchant`
 - [x] Seed refresh cadence for grocery + fuel — `node scripts/refresh-seed-freshness.js` then apply the printed SQL
 - [ ] M-Pesa: dry-run OK for beta; paste keys + set `MPESA_DRY_RUN=false` for real B2C
 - [x] Terms / Privacy linked

@@ -13,6 +13,7 @@ import type {
 import { haversineKm, type GeoPoint } from "./geo";
 import { aggregateConfidence, priceConfidence } from "./freshness";
 import { compareRidesForRoute } from "./rides";
+import { WEEKLY_30 } from "./weekly-30";
 
 export { compareRidesForRoute } from "./rides";
 
@@ -36,7 +37,6 @@ function priceForBranch(
   );
 }
 
-/** Classic Nairobi weekly shop — match by name so catalog order never breaks the wedge demo. */
 const WEEKLY_STAPLE_MATCHERS: { label: string; match: RegExp }[] = [
   { label: "Fresh Milk 500ml", match: /^fresh milk 500ml$/i },
   { label: "White Bread 400g", match: /^white bread 400g$/i },
@@ -66,7 +66,18 @@ const QUICK_ADD_MATCHERS: { chip: string; match: RegExp }[] = [
   { chip: "Noodles", match: /instant noodles|spaghetti 500g/i },
 ];
 
+/** Soft-launch staples basket — prefer Weekly 30 IDs when present in catalog. */
 export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
+  const byId = new Map(catalog.products.map((p) => [p.id, p]));
+  const fromWeekly: ListItem[] = [];
+  for (const sku of WEEKLY_30) {
+    const product = byId.get(sku.id);
+    if (!product) continue;
+    fromWeekly.push({ productId: product.id, freeText: product.name, quantity: 1 });
+    if (fromWeekly.length >= 12) break;
+  }
+  if (fromWeekly.length >= 6) return fromWeekly;
+
   const picked: ListItem[] = [];
   const used = new Set<string>();
 
@@ -82,7 +93,6 @@ export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
 
   if (picked.length >= 4) return picked;
 
-  // Fallback if seed names drift — keep a usable demo basket.
   return catalog.products.slice(0, 8).map((p) => ({
     productId: p.id,
     freeText: p.name,

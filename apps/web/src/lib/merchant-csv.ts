@@ -1,4 +1,5 @@
 import type { Product } from "./types";
+import { WEEKLY_30 } from "./weekly-30";
 
 export type CsvPriceRow = {
   line: number;
@@ -36,12 +37,30 @@ function parseCsvLine(line: string): string[] {
   return out;
 }
 
-export function csvTemplate(products: Product[]): string {
+function csvEscape(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+/** Full catalog template (capped) for merchant portal. */
+export function csvTemplate(products: Product[], limit = 40): string {
   const header = "product_id,sku_name,brand,price_kes";
-  const rows = products.slice(0, 20).map((p) => {
-    const name = `"${p.name.replace(/"/g, '""')}"`;
-    const brand = p.brand ? `"${p.brand.replace(/"/g, '""')}"` : "";
+  const rows = products.slice(0, limit).map((p) => {
+    const name = csvEscape(p.name);
+    const brand = p.brand ? csvEscape(p.brand) : "";
     return `${p.id},${name},${brand},`;
+  });
+  return [header, ...rows].join("\n");
+}
+
+/** Soft-launch shelf-walk CSV — Weekly 30 only, portal-ready. */
+export function weekly30CsvTemplate(products?: Product[]): string {
+  const byId = new Map((products ?? []).map((p) => [p.id, p]));
+  const header = "product_id,sku_name,brand,aisle,price_kes";
+  const rows = WEEKLY_30.map((sku) => {
+    const live = byId.get(sku.id);
+    const name = live?.name ?? sku.name;
+    const brand = live?.brand ?? sku.brand;
+    return `${sku.id},${csvEscape(name)},${csvEscape(brand)},${csvEscape(sku.aisle)},`;
   });
   return [header, ...rows].join("\n");
 }

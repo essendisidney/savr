@@ -29,7 +29,7 @@ import {
   type MerchantSummary,
 } from "@/lib/merchant";
 import { loadCatalog } from "@/lib/catalog";
-import { csvTemplate, parsePriceCsv, type CsvPriceRow } from "@/lib/merchant-csv";
+import { csvTemplate, parsePriceCsv, weekly30CsvTemplate, type CsvPriceRow } from "@/lib/merchant-csv";
 import type { Product } from "@/lib/types";
 
 export default function MerchantPage() {
@@ -304,6 +304,18 @@ export default function MerchantPage() {
     const a = document.createElement("a");
     a.href = url;
     a.download = "savr-price-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadWeekly30Template() {
+    const blob = new Blob([weekly30CsvTemplate(catalogProducts)], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "savr-weekly-30.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -937,12 +949,20 @@ export default function MerchantPage() {
                     Bulk CSV
                   </p>
                   <p className="text-sm text-savr-mute">
-                    Imports apply to the selected branch. Columns: product_id, sku_name, brand,
-                    price_kes.
+                    Imports apply to the selected branch. Soft-launch: fill Weekly 30 from a shelf
+                    walk, then upload. Columns: product_id, sku_name, brand, price_kes (aisle
+                    optional).
                   </p>
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={downloadWeekly30Template}
+                      className="btn-primary text-sm"
+                    >
+                      Download Weekly 30
+                    </button>
                     <button type="button" onClick={downloadCsvTemplate} className="btn-ghost text-sm">
-                      Download template
+                      Full catalog template
                     </button>
                     <label className="btn-dark cursor-pointer px-4 py-2.5 text-sm">
                       Upload CSV
