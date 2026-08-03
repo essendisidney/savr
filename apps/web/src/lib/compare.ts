@@ -246,7 +246,7 @@ export function compareProduct(
       if (!price) return null;
       const promo = productPromoForUnit(catalog, merchant.id, productId, price.priceCents);
       const effective = Math.max(0, price.priceCents - promo.cents);
-      const conf = priceConfidence(price.observedAt, price.source);
+      const conf = priceConfidence(price.observedAt, price.source, price.tipCount);
       return {
         merchantId: merchant.id,
         locationId: merchant.locationId ?? merchant.location?.id ?? null,
@@ -263,6 +263,7 @@ export function compareProduct(
         source: price.source ?? null,
         prevPriceCents: price.prevPriceCents ?? null,
         prevObservedAt: price.prevObservedAt ?? null,
+        tipCount: price.tipCount ?? null,
         confidenceScore: conf.score,
         confidenceLevel: conf.level,
         confidenceLabel: conf.label,
@@ -287,6 +288,7 @@ export function compareProduct(
         source: string | null;
         prevPriceCents: number | null;
         prevObservedAt: string | null;
+        tipCount: number | null;
         confidenceScore: number;
         confidenceLevel: "high" | "medium" | "low";
         confidenceLabel: string;
@@ -325,7 +327,7 @@ export function lineItemsForMerchant(
     const promo =
       lineCents != null ? linePromoDiscount(promos, product, lineCents) : { cents: 0, title: null };
     const conf = price
-      ? priceConfidence(price.observedAt, price.source)
+      ? priceConfidence(price.observedAt, price.source, price.tipCount)
       : null;
     return {
       productId: item.productId,
@@ -338,6 +340,7 @@ export function lineItemsForMerchant(
       source: price?.source ?? null,
       prevPriceCents: price?.prevPriceCents ?? null,
       prevObservedAt: price?.prevObservedAt ?? null,
+      tipCount: price?.tipCount ?? null,
       confidenceScore: conf?.score ?? null,
       confidenceLevel: conf?.level ?? null,
       confidenceLabel: conf?.shortLabel ?? null,
@@ -367,7 +370,7 @@ export function compareBasket(
     let weekDelta = 0;
     let weekN = 0;
     const labels = new Set<string>();
-    const confLines: { observedAt?: string | null; source?: string | null }[] = [];
+    const confLines: { observedAt?: string | null; source?: string | null; tipCount?: number | null }[] = [];
 
     for (const item of items) {
       const price = priceForBranch(catalog, merchant.id, locId, item.productId);
@@ -375,7 +378,11 @@ export function compareBasket(
       const line = price.priceCents * item.quantity;
       total += line;
       matched += 1;
-      confLines.push({ observedAt: price.observedAt, source: price.source });
+      confLines.push({
+        observedAt: price.observedAt,
+        source: price.source,
+        tipCount: price.tipCount,
+      });
       if (price.prevPriceCents != null && Number.isFinite(price.prevPriceCents)) {
         weekDelta += (price.priceCents - price.prevPriceCents) * item.quantity;
         weekN += 1;

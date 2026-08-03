@@ -170,7 +170,11 @@ export default function CheckPage() {
       setTipStatus(res.error);
       return;
     }
-    setTipStatus("Thanks — tip saved. Miss recalculates with fresher prices.");
+    setTipStatus(
+      `Thanks — ${
+        res.tipCount === 1 ? "1 shopper" : `${res.tipCount} shoppers`
+      } tipped this shelf. Miss recalculates with fresher prices.`,
+    );
     setTipPrice("");
     setTipProductId(null);
     const c = await loadCatalog();

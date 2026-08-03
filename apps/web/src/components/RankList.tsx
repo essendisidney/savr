@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { submitCrowdsourcePrice } from "@/lib/actions";
 import { formatKes } from "@/lib/compare";
-import { formatPriceFreshness, freshnessClassName, formatBasketTrend, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
+import { formatPriceFreshness, freshnessClassName, formatBasketTrend, formatPriceTrend, trendClassName, confidenceClassName, tipCountLabel } from "@/lib/freshness";
 import { formatDistanceKm } from "@/lib/geo";
 import { track } from "@/lib/track";
 import type { BasketResult, LineItemPrice } from "@/lib/types";
@@ -78,10 +78,11 @@ export function RankList({
       setTipStatus(res.error);
       return;
     }
-    setTipStatus("Thanks — price updated for this branch.");
+    const shoppers = tipCountLabel(res.tipCount) ?? "1 shopper";
+    setTipStatus(`Thanks — ${shoppers} tipped this shelf · confidence up.`);
     setTipKey(null);
     setTipPrice("");
-    track("basket_coverage_tip", { merchantId, locationId, productId });
+    track("basket_coverage_tip", { merchantId, locationId, productId, tipCount: res.tipCount });
     await onPriceTipped?.();
   }
 
@@ -369,6 +370,13 @@ export function RankList({
                                 )}`}
                               >
                                 {line.confidenceLabel}
+                                {tipCountLabel(line.tipCount)
+                                  ? ` · ${tipCountLabel(line.tipCount)}`
+                                  : ""}
+                              </span>
+                            ) : tipCountLabel(line.tipCount) ? (
+                              <span className="mt-0.5 block text-[11px] font-medium text-savr-mute">
+                                {tipCountLabel(line.tipCount)}
                               </span>
                             ) : null}
                             {trend?.label ? (

@@ -522,7 +522,13 @@ function PricesInner() {
                         setTipStatus(res.error);
                         return;
                       }
-                      setTipStatus("Thanks — tip saved for that branch. Confidence should rise.");
+                        setTipStatus(
+                          `Thanks — ${
+                            res.tipCount === 1
+                              ? "1 shopper"
+                              : `${res.tipCount} shoppers`
+                          } tipped this shelf · confidence should rise.`,
+                        );
                       setTipPrice("");
                       const c = await loadCatalog();
                       setCatalog(c);
@@ -601,7 +607,11 @@ function PricesInner() {
                         setTipStatus(res.error);
                         return;
                       }
-                      setTipStatus("Thanks — tip saved for that branch.");
+                      setTipStatus(
+                        `Thanks — ${
+                          res.tipCount === 1 ? "1 shopper" : `${res.tipCount} shoppers`
+                        } tipped this shelf.`,
+                      );
                       setTipPrice("");
                       const c = await loadCatalog();
                       setCatalog(c);

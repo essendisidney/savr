@@ -687,7 +687,7 @@ export async function submitCrowdsourcePrice(params: {
   productId: string;
   priceKes: number;
   locationId?: string | null;
-}): Promise<{ ok: true } | { error: string }> {
+}): Promise<{ ok: true; tipCount: number } | { error: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Supabase is not configured." };
 
@@ -696,7 +696,7 @@ export async function submitCrowdsourcePrice(params: {
     return { error: "Enter a valid price in KES." };
   }
 
-  const { error } = await supabase.rpc("submit_crowdsource_price", {
+  const { data, error } = await supabase.rpc("submit_crowdsource_price", {
     p_merchant_id: params.merchantId,
     p_product_id: params.productId,
     p_price_cents: Math.round(kes * 100),
@@ -704,13 +704,15 @@ export async function submitCrowdsourcePrice(params: {
   });
 
   if (error) return { error: error.message };
+  const tipCount = Math.max(1, Math.round(Number(data) || 1));
   void recordSavrEvent("price_tip", {
     merchantId: params.merchantId,
     productId: params.productId,
     locationId: params.locationId ?? null,
     priceCents: Math.round(kes * 100),
+    tipCount,
   });
-  return { ok: true };
+  return { ok: true, tipCount };
 }
 
 export async function submitCrowdsourceFuelPrice(params: {

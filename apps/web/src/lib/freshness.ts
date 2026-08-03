@@ -73,14 +73,31 @@ function freshnessPoints(observedAt: string | null | undefined): number {
   return 6;
 }
 
-/** Honest confidence: freshness × source. Never claims certainty. */
+function tipCountBoost(tipCount: number | null | undefined): number {
+  const n = Math.max(0, Math.round(Number(tipCount) || 0));
+  if (n <= 0) return 0;
+  if (n === 1) return 4;
+  if (n === 2) return 8;
+  if (n <= 4) return 12;
+  return 16;
+}
+
+export function tipCountLabel(tipCount: number | null | undefined): string | null {
+  const n = Math.max(0, Math.round(Number(tipCount) || 0));
+  if (n <= 0) return null;
+  return n === 1 ? "1 shopper" : `${n} shoppers`;
+}
+
+/** Honest confidence: freshness × source (+ tip agreement). Never claims certainty. */
 export function priceConfidence(
   observedAt: string | null | undefined,
   source?: string | null,
+  tipCount?: number | null,
 ): PriceConfidence {
   const src = sourceTrust(source);
   const fresh = freshnessPoints(observedAt);
-  const score = Math.max(0, Math.min(100, src.points + fresh));
+  const tips = tipCountBoost(tipCount);
+  const score = Math.max(0, Math.min(100, src.points + fresh + tips));
   // High only when source is merchant/tip — catalog seed never claims certainty.
   const level: ConfidenceLevel =
     score >= 70 && src.points >= 30 ? "high" : score >= 40 ? "medium" : "low";
@@ -88,11 +105,14 @@ export function priceConfidence(
     level === "high" ? "High confidence" : level === "medium" ? "Medium confidence" : "Low confidence";
   const age = formatPriceFreshness(observedAt, source);
   const when = age.label.replace(/^Updated /, "") || "age unknown";
+  const shoppers = tipCountLabel(tipCount);
   return {
     level,
     score,
     shortLabel,
-    label: `${shortLabel} · ${src.label} · ${when}`,
+    label: shoppers
+      ? `${shortLabel} · ${shoppers} · ${when}`
+      : `${shortLabel} · ${src.label} · ${when}`,
   };
 }
 
@@ -111,10 +131,10 @@ export function confidenceClassName(
 
 /** Average line confidence for a basket rank; conservative when empty. */
 export function aggregateConfidence(
-  lines: { observedAt?: string | null; source?: string | null }[],
+  lines: { observedAt?: string | null; source?: string | null; tipCount?: number | null }[],
 ): PriceConfidence | null {
   if (!lines.length) return null;
-  const parts = lines.map((l) => priceConfidence(l.observedAt, l.source));
+  const parts = lines.map((l) => priceConfidence(l.observedAt, l.source, l.tipCount));
   const score = Math.round(parts.reduce((s, p) => s + p.score, 0) / parts.length);
   const anyHighEligible = parts.some((p) => p.level === "high");
   const level: ConfidenceLevel =

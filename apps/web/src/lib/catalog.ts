@@ -161,7 +161,7 @@ export async function loadCatalog(): Promise<Catalog> {
       supabase
         .from("merchant_prices")
         .select(
-          "merchant_id, location_id, product_id, price_cents, observed_at, source, prev_price_cents, prev_observed_at",
+          "merchant_id, location_id, product_id, price_cents, observed_at, source, prev_price_cents, prev_observed_at, tip_count",
         ),
       supabase
         .from("cashback_rules")
@@ -233,6 +233,7 @@ export async function loadCatalog(): Promise<Catalog> {
     source: (row as { source?: string | null }).source ?? null,
     prevPriceCents: (row as { prev_price_cents?: number | null }).prev_price_cents ?? null,
     prevObservedAt: (row as { prev_observed_at?: string | null }).prev_observed_at ?? null,
+    tipCount: (row as { tip_count?: number | null }).tip_count ?? null,
   }));
   const cashbackRules: CashbackRule[] = (rulesRes.data ?? []).map((row) => ({
     merchantId: row.merchant_id,

@@ -41,6 +41,8 @@ export type MerchantPrice = {
   source?: string | null;
   prevPriceCents?: number | null;
   prevObservedAt?: string | null;
+  /** Shopper tip submissions for this shelf price. */
+  tipCount?: number | null;
 };
 
 export type CashbackRule = {
@@ -123,6 +125,7 @@ export type LineItemPrice = {
   source?: string | null;
   prevPriceCents?: number | null;
   prevObservedAt?: string | null;
+  tipCount?: number | null;
   confidenceScore?: number | null;
   confidenceLevel?: "high" | "medium" | "low" | null;
   confidenceLabel?: string | null;
@@ -175,6 +178,7 @@ export type ProductPriceResult = {
   source?: string | null;
   prevPriceCents?: number | null;
   prevObservedAt?: string | null;
+  tipCount?: number | null;
   confidenceScore?: number | null;
   confidenceLevel?: "high" | "medium" | "low" | null;
   confidenceLabel?: string | null;
