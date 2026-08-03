@@ -120,6 +120,84 @@ body {
   @apply rounded-full border border-transparent bg-savr-forest px-3.5 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_-14px_rgba(0,200,83,0.65)];
 }
 
+/* Home — Ask is the product; atmosphere without dashboard clutter */
+.home-stage-glow {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -5%, rgba(0, 200, 83, 0.16), transparent 58%),
+    radial-gradient(ellipse 55% 40% at 100% 30%, rgba(37, 99, 235, 0.09), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 0% 70%, rgba(0, 200, 83, 0.07), transparent 50%),
+    linear-gradient(180deg, #f7fbf8 0%, #ffffff 42%, #f3f8fc 100%);
+}
+
+.home-city {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 160' fill='none'%3E%3Cpath fill='%23042419' d='M0 160V98h28v62H0zm40 0V72h36v88H40zm48 0V110h22v50H88zm34 0V64h40v96h-40zm52 0V88h28v72h-28zm40 0V48h48v112h-48zm60 0V78h32v82h-32zm44 0V102h24v58h-24zm36 0V56h44v104h-44zm56 0V84h30v76h-30zm42 0V70h38v90h-38zm50 0V92h26v68h-26zm38 0V60h42v100h-42zm54 0V108h20v52h-20zm32 0V74h36v86h-36zm48 0V96h28v64h-28z'/%3E%3Ccircle cx='120' cy='40' r='3' fill='%2300c853' opacity='.5'/%3E%3Ccircle cx='310' cy='28' r='2.5' fill='%232563eb' opacity='.45'/%3E%3Ccircle cx='520' cy='36' r='3' fill='%2300c853' opacity='.4'/%3E%3Ccircle cx='680' cy='44' r='2.5' fill='%232563eb' opacity='.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: min(920px, 140%) 100%;
+}
+
+.home-ask {
+  border-radius: 1.35rem;
+  border: 1px solid rgba(4, 36, 25, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  min-height: 4rem;
+  display: flex;
+  align-items: center;
+  box-shadow:
+    0 0 0 1px rgba(0, 200, 83, 0.06),
+    0 18px 50px -28px rgba(4, 36, 25, 0.45),
+    0 0 40px -12px rgba(0, 200, 83, 0.28);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.home-ask:focus-within {
+  border-color: rgba(0, 200, 83, 0.35);
+  box-shadow:
+    0 0 0 4px rgba(0, 200, 83, 0.12),
+    0 22px 56px -26px rgba(4, 36, 25, 0.5),
+    0 0 48px -8px rgba(0, 200, 83, 0.35);
+  transform: translateY(-1px);
+}
+
+.home-ask-busy {
+  border-color: rgba(0, 200, 83, 0.4);
+  box-shadow:
+    0 0 0 4px rgba(0, 200, 83, 0.14),
+    0 22px 56px -26px rgba(4, 36, 25, 0.45),
+    0 0 56px -6px rgba(0, 200, 83, 0.4);
+}
+
+@keyframes home-placeholder-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-ask-placeholder {
+  animation: home-placeholder-in 0.45s ease both;
+}
+
+.home-opportunity {
+  border-radius: 1.35rem;
+  border: 1px solid rgba(0, 200, 83, 0.18);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 253, 244, 0.9) 55%, rgba(239, 246, 255, 0.75) 100%);
+  padding: 1.25rem 1.35rem 1.35rem;
+  box-shadow: 0 22px 50px -32px rgba(0, 200, 83, 0.35);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.home-opportunity:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 200, 83, 0.32);
+  box-shadow: 0 26px 56px -28px rgba(0, 200, 83, 0.45);
+}
+
 @media (max-width: 767px) {
   main {
     padding-bottom: var(--page-pad-bottom);

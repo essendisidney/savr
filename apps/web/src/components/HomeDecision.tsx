@@ -13,7 +13,12 @@ import {
 } from "@/lib/basket-draft";
 import { loadCatalog } from "@/lib/catalog";
 import { compareBasket, formatKes } from "@/lib/compare";
-import { ASK_PLACEHOLDERS, routeAskQuery } from "@/lib/intents";
+import {
+  ASK_PLACEHOLDERS,
+  routeAskQuery,
+  savingsBuys,
+  weekdayPulse,
+} from "@/lib/intents";
 
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -35,6 +40,7 @@ type Insight = {
   body: string;
   href: string;
   cta: string;
+  amountCents?: number;
 };
 
 export function HomeDecision() {
@@ -45,20 +51,24 @@ export function HomeDecision() {
   const [lifetimeCents, setLifetimeCents] = useState(0);
   const [query, setQuery] = useState("");
   const [placeholder, setPlaceholder] = useState(ASK_PLACEHOLDERS[0]);
+  const [placeholderKey, setPlaceholderKey] = useState(0);
   const [cta, setCta] = useState<HomeBasketCta>(() => homeBasketCta(null, null));
   const [continueSaveCents, setContinueSaveCents] = useState(0);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [ready, setReady] = useState(false);
+  const [asking, setAsking] = useState(false);
 
   const hour = useMemo(() => new Date().getHours(), []);
   const greeting = greetingForHour(hour);
+  const pulse = useMemo(() => weekdayPulse(), []);
 
   useEffect(() => {
     let i = 0;
     const t = window.setInterval(() => {
       i = (i + 1) % ASK_PLACEHOLDERS.length;
       setPlaceholder(ASK_PLACEHOLDERS[i]);
-    }, 3800);
+      setPlaceholderKey((k) => k + 1);
+    }, 3200);
     return () => window.clearInterval(t);
   }, []);
 
@@ -92,11 +102,12 @@ export function HomeDecision() {
         setLifetimeCents(0);
         if (saveCents >= 500) {
           setInsight({
-            eyebrow: "Your list",
-            title: `You could keep ~${formatKes(saveCents)}`,
-            body: "Finish comparing before anyone shops.",
+            eyebrow: "Today’s opportunity",
+            title: "Your list is ready to beat the priciest store",
+            body: savingsBuys(saveCents) ?? "Finish comparing before anyone shops.",
             href: "/basket",
-            cta: "Continue →",
+            cta: "See where to shop →",
+            amountCents: saveCents,
           });
         } else {
           setInsight(null);
@@ -122,32 +133,36 @@ export function HomeDecision() {
         watchRes.drops?.find((d) => d.unread) ?? watchRes.drops?.[0] ?? null;
       if (drop && drop.dropCents >= 500) {
         setInsight({
-          eyebrow: "Price drop",
-          title: `${drop.productName} is cheaper`,
+          eyebrow: "Today’s opportunity",
+          title: `${drop.productName} just got cheaper`,
           body:
             drop.dropCents > 0
-              ? `About ${formatKes(drop.dropCents)} below your watch start${
+              ? `${formatKes(drop.dropCents)} below your watch${
                   drop.merchantName ? ` · ${drop.merchantName}` : ""
                 }`
               : "Something moved on a price you watch.",
           href: drop.unread ? "/alerts" : drop.href,
           cta: "See drop →",
+          amountCents: drop.dropCents,
         });
       } else if (saveCents >= 500) {
         setInsight({
-          eyebrow: "Before you shop",
-          title: `Your list could keep ~${formatKes(saveCents)}`,
-          body: "Pick the winning branch before anyone spends.",
+          eyebrow: "Today’s opportunity",
+          title: "Your list is ready to beat the priciest store",
+          body: savingsBuys(saveCents) ?? "Pick the winning branch before anyone spends.",
           href: "/basket",
           cta: "Continue →",
+          amountCents: saveCents,
         });
       } else if ((wallet.todaySavingsCents ?? 0) > 0) {
+        const kept = wallet.todaySavingsCents ?? 0;
         setInsight({
-          eyebrow: "Today",
-          title: `You kept ${formatKes(wallet.todaySavingsCents ?? 0)}`,
-          body: "From smarter choices you already locked in.",
+          eyebrow: "Already working",
+          title: "You locked in a smarter choice today",
+          body: savingsBuys(kept) ?? "From decisions you already made.",
           href: "/wallet",
           cta: "Open wallet →",
+          amountCents: kept,
         });
       } else {
         setInsight(null);
@@ -162,124 +177,181 @@ export function HomeDecision() {
 
   function onAsk(e: FormEvent) {
     e.preventDefault();
-    router.push(routeAskQuery(query));
+    const trimmed = query.trim();
+    if (!trimmed) {
+      router.push("/ask");
+      return;
+    }
+    setAsking(true);
+    window.setTimeout(() => {
+      router.push(routeAskQuery(trimmed));
+    }, 420);
   }
 
-  const workingLine =
-    ready && (todayCents > 0 || insight)
-      ? insight
-        ? "I’ve already found a way to save you money today."
-        : `Welcome back — you’ve kept ${formatKes(todayCents)} today.`
-      : "How can I help you save today?";
+  const heroLine = !ready
+    ? "Before you spend anything today…"
+    : insight
+      ? "Savr already found a way to save you money."
+      : todayCents > 0
+        ? `You’ve kept ${formatKes(todayCents)} today — ask what’s next.`
+        : "Before you spend anything today, ask Savr.";
+
+  const showContinueAsSecondary = Boolean(insight && insight.href === cta.href);
+  const showContinueBlock = !insight || insight.href !== cta.href;
 
   return (
-    <div className="relative min-h-[calc(100svh-3.5rem)] overflow-hidden">
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-savr-mist via-white to-savr-fog/90"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 -top-28 h-[28rem] w-[28rem] rounded-full bg-savr-forest/15 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-savr-signal/25 blur-3xl"
-        aria-hidden
-      />
+    <div className="home-stage relative min-h-[calc(100svh-3.5rem)] overflow-hidden">
+      <div className="home-stage-glow pointer-events-none absolute inset-0" aria-hidden />
+      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-44 opacity-[0.14]" aria-hidden />
 
-      <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-lg flex-col justify-center px-4 py-14 md:px-6 md:py-20">
-        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.2em] text-savr-forest">
+      <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-lg flex-col justify-center px-4 py-12 md:px-6 md:py-16">
+        <p className="animate-rise text-[11px] font-semibold uppercase tracking-[0.22em] text-savr-forest">
           {greeting}
           {name !== "there" ? `, ${name}` : ""}
         </p>
 
-        <p className="animate-rise mt-3 font-display text-6xl font-extrabold tracking-tightish text-savr-ink md:text-7xl">
+        <p className="animate-rise mt-3 font-display text-[3.25rem] font-extrabold leading-none tracking-tightish text-savr-ink md:text-6xl">
           Savr
         </p>
 
-        <h1 className="animate-rise-delay mt-5 max-w-md text-2xl font-medium leading-snug text-savr-ink/90 md:text-3xl">
-          {workingLine}
+        <h1 className="animate-rise-delay mt-5 max-w-md text-[1.35rem] font-medium leading-snug text-savr-ink/85 md:text-2xl">
+          {heroLine}
         </h1>
+
+        {!insight && (
+          <p className="animate-rise-delay mt-2 max-w-md text-sm text-savr-mute">{pulse}</p>
+        )}
 
         <form onSubmit={onAsk} className="animate-rise-delay-2 mt-8">
           <label className="sr-only" htmlFor="savr-home-ask">
             Ask Savr
           </label>
-          <div className="flex items-center gap-2 rounded-2xl border border-savr-ink/[0.08] bg-white/90 px-4 py-2.5 shadow-[0_18px_50px_-32px_rgba(4,36,25,0.55)] transition duration-soft focus-within:border-savr-forest/35 focus-within:ring-4 focus-within:ring-savr-forest/10">
-            <span className="text-sm font-bold text-savr-forest" aria-hidden>
-              Ask
-            </span>
-            <input
-              id="savr-home-ask"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={placeholder}
-              className="w-full border-0 bg-transparent py-2.5 text-[15px] text-savr-ink outline-none placeholder:text-savr-mute/55"
-              autoComplete="off"
-              autoFocus
-            />
-            <button type="submit" className="btn-primary shrink-0 px-4 py-2.5 text-sm">
-              Go
-            </button>
-          </div>
-        </form>
-
-        <div className="animate-rise-delay-2 mt-8 space-y-5">
-          <div className="border-t border-savr-ink/[0.06] pt-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-              Continue
-            </p>
-            <Link
-              href={cta.href}
-              className="mt-2 flex items-start justify-between gap-3 transition hover:opacity-90"
-            >
-              <div>
-                <p className="font-display text-xl font-bold tracking-tightish text-savr-ink">
-                  {cta.label}
-                </p>
-                <p className="mt-1 text-sm text-savr-mute">{cta.detail}</p>
-                {continueSaveCents >= 500 && cta.href.startsWith("/basket") && (
-                  <p className="mt-2 text-sm font-semibold text-savr-forest">
-                    You could keep ~{formatKes(continueSaveCents)}
-                  </p>
+          <div className={`home-ask ${asking ? "home-ask-busy" : ""}`}>
+            <div className="flex items-center gap-3 px-4 sm:px-5">
+              <span className="shrink-0 text-[13px] font-bold tracking-wide text-savr-forest">
+                Ask Savr
+              </span>
+              <div className="relative min-h-[1.5rem] w-full">
+                <input
+                  id="savr-home-ask"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full border-0 bg-transparent py-1 text-[16px] text-savr-ink outline-none placeholder:text-transparent"
+                  autoComplete="off"
+                  autoFocus
+                  disabled={asking}
+                />
+                {!query && (
+                  <span
+                    key={placeholderKey}
+                    className="home-ask-placeholder pointer-events-none absolute inset-0 flex items-center text-[16px] text-savr-mute/55"
+                    aria-hidden
+                  >
+                    {placeholder}
+                  </span>
                 )}
               </div>
-              <span className="shrink-0 pt-1 text-sm font-semibold text-savr-forest">→</span>
-            </Link>
-            {cta.secondaryHref && cta.secondaryLabel && (
-              <Link
-                href={cta.secondaryHref}
-                className="mt-3 inline-block text-sm font-semibold text-savr-mute transition hover:text-savr-forest hover:underline"
+              <button
+                type="submit"
+                disabled={asking}
+                className="btn-primary shrink-0 px-4 py-2.5 text-sm disabled:opacity-70"
               >
-                {cta.secondaryLabel} →
+                {asking ? "…" : "Go"}
+              </button>
+            </div>
+          </div>
+          {asking && (
+            <p className="mt-3 text-sm font-medium text-savr-forest animate-pulse">
+              Looking for the smartest path…
+            </p>
+          )}
+        </form>
+
+        <div className="animate-rise-delay-2 mt-10 space-y-6">
+          {insight && (
+            <Link href={insight.href} className="home-opportunity block">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-savr-forest">
+                {insight.eyebrow}
+              </p>
+              {insight.amountCents != null && insight.amountCents >= 500 ? (
+                <p className="mt-2 font-display text-4xl font-extrabold tracking-tightish tabular-nums text-savr-ink md:text-5xl">
+                  {formatKes(insight.amountCents)}
+                </p>
+              ) : null}
+              <p
+                className={`font-display font-bold tracking-tightish text-savr-ink ${
+                  insight.amountCents != null && insight.amountCents >= 500
+                    ? "mt-1 text-lg"
+                    : "mt-2 text-xl"
+                }`}
+              >
+                {insight.title}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-savr-mute">{insight.body}</p>
+              <p className="mt-3 text-sm font-semibold text-savr-forest">{insight.cta}</p>
+            </Link>
+          )}
+
+          {showContinueBlock && (
+            <div className={insight ? "border-t border-savr-ink/[0.06] pt-5" : ""}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+                Continue
+              </p>
+              <Link
+                href={cta.href}
+                className="mt-2 flex items-start justify-between gap-3 transition hover:opacity-90"
+              >
+                <div>
+                  <p className="font-display text-lg font-bold tracking-tightish text-savr-ink">
+                    {cta.label}
+                  </p>
+                  <p className="mt-1 text-sm text-savr-mute">{cta.detail}</p>
+                  {continueSaveCents >= 500 && cta.href.startsWith("/basket") && !insight && (
+                    <>
+                      <p className="mt-2 font-display text-2xl font-extrabold tabular-nums text-savr-forest">
+                        ~{formatKes(continueSaveCents)}
+                      </p>
+                      {(() => {
+                        const buys = savingsBuys(continueSaveCents);
+                        return buys ? <p className="mt-1 text-sm text-savr-mute">{buys}</p> : null;
+                      })()}
+                    </>
+                  )}
+                </div>
+                <span className="shrink-0 pt-1 text-sm font-semibold text-savr-forest">→</span>
+              </Link>
+              {cta.secondaryHref && cta.secondaryLabel && (
+                <Link
+                  href={cta.secondaryHref}
+                  className="mt-3 inline-block text-sm font-semibold text-savr-mute transition hover:text-savr-forest hover:underline"
+                >
+                  {cta.secondaryLabel} →
+                </Link>
+              )}
+            </div>
+          )}
+
+          {showContinueAsSecondary && cta.secondaryHref && cta.secondaryLabel && (
+            <Link
+              href={cta.secondaryHref}
+              className="inline-block text-sm font-semibold text-savr-mute transition hover:text-savr-forest hover:underline"
+            >
+              {cta.secondaryLabel} →
+            </Link>
+          )}
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-savr-ink/[0.06] pt-5 text-sm text-savr-mute">
+            <Link href="/map" className="font-semibold transition hover:text-savr-forest">
+              Nearby value →
+            </Link>
+            {ready && lifetimeCents > 0 && (
+              <Link href="/wallet" className="transition hover:text-savr-forest">
+                Lifetime kept{" "}
+                <span className="font-semibold text-savr-ink">{formatKes(lifetimeCents)}</span>
               </Link>
             )}
           </div>
-
-          {insight && insight.href !== cta.href && (
-            <Link
-              href={insight.href}
-              className="block border-t border-savr-ink/[0.06] pt-5 transition hover:border-savr-forest/25"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-                {insight.eyebrow}
-              </p>
-              <p className="mt-2 font-display text-lg font-bold tracking-tightish text-savr-ink">
-                {insight.title}
-              </p>
-              <p className="mt-1 text-sm text-savr-mute">{insight.body}</p>
-              <p className="mt-2 text-sm font-semibold text-savr-forest">{insight.cta}</p>
-            </Link>
-          )}
-
-          {ready && lifetimeCents > 0 && (
-            <p className="border-t border-savr-ink/[0.06] pt-5 text-sm text-savr-mute">
-              Lifetime kept{" "}
-              <Link href="/wallet" className="font-semibold text-savr-ink hover:text-savr-forest">
-                {formatKes(lifetimeCents)}
-              </Link>
-            </p>
-          )}
         </div>
       </div>
     </div>

@@ -71,6 +71,8 @@ export const ASK_PLACEHOLDERS = [
   "Where is fuel cheapest near me…",
   "Need medicine tonight…",
   "Could I have saved on my last shop…",
+  "Compare rice across Naivas…",
+  "Cheapest bread near Westlands…",
 ];
 
 const ASK_STOP = new Set([
@@ -154,7 +156,7 @@ export function askSearchTokens(raw: string): string[] {
 
 /** Rough “what that save buys” — emotional framing, not a receipt. */
 export function savingsBuys(amountCents: number): string | null {
-  if (amountCents < 2000) return null;
+  if (amountCents < 1500) return null;
   const kes = amountCents / 100;
   if (kes >= 800) {
     const tanks = Math.max(1, Math.round(kes / 400));
@@ -172,4 +174,24 @@ export function savingsBuys(amountCents: number): string | null {
   return milk === 1
     ? "That’s about a litre of fresh milk."
     : `That’s about ${milk} litres of fresh milk.`;
+}
+
+/** Honest weekday pulse — habit nudge, never invented market certainty. */
+export function weekdayPulse(day = new Date().getDay()): string {
+  switch (day) {
+    case 0:
+      return "Quiet Sunday — plan next week’s basket before the rush.";
+    case 1:
+      return "Monday — get ahead of the weekly shop.";
+    case 2:
+      return "A good day to check a price you watch.";
+    case 3:
+      return "Midweek — compare before anyone hits the supermarket.";
+    case 4:
+      return "Thursday — lock this week’s list before the weekend.";
+    case 5:
+      return "Friday traffic — check a ride before you request.";
+    default:
+      return "Weekend shop? Compare the basket first.";
+  }
 }
