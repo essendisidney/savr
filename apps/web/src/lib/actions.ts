@@ -225,7 +225,14 @@ export async function loadWallet(): Promise<{
   lastTip: { savingsCents: number; merchantName: string } | null;
   lastMiss: { missedCents: number; merchantName: string } | null;
   ledger: { note: string | null; amountCents: number; when: string; entryType: string }[];
-  pendingRedeems: { id: string; amountCents: number; status: string; when: string; phone: string | null }[];
+  pendingRedeems: {
+    id: string;
+    amountCents: number;
+    status: string;
+    when: string;
+    phone: string | null;
+    dryRun: boolean;
+  }[];
   error?: string;
 }> {
   const empty = {
@@ -246,6 +253,7 @@ export async function loadWallet(): Promise<{
       status: string;
       when: string;
       phone: string | null;
+      dryRun: boolean;
     }[],
   };
 
@@ -277,7 +285,7 @@ export async function loadWallet(): Promise<{
       .limit(30),
     supabase
       .from("redeem_requests")
-      .select("id, amount_cents, status, phone, created_at")
+      .select("id, amount_cents, status, phone, created_at, failure_reason, mpesa_conversation_id")
       .eq("profile_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10),
@@ -385,17 +393,28 @@ export async function loadWallet(): Promise<{
     }));
   }
 
-  const pendingRedeems = (redeemRes.data ?? []).map((r) => ({
-    id: r.id,
-    amountCents: r.amount_cents,
-    status: r.status,
-    phone: r.phone,
-    when: new Date(r.created_at).toLocaleDateString("en-KE", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }),
-  }));
+  const pendingRedeems = (redeemRes.data ?? []).map((r) => {
+    const failure = String((r as { failure_reason?: string | null }).failure_reason ?? "");
+    const convo = String(
+      (r as { mpesa_conversation_id?: string | null }).mpesa_conversation_id ?? "",
+    );
+    const dryRun =
+      failure === "dry_run_no_mpesa" ||
+      convo.startsWith("dry-run-") ||
+      failure.toLowerCase().includes("dry");
+    return {
+      id: r.id,
+      amountCents: r.amount_cents,
+      status: r.status,
+      phone: r.phone,
+      dryRun,
+      when: new Date(r.created_at).toLocaleDateString("en-KE", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }),
+    };
+  });
 
   return {
     balanceCents: account?.cashback_cents ?? 0,

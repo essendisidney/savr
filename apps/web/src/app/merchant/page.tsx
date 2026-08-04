@@ -431,8 +431,8 @@ export default function MerchantPage() {
                   <p className="mt-1 text-sm text-savr-mute">
                     Soft-launch signal — phrases shoppers typed that didn’t hit a SKU. Full checklist
                     on{" "}
-                    <Link href="/ops" className="font-semibold text-savr-forest hover:underline">
-                      Soft launch ops
+                    <Link href="/scan" className="font-semibold text-savr-forest hover:underline">
+                      Scan to tip
                     </Link>
                     .
                   </p>

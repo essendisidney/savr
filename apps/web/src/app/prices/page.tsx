@@ -280,8 +280,8 @@ function PricesInner() {
             {catalogHonesty(catalog).banner && (
               <p className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                 {catalogHonesty(catalog).banner}{" "}
-                <Link href="/ops" className="font-semibold underline">
-                  Soft launch ops →
+                <Link href="/scan" className="font-semibold underline">
+                  Tip a shelf →
                 </Link>
               </p>
             )}

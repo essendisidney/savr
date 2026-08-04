@@ -9,7 +9,9 @@ One app. Every purchase. Lowest price. Smart rewards.
 
 Stop thinking like an app developer. Think like building the **Google of Spending**: not necessarily the seller — the first place people go to decide. The app is the entry point; the company is the **data and decision infrastructure** behind it.
 
-Full platform map: [ECOSYSTEM.md](./ECOSYSTEM.md).
+Full platform map: [ECOSYSTEM.md](./ECOSYSTEM.md).  
+Company law: [CONSTITUTION.md](./CONSTITUTION.md).  
+City plan: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ---
 

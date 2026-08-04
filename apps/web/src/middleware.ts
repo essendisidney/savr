@@ -22,7 +22,47 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+function isProdRuntime() {
+  return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
+/** Founder ops — hidden unless OPS_ACCESS_KEY is set and presented. */
+function allowOps(req: NextRequest): NextResponse | null {
+  const { pathname } = req.nextUrl;
+  if (!pathname.startsWith("/ops")) return null;
+
+  const key = (process.env.OPS_ACCESS_KEY ?? "").trim();
+  if (!key) {
+    // No key: allow locally, hide in production.
+    if (isProdRuntime()) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  const cookie = req.cookies.get("savr_ops")?.value;
+  const q = req.nextUrl.searchParams.get("key");
+  if (cookie === key || q === key) {
+    const res = NextResponse.next();
+    if (q === key) {
+      res.cookies.set("savr_ops", key, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: isProdRuntime(),
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
+    return res;
+  }
+
+  return NextResponse.redirect(new URL("/", req.url));
+}
+
 export async function middleware(req: NextRequest) {
+  const ops = allowOps(req);
+  if (ops) return ops;
+
   if (!inviteGateEnabled()) {
     return NextResponse.next();
   }

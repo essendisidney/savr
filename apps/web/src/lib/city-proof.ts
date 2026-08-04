@@ -39,12 +39,12 @@ export function cityProofFromCatalog(catalog: Catalog | null | undefined): CityP
   const chip =
     trusted > 0
       ? `${trusted} tip/merchant shelves · ${branches} branches`
-      : `${productCount} staples · ${branches} Nairobi branches`;
+      : `${productCount} staples · catalog seed · tip to raise trust`;
 
   const line =
     trusted > 0
       ? `Nairobi open · ${productCount} staples · ${branches} grocery branches · ${trusted} tip/merchant shelves (confirm on aisle).`
-      : `Nairobi open · ${productCount} staples across ${branches} grocery branches · tip shelves to raise trust.`;
+      : `Nairobi open · ${productCount} staples across ${branches} branches — mostly catalog seed until tips and Weekly 30 walks land.`;
 
   return {
     productCount,

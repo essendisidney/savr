@@ -63,7 +63,7 @@ Open [http://localhost:3000](http://localhost:3000). For local work without the 
 
 Mirror the same keys on Vercel (Production + Development). Never expose the service role key to the browser.
 
-Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
+Invite codes: generate high-entropy codes in Supabase before re-enabling the wall — do not publish them in docs.
 
 ### M-Pesa redeem (sandbox / dry-run)
 
@@ -83,7 +83,7 @@ Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
 - [ ] M-Pesa: dry-run OK; set `MPESA_DRY_RUN=false` only with Daraja keys
 - [x] Terms / Privacy linked
 
-Invite gate: **open for market** (`INVITE_GATE_ENABLED=false`). Seed codes remain if you re-enable the wall.
+Invite gate: **open for market** (`INVITE_GATE_ENABLED=false`). Set `OPS_ACCESS_KEY` on Vercel so `/ops` stays founder-only (`/ops?key=…`). Rotate invite codes before re-enabling the wall — do not publish guessable codes.
 
 ## Supabase
 

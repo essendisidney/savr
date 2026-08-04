@@ -1,7 +1,15 @@
 export const INVITE_COOKIE = "savr_invite";
 
-function secret(): string {
-  return process.env.INVITE_COOKIE_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "savr-dev-invite";
+function isProdRuntime() {
+  return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
+function secret(): string | null {
+  const dedicated = (process.env.INVITE_COOKIE_SECRET ?? "").trim();
+  if (dedicated) return dedicated;
+  // Never fall back to service role or a fixed string in production.
+  if (isProdRuntime()) return null;
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || "savr-dev-invite";
 }
 
 /** Soft launch is open by default. Set INVITE_GATE_ENABLED=true to require a code. */
@@ -10,10 +18,14 @@ export function inviteGateEnabled(): boolean {
 }
 
 async function hmacHex(payload: string): Promise<string> {
+  const keyMaterial = secret();
+  if (!keyMaterial) {
+    throw new Error("INVITE_COOKIE_SECRET is required in production");
+  }
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
-    enc.encode(secret()),
+    enc.encode(keyMaterial),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
@@ -35,12 +47,18 @@ export async function signInviteCookie(code: string): Promise<string> {
 
 export async function verifyInviteCookie(raw: string | undefined | null): Promise<boolean> {
   if (!raw) return false;
+  if (!secret()) return false;
   const parts = raw.split(".");
   if (parts.length !== 3) return false;
   const [code, ts, sig] = parts;
   if (!code || !ts || !sig) return false;
   const payload = `${code}.${ts}`;
-  const expected = await hmacHex(payload);
+  let expected: string;
+  try {
+    expected = await hmacHex(payload);
+  } catch {
+    return false;
+  }
   if (expected.length !== sig.length) return false;
   let ok = true;
   for (let i = 0; i < expected.length; i++) {

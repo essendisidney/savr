@@ -4,8 +4,10 @@ import { isValidKeMobile, normalizePhone254 } from "@/lib/phone";
 
 export const runtime = "nodejs";
 
-function stablePassword(normalized254: string) {
-  return `SAVR_PWD_${normalized254}_v1`;
+function oneTimePassword() {
+  const a = crypto.randomUUID().replace(/-/g, "");
+  const b = crypto.randomUUID().replace(/-/g, "");
+  return `savr_${a}${b}`;
 }
 
 function internalEmail(normalized254: string) {
@@ -58,7 +60,8 @@ export async function POST(req: NextRequest) {
     await admin.from("otp_codes").update({ used: true }).eq("id", otpRecord.id);
 
     const email = internalEmail(normalized);
-    const password = stablePassword(normalized);
+    // One-time random password per OTP — never a deterministic phone password.
+    const password = oneTimePassword();
     const e164 = `+${normalized}`;
 
     let authUserId: string | null = null;

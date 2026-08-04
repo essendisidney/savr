@@ -179,7 +179,7 @@ Expand **one category and one geography at a time** without shrinking the destin
 | Phase 3–4 | API · Business · Finance · Protect |
 | Scale | Intelligence productization · full Rewards Network · Labs |
 
-Schema and RLS should stay **platform-shaped** (merchants, prices, offers, wallet, compares) so later platforms plug in rather than fork the data model. See [DATA_MODEL.md](./DATA_MODEL.md).
+Schema and RLS should stay **platform-shaped** (merchants, prices, offers, wallet, compares) so later platforms plug in rather than fork the data model. See [DATA_MODEL.md](./DATA_MODEL.md) and [ARCHITECTURE.md](./ARCHITECTURE.md) for data flow, ranking stages, and when banks / brands / logistics unlock.
 
 ---
 

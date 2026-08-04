@@ -72,7 +72,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const isProd =
+      process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
     if (process.env.SMS_BYPASS === "true") {
+      if (isProd) {
+        console.error("[auth/phone/send] SMS_BYPASS blocked in production");
+        return NextResponse.json(
+          { error: "SMS bypass is disabled in production. Configure TAIFA_API_KEY." },
+          { status: 503 },
+        );
+      }
       console.log("[SMS BYPASS] OTP for", normalized, "is:", code);
       return NextResponse.json({
         success: true,
@@ -85,18 +94,17 @@ export async function POST(request: NextRequest) {
     // Single line — multi-line + URLs often filtered by carriers.
     await sendSMS(normalized, `Your Savr code is ${code}. Valid 15 min. Do not share.`);
 
-    const payload: { success: true; retry_after: number; dev_otp?: string } = {
+    // Never return OTP to the client outside local development.
+    return NextResponse.json({
       success: true,
       retry_after: RESEND_COOLDOWN_SEC,
-    };
-    if (process.env.NODE_ENV === "development") payload.dev_otp = code;
-    return NextResponse.json(payload);
+      ...(process.env.NODE_ENV === "development" ? { dev_otp: code } : {}),
+    });
   } catch (e) {
     console.error("[auth/phone/send]", e);
     return NextResponse.json(
       {
         error: "Failed to send code",
-        detail: e instanceof Error ? e.message : String(e),
       },
       { status: 500 },
     );

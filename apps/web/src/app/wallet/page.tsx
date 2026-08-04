@@ -30,6 +30,7 @@ type RedeemRow = {
   status: string;
   when: string;
   phone: string | null;
+  dryRun?: boolean;
 };
 
 export default function WalletPage() {
@@ -98,7 +99,9 @@ export default function WalletPage() {
       setStatus(res.error);
       return;
     }
-    setStatus("Redeem requested — we’ll send it to your M-Pesa shortly.");
+    setStatus(
+      "Redeem requested — queued for payout. Live M-Pesa is still dry-run until we flip it on.",
+    );
     track("redeem_request", { amountKes: Math.round(cents / 100) });
     await refresh();
   }
@@ -249,7 +252,8 @@ export default function WalletPage() {
               <div>
                 <h2 className="font-display text-lg font-bold tracking-tightish">Redeem cashback</h2>
                 <p className="mt-1 text-sm text-savr-mute">
-                  Request a payout to your phone. Minimum redeem is KES 50.
+                  Request a payout to your phone. Minimum redeem is KES 50. Payouts stay dry-run
+                  until live M-Pesa is enabled — no money moves yet.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -318,9 +322,11 @@ export default function WalletPage() {
                       >
                         {r.status === "pending"
                           ? "In progress"
-                          : r.status === "paid"
-                            ? "Paid"
-                            : r.status}
+                          : r.dryRun
+                            ? "Simulated"
+                            : r.status === "paid"
+                              ? "Paid"
+                              : r.status}
                       </span>
                     </li>
                   ))}

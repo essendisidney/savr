@@ -26,9 +26,6 @@ export function SiteFooter() {
           <Link href="/basket" className="font-semibold text-savr-mute transition hover:text-savr-forest">
             Basket
           </Link>
-          <Link href="/ops" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Soft launch
-          </Link>
           <Link href="/scan" className="font-semibold text-savr-mute transition hover:text-savr-forest">
             Scan
           </Link>

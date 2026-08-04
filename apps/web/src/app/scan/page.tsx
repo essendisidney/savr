@@ -275,7 +275,7 @@ export default function ScanPage() {
         theme="prices"
         title="Scan to tip"
         subtitle="Hold a pack barcode in the wide box — or a Savr QR. Confirm KES, then tip. Works on phone browsers (HTTPS)."
-        action={{ href: "/ops", label: "Soft launch ops" }}
+        action={{ href: "/prices", label: "Compare prices" }}
       />
 
       <div className="page-band">

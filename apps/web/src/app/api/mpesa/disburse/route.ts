@@ -4,9 +4,15 @@ import { initiateB2C, mpesaIsDryRun } from "@/lib/mpesa";
 
 /** Process pending redeem_requests via B2C (cron / ops). Auth: Bearer MPESA_DISBURSE_SECRET or service role. */
 export async function POST(req: Request) {
-  const secret = process.env.MPESA_DISBURSE_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secret = process.env.MPESA_DISBURSE_SECRET?.trim();
+  const isProd =
+    process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+  // Production requires a dedicated disburse secret — never the service role.
+  const authSecret = isProd
+    ? secret
+    : secret || process.env.SUPABASE_SERVICE_ROLE_KEY;
   const auth = req.headers.get("authorization");
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!authSecret || auth !== `Bearer ${authSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -56,19 +62,20 @@ export async function POST(req: Request) {
       await admin
         .from("redeem_requests")
         .update({
-          mpesa_conversation_id: b2c.conversationId,
+          mpesa_conversation_id: b2c.dryRun
+            ? `dry-run-${row.id.slice(0, 8)}`
+            : b2c.conversationId,
           mpesa_originator_conversation_id: b2c.originatorConversationId,
-          failure_reason: null,
-          // Dry-run: mark paid immediately so ops can verify pipeline without webhooks
+          failure_reason: b2c.dryRun ? "dry_run_no_mpesa" : null,
+          // Dry-run still clears the pending queue — never claim live M-Pesa paid.
           ...(b2c.dryRun ? { status: "paid", updated_at: new Date().toISOString() } : {}),
         })
         .eq("id", row.id);
 
       if (b2c.dryRun) {
-        // Update ledger note for visibility
         await admin
           .from("wallet_ledger")
-          .update({ note: "Redeem paid via M-Pesa" })
+          .update({ note: "Dry-run — no M-Pesa money moved" })
           .eq("reference_id", row.id)
           .eq("reference_type", "redeem_request");
       }
