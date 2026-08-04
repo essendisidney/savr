@@ -13,6 +13,7 @@ import {
 } from "@/lib/basket-draft";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, formatKes } from "@/lib/compare";
+import { cityProofFromCatalog } from "@/lib/city-proof";
 import { fuelSavingsCredible } from "@/lib/data-honesty";
 import {
   ASK_PLACEHOLDERS,
@@ -22,6 +23,7 @@ import {
   weekdayPulse,
 } from "@/lib/intents";
 import { loadRecentAsks, pushRecentAsk } from "@/lib/recent-asks";
+import { buildMarketInviteShare, whatsAppShareUrl } from "@/lib/share";
 
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -67,6 +69,7 @@ export function HomeDecision() {
   const [asking, setAsking] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [proofChip, setProofChip] = useState<string | null>(null);
 
   const hour = useMemo(() => new Date().getHours(), []);
   const greeting = greetingForHour(hour);
@@ -96,6 +99,8 @@ export function HomeDecision() {
         loadFuelStations("petrol"),
       ]);
       if (cancelled) return;
+
+      setProofChip(cityProofFromCatalog(catalog)?.chip ?? null);
 
       const groceryN = catalog.merchants.filter((m) => m.category === "grocery").length;
       setNearby({ grocery: groceryN, fuel: fuel.stations.length });
@@ -291,6 +296,12 @@ export function HomeDecision() {
         </p>
 
         <p className="home-brand animate-rise mt-3">Savr</p>
+
+        {proofChip && (
+          <p className="animate-rise mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-savr-forest">
+            Nairobi open · {proofChip}
+          </p>
+        )}
 
         <p className="animate-rise-delay mt-5 max-w-md text-[1.2rem] font-medium leading-[1.35] tracking-tightish text-savr-ink/80 md:text-[1.35rem]">
           {ready && primary
@@ -556,6 +567,27 @@ export function HomeDecision() {
               </Link>
             </div>
           )}
+
+          {/* Market share */}
+          <div className="home-card-sm space-y-3">
+            <div>
+              <p className="home-eyebrow home-eyebrow-mute">Share Savr</p>
+              <p className="mt-1.5 text-[14px] font-semibold text-savr-ink">
+                Invite a Nairobi shopper
+              </p>
+              <p className="mt-1 text-[13px] text-savr-mute">
+                Basket compare is open — tippers make prices honest.
+              </p>
+            </div>
+            <a
+              href={whatsAppShareUrl(buildMarketInviteShare())}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary inline-flex text-sm"
+            >
+              WhatsApp invite →
+            </a>
+          </div>
         </div>
       </div>
     </div>

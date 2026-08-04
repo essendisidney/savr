@@ -72,18 +72,18 @@ Seed invite codes: `NAIROBI`, `SAVRBETA`, `WESTLANDS`.
 3. Ops: `POST /api/mpesa/disburse` with `Authorization: Bearer $MPESA_DISBURSE_SECRET` (or service role).
 4. Dry-run marks requests `paid` with ledger note “no M-Pesa money moved”. Live mode waits for `/api/mpesa/b2c/result`.
 
-### Soft-launch checklist
+### Soft-launch → market checklist
 
-- [ ] SMS OTP live on Vercel
-- [ ] `INVITE_GATE_ENABLED` + `INVITE_COOKIE_SECRET` set
-- [ ] Support email / WhatsApp
-- [ ] **Weekly 30 shelf walk** — fill `ops/weekly-30-walk.csv` (or Merchant → Download Weekly 30) at 2–3 branches, upload via `/merchant`
-- [ ] Do **not** bump seed `observed_at` to now (breaks trust) — replace seed with walks/tips
-- [ ] Optional online scrape: `npm run scrape:prices` then `npm run scrape:prices:apply` (Jumia → `source=scrape`)
-- [ ] M-Pesa: dry-run OK for beta; paste keys + set `MPESA_DRY_RUN=false` for real B2C
+- [ ] SMS OTP live on Vercel (`TAIFA_*`, `SMS_BYPASS=false`)
+- [ ] Support WhatsApp on Vercel (`NEXT_PUBLIC_SUPPORT_WHATSAPP`)
+- [ ] **Weekly 30 shelf walk** at 2–3 branches → `/merchant` upload
+- [x] Wave 9 catalog density (~60 SKUs × 10 locs, honesty-safe seed clocks)
+- [x] Share / invite OG + tipper WhatsApp kit (`/ops`, Home, `/invite`)
+- [ ] Optional Jumia scrape: `npm run scrape:prices:apply -- --source=jumia`
+- [ ] M-Pesa: dry-run OK; set `MPESA_DRY_RUN=false` only with Daraja keys
 - [x] Terms / Privacy linked
 
-Invite gate: currently open (`INVITE_GATE_ENABLED=false`). Seed codes (`NAIROBI`, `SAVRBETA`, `WESTLANDS`) remain if you re-enable the wall.
+Invite gate: **open for market** (`INVITE_GATE_ENABLED=false`). Seed codes remain if you re-enable the wall.
 
 ## Supabase
 

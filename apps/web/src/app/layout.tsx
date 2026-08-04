@@ -25,9 +25,30 @@ const sans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Savr — Before you spend",
-  description: "Nairobi’s spending OS. Compare baskets, rides, and fuel — then earn savings cashback.",
+  metadataBase: new URL("https://savr-teal.vercel.app"),
+  title: {
+    default: "Savr — Before you spend",
+    template: "%s · Savr",
+  },
+  description:
+    "Nairobi’s spending OS. Compare grocery baskets across branches, tip shelf prices, then earn savings cashback.",
   applicationName: "Savr",
+  openGraph: {
+    title: "Savr — Before you spend",
+    description:
+      "Nairobi is open. Compare baskets before you shop — tip shelves to keep prices honest.",
+    url: "https://savr-teal.vercel.app",
+    siteName: "Savr",
+    locale: "en_KE",
+    type: "website",
+    images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "Savr" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Savr — Before you spend",
+    description: "Nairobi’s spending OS. Compare before you shop.",
+    images: ["/icons/icon-512.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

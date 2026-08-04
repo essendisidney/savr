@@ -8,6 +8,7 @@ import { loadCatalog } from "@/lib/catalog";
 import { weekly30CsvTemplate } from "@/lib/merchant-csv";
 import { loadUnmatchedAsks, type UnmatchedAsk } from "@/lib/unmatched-asks";
 import { WEEKLY_30 } from "@/lib/weekly-30";
+import { buildMarketInviteShare, buildTipperInviteShare, whatsAppShareUrl } from "@/lib/share";
 import { track } from "@/lib/track";
 
 const CHECK_KEY = "savr_soft_launch_checks_v1";
@@ -143,8 +144,8 @@ export default function SoftLaunchOpsPage() {
     <PageFrame>
       <PageHero
         theme="basket"
-        title="Soft launch ops"
-        subtitle="Data before polish. Walk shelves, tip once, then invite tippers — M-Pesa stays dry-run."
+        title="Market launch ops"
+        subtitle="Nairobi is open. Densify trusted shelves, invite tippers, keep M-Pesa dry-run until you’re ready."
         action={{ href: "/merchant", label: "Merchant portal" }}
       />
 
@@ -155,6 +156,43 @@ export default function SoftLaunchOpsPage() {
               {doneCount}/{STEPS.length} checked on this device ·{" "}
               <span className="font-semibold text-savr-ink">{WEEKLY_30.length} Weekly 30 SKUs</span>
             </p>
+
+            <section className="card space-y-4 px-4 py-5 sm:px-5">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
+                  Go to market
+                </p>
+                <h2 className="mt-1 font-display text-xl font-bold tracking-tightish">
+                  Share + tipper flywheel
+                </h2>
+                <p className="mt-1.5 text-sm text-savr-mute">
+                  One-tap WhatsApp. Tippers densify aisle truth faster than seed waves alone.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={whatsAppShareUrl(buildMarketInviteShare())}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                  onClick={() => track("market_invite_wa", { via: "ops" })}
+                >
+                  WhatsApp · invite shopper
+                </a>
+                <a
+                  href={whatsAppShareUrl(buildTipperInviteShare())}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-dark"
+                  onClick={() => track("tipper_invite_wa", { via: "ops" })}
+                >
+                  WhatsApp · invite tipper
+                </a>
+                <Link href="/invite" className="btn-ghost">
+                  Open invite page
+                </Link>
+              </div>
+            </section>
 
             <section className="card space-y-4 px-4 py-5 sm:px-5">
               <div>

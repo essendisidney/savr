@@ -207,6 +207,30 @@ export function buildPriceTipShare(params: {
   };
 }
 
+/** Founder / tipper recruitment — open the camera tip loop. */
+export function buildTipperInviteShare(): SharePayload {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
+  const url = `${origin}/invite?store=Savr&next=${encodeURIComponent("/scan")}`;
+  return {
+    title: "Tip shelves on Savr",
+    text: `Help keep Nairobi prices honest on Savr — after a shop, scan a pack or tip one shelf tag. Takes 30 seconds. Before you spend, Savr it.`,
+    url,
+  };
+}
+
+/** Soft market open — share the product, not ops. */
+export function buildMarketInviteShare(): SharePayload {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
+  const url = `${origin}/invite?store=Savr&next=${encodeURIComponent(STAPLES_NEXT)}`;
+  return {
+    title: "Savr is open in Nairobi",
+    text: `Savr is open in Nairobi — compare your grocery basket across branches before you shop. Tip what you see so prices stay honest. Before you spend, Savr it.`,
+    url,
+  };
+}
+
 export async function sharePayload(payload: SharePayload): Promise<"shared" | "copied" | "failed"> {
   const full = `${payload.text}\n${payload.url}`;
   try {

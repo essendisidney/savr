@@ -5,6 +5,7 @@
     "dev:web": "npm --prefix apps/web run dev",
     "build:web": "npm --prefix apps/web run build",
     "scrape:prices": "node -r ./scripts/scrapers/resolve-web-modules.js scripts/scrapers/run.js",
-    "scrape:prices:apply": "node -r ./scripts/scrapers/resolve-web-modules.js scripts/scrapers/run.js --apply"
+    "scrape:prices:apply": "node -r ./scripts/scrapers/resolve-web-modules.js scripts/scrapers/run.js --apply",
+    "gen:wave9": "node scripts/gen-wave9-catalog.js"
   }
 }

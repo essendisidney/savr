@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { formatKes } from "@/lib/compare";
+import { cityProofFromCatalog } from "@/lib/city-proof";
+import { loadCatalog } from "@/lib/catalog";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { supportEmail, supportMailto, supportWhatsAppUrl } from "@/lib/support";
+import { buildTipperInviteShare, whatsAppShareUrl } from "@/lib/share";
 
 function InviteInner() {
   const params = useSearchParams();
@@ -21,6 +25,12 @@ function InviteInner() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCode, setShowCode] = useState(false);
+  const [proofLine, setProofLine] = useState<string | null>(null);
+  const wa = supportWhatsAppUrl();
+
+  useEffect(() => {
+    void loadCatalog().then((c) => setProofLine(cityProofFromCatalog(c)?.line ?? null));
+  }, []);
 
   async function redeemCode(e: React.FormEvent) {
     e.preventDefault();
@@ -88,7 +98,9 @@ function InviteInner() {
                     ? "Compare their basket"
                     : safeNext.includes("staples=1")
                       ? "Compare this week’s staples"
-                      : "Open Savr"}
+                      : safeNext.startsWith("/scan")
+                        ? "Open scan to tip"
+                        : "Open Savr"}
               </Link>
               <Link
                 href="/check"
@@ -96,6 +108,39 @@ function InviteInner() {
               >
                 Or check a shop you already did
               </Link>
+            </div>
+
+            {proofLine && (
+              <p className="text-center text-sm text-savr-mute">{proofLine}</p>
+            )}
+
+            <div className="card space-y-3 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+                Need help?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <a href={supportMailto()} className="btn-ghost text-sm">
+                  {supportEmail()}
+                </a>
+                {wa && (
+                  <a
+                    href={wa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost text-sm"
+                  >
+                    WhatsApp support
+                  </a>
+                )}
+                <a
+                  href={whatsAppShareUrl(buildTipperInviteShare())}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-dark text-sm"
+                >
+                  Invite a tipper
+                </a>
+              </div>
             </div>
 
             <div className="border-t border-savr-ink/[0.06] pt-6">
