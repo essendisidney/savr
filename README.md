@@ -57,20 +57,23 @@ Open [http://localhost:3000](http://localhost:3000). For local work without the 
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | Client | Footer / beta banner support mailto |
 | `NEXT_PUBLIC_SUPPORT_WHATSAPP` | Client | Optional WhatsApp link (E.164 or wa.me) |
 | `INVITE_GATE_ENABLED` | Server | `false` disables middleware invite wall |
-| `INVITE_COOKIE_SECRET` | Server | Signs `savr_invite` cookie |
+| `INVITE_COOKIE_SECRET` | Server | Signs `savr_invite` cookie (required for cookies + `/ops` fallback) |
+| `OPS_ACCESS_KEY` | Server | Founder `/ops?key=…` (falls back to `INVITE_COOKIE_SECRET` if unset) |
 | `MPESA_DRY_RUN` | Server | Default `true` — no money moved |
 | `MPESA_*` | Server | Daraja B2C keys when leaving dry-run |
 
-Mirror the same keys on Vercel (Production + Development). Never expose the service role key to the browser.
+Mirror the same keys on Vercel (Production + Preview). Never expose the service role key to the browser.
 
 Invite codes: generate high-entropy codes in Supabase before re-enabling the wall — do not publish them in docs.
+
+**Required on Vercel now:** set `INVITE_COOKIE_SECRET` (and ideally a separate `OPS_ACCESS_KEY`), then redeploy. Without them, invite redeem still returns `200` while the gate is open, but no invite cookie is minted and `/ops` stays hidden.
 
 ### M-Pesa redeem (sandbox / dry-run)
 
 1. Keep `MPESA_DRY_RUN=true` until Daraja keys are pasted.
-2. Users request redeem → `redeem_requests` stay `pending`.
-3. Ops: `POST /api/mpesa/disburse` with `Authorization: Bearer $MPESA_DISBURSE_SECRET` (or service role).
-4. Dry-run marks requests `paid` with ledger note “no M-Pesa money moved”. Live mode waits for `/api/mpesa/b2c/result`.
+2. Wallet redeem calls `POST /api/wallet/process-redeem` immediately (dry-run → Simulated / paid, no money).
+3. Ops backlog: `POST /api/mpesa/disburse` with `Authorization: Bearer $MPESA_DISBURSE_SECRET`.
+4. Live mode waits for `/api/mpesa/b2c/result` before marking paid.
 
 ### Soft-launch → market checklist
 
@@ -79,6 +82,7 @@ Invite codes: generate high-entropy codes in Supabase before re-enabling the wal
 - [ ] **Weekly 30 shelf walk** at 2–3 branches → `/merchant` upload
 - [x] Wave 9 catalog density (~60 SKUs × 10 locs, honesty-safe seed clocks)
 - [x] Share / invite OG + tipper WhatsApp kit (`/ops`, Home, `/invite`)
+- [ ] Set `INVITE_COOKIE_SECRET` + `OPS_ACCESS_KEY` on Vercel, redeploy
 - [ ] Optional Jumia scrape: `npm run scrape:prices:apply -- --source=jumia`
 - [ ] M-Pesa: dry-run OK; set `MPESA_DRY_RUN=false` only with Daraja keys
 - [x] Terms / Privacy linked
