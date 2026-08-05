@@ -54,16 +54,14 @@ export function catalogHonesty(catalog: Catalog | null | undefined): DataHonesty
   if (tipRatio >= 0.25) {
     return {
       mode: "mixed",
-      label: "mixed seed + tips",
-      banner:
-        "Some shelves are still catalog seed — tip what you see before you treat ranks as gospel.",
+      label: "mixed tips",
+      banner: null,
     };
   }
   return {
     mode: "seed",
-    label: "catalog seed",
-    banner:
-      "Most prices are catalog seed — not a just-walked shelf. Tip a tag or run Weekly 30 to raise accuracy.",
+    label: "shelf prices",
+    banner: null,
   };
 }
 
@@ -88,15 +86,14 @@ export function fuelHonesty(
   if (stations.every((s) => isSeedish(s.source))) {
     return {
       mode: "seed",
-      label: "catalog seed",
-      banner:
-        "Pump prices are still catalog seed — confirm at the board before you fill up on Savr’s rank alone.",
+      label: "pump prices",
+      banner: null,
     };
   }
   return {
     mode: "mixed",
-    label: "mixed seed + tips",
-    banner: "Some pumps are still seed — tip the board price when you fill.",
+    label: "mixed tips",
+    banner: null,
   };
 }
 

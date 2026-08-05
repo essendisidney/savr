@@ -72,6 +72,18 @@ export function homeBasketCta(
       href: "/basket?staples=1",
       label: "Time for this week’s shop",
       detail: "It’s been a while — compare before you spend",
+      secondaryHref: "/check",
+      secondaryLabel: "Or check last trip’s miss",
+    };
+  }
+
+  if (lastComparedAt != null && now - lastComparedAt < WEEK_MS) {
+    return {
+      href: "/check",
+      label: "Just shopped? Check the miss",
+      detail: "Log what you paid — see if another branch was cheaper",
+      secondaryHref: "/basket?staples=1",
+      secondaryLabel: "Or start a new list",
     };
   }
 

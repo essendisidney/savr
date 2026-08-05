@@ -10,10 +10,10 @@ export function formatPriceFreshness(
   const src = (source ?? "").toLowerCase().trim();
   // Seed / offline demo clocks are not shelf walks — never say “just now”.
   if (src === "seed" || src === "ops" || src === "catalog") {
-    return { label: "Catalog seed · confirm on shelf", stale: true };
+    return { label: "Confirm on shelf", stale: true };
   }
   if (src === "scrape") {
-    return { label: "Online scrape · confirm on shelf", stale: true };
+    return { label: "Online · confirm on shelf", stale: true };
   }
   if (src === "fallback") {
     return { label: "Demo price · not a live shelf", stale: true };
@@ -66,10 +66,10 @@ function sourceTrust(source: string | null | undefined): {
     return { points: 30, label: "shopper tip" };
   }
   if (s === "seed" || s === "ops" || s === "catalog") {
-    return { points: 18, label: "catalog seed" };
+    return { points: 18, label: "listed" };
   }
   if (s === "scrape") {
-    return { points: 16, label: "online scrape" };
+    return { points: 16, label: "online" };
   }
   if (!s) return { points: 12, label: "unknown source" };
   return { points: 16, label: s };

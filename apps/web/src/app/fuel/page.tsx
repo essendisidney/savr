@@ -303,7 +303,7 @@ function FuelInner() {
                                 : s.cashbackCents > 0
                                   ? `Cashback estimate ${formatKes(s.cashbackCents)} · Net ${formatKes(s.priceCentsPerLitre - s.cashbackCents)}/L`
                                   : honesty.mode === "seed"
-                                    ? "Catalog seed · confirm at board"
+                                    ? "Confirm at the board"
                                     : "Pump price · tip to keep honest"}
                             </p>
                             {(() => {

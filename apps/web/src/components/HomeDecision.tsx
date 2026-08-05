@@ -500,6 +500,16 @@ export function HomeDecision() {
             </p>
           </Link>
 
+          <Link href="/check" className="home-card-sm alive-card block">
+            <p className="home-eyebrow home-eyebrow-mute">After shop</p>
+            <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
+              Check this trip
+            </p>
+            <p className="mt-1 text-[13px] text-savr-mute">
+              Log what you paid — see if another branch was cheaper
+            </p>
+          </Link>
+
           {/* Recent — small */}
           {recent.length > 0 && (
             <div className="home-card-sm">

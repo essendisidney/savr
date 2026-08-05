@@ -648,7 +648,7 @@ function PricesInner() {
                                 )}
                                 {r.channel === "online" && (
                                   <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
-                                    Online · scrape — confirm vs aisle
+                                    Online
                                   </p>
                                 )}
                                 <p

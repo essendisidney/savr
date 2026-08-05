@@ -1,5 +1,5 @@
 -- Wave 9: market-density Nairobi weekly shop (~60 SKUs × 10 grocery locs).
--- Honesty: source=seed, observed_at NULL — never pretend seed was walked today.
+-- Honesty: source=seed + fixed seed clock — never pretend it was walked today.
 
 insert into public.products (id, name, brand, category, unit) values
   ('33333333-3333-3333-3333-333333333211', 'Rice Bran Oil 2L', 'Rina', 'staples', 'piece'),
@@ -143,7 +143,7 @@ select
   b.product_id,
   greatest(100, round(b.base_cents * m.mult / 100) * 100)::int,
   'seed',
-  null,
+  timestamptz '2026-07-01 00:00:00+00',
   null,
   null
 from bases b
@@ -160,7 +160,7 @@ select
   mp.product_id,
   greatest(100, round(mp.price_cents * mult.factor / 100) * 100)::int,
   'seed',
-  null,
+  timestamptz '2026-07-01 00:00:00+00',
   null,
   null
 from public.merchant_prices mp
