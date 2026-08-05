@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Destination is required" }, { status: 400 });
   }
 
-  const result = buildRideQuotes(pickup, destination);
+  const result = await buildRideQuotes(pickup, destination);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

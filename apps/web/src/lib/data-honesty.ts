@@ -25,6 +25,10 @@ function isSeedish(source: string | null | undefined): boolean {
   return !s || s === "seed" || s === "ops" || s === "catalog" || s === "fallback" || s === "scrape";
 }
 
+function isEpra(source: string | null | undefined): boolean {
+  return (source ?? "").toLowerCase().trim() === "epra";
+}
+
 /** Grocery catalog honesty for Prices / Basket / Home. */
 export function catalogHonesty(catalog: Catalog | null | undefined): DataHonesty {
   if (!catalog) {
@@ -83,6 +87,14 @@ export function fuelHonesty(
   if (tipRatio >= 0.5) {
     return { mode: "tips", label: "tips + catalog", banner: null };
   }
+  if (stations.some((s) => isEpra(s.source)) && tipLike === 0) {
+    return {
+      mode: "mixed",
+      label: "EPRA max",
+      banner:
+        "Live Nairobi EPRA ceiling this cycle. Same max at every pump until someone tips a real pump price.",
+    };
+  }
   if (stations.every((s) => isSeedish(s.source))) {
     return {
       mode: "seed",
@@ -103,5 +115,10 @@ export function fuelSavingsCredible(
   listSource: string | null | undefined,
 ): boolean {
   const h = fuelHonesty(stations, listSource);
-  return h.mode === "tips" || h.mode === "mixed";
+  if (h.mode === "tips") return true;
+  // EPRA ceiling alone is the same at every station — don't invent tank savings.
+  if (stations.some((s) => isEpra(s.source)) && stations.every((s) => !isTipOrMerchant(s.source))) {
+    return false;
+  }
+  return h.mode === "mixed";
 }

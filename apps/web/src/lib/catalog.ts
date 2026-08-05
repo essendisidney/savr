@@ -290,7 +290,8 @@ export async function loadFuelStations(
 ): Promise<{ stations: FuelStation[]; source: string }> {
   const supabase = getSupabase();
   if (!supabase) {
-    return loadFuelStationsFallback(fuelType);
+    const fb = loadFuelStationsFallback(fuelType);
+    return overlayEpraCeiling(fb.stations, fuelType, fb.source);
   }
 
   const { data, error } = await supabase
@@ -299,7 +300,8 @@ export async function loadFuelStations(
     .eq("is_active", true);
 
   if (error || !data?.length) {
-    return loadFuelStationsFallback(fuelType);
+    const fb = loadFuelStationsFallback(fuelType);
+    return overlayEpraCeiling(fb.stations, fuelType, fb.source);
   }
 
   const stations = data
@@ -345,10 +347,46 @@ export async function loadFuelStations(
     .sort((a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre);
 
   if (!stations.length) {
-    return loadFuelStationsFallback(fuelType);
+    const fb = loadFuelStationsFallback(fuelType);
+    return overlayEpraCeiling(fb.stations, fuelType, fb.source);
   }
 
-  return { stations, source: "supabase" };
+  return overlayEpraCeiling(stations, fuelType, "supabase");
+}
+
+async function overlayEpraCeiling(
+  stations: FuelStation[],
+  fuelType: FuelType,
+  fallbackSource: string,
+): Promise<{ stations: FuelStation[]; source: string }> {
+  try {
+    const res = await fetch("/api/fuel/epra", { cache: "no-store" });
+    if (!res.ok) return { stations, source: fallbackSource };
+    const board = (await res.json()) as {
+      petrolCents?: number;
+      dieselCents?: number;
+      validFrom?: string | null;
+    };
+    const ceiling = fuelType === "diesel" ? board.dieselCents : board.petrolCents;
+    if (!ceiling) return { stations, source: fallbackSource };
+
+    const next = stations.map((s) => {
+      const src = (s.source ?? "").toLowerCase();
+      if (src === "crowdsource" || src === "tip" || src === "user" || src === "merchant") {
+        return s;
+      }
+      return {
+        ...s,
+        priceCentsPerLitre: ceiling,
+        source: "epra",
+        observedAt: board.validFrom ? `${board.validFrom}T00:00:00.000Z` : s.observedAt,
+      };
+    });
+    next.sort((a, b) => a.priceCentsPerLitre - b.priceCentsPerLitre);
+    return { stations: next, source: "epra" };
+  } catch {
+    return { stations, source: fallbackSource };
+  }
 }
 
 function loadFuelStationsFallback(fuelType: FuelType = "petrol") {

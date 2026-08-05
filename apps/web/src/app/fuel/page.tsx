@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { submitCrowdsourceFuelPrice } from "@/lib/actions";
 import { loadFuelStations } from "@/lib/catalog";
 import { formatKes } from "@/lib/compare";
-import { fuelHonesty } from "@/lib/data-honesty";
+import { fuelHonesty, fuelSavingsCredible } from "@/lib/data-honesty";
 import { loadFuelPrefsDraft, saveFuelPrefsDraft } from "@/lib/fuel-draft";
 import { formatPriceFreshness, freshnessClassName } from "@/lib/freshness";
 import { formatDistanceKm, haversineKm, useShopperOrigin } from "@/lib/geo";
@@ -138,6 +138,7 @@ function FuelInner() {
   const fuelLabel = fuelType === "diesel" ? "diesel" : "petrol";
   const honesty = fuelHonesty(stations, source);
   const isDemo = honesty.mode === "demo";
+  const savingsOk = fuelSavingsCredible(stations, source) && savedPerLitre > 0;
   const sourceLabel = honesty.label;
 
   if (loading) {
@@ -159,7 +160,7 @@ function FuelInner() {
         subtitle={
           askText
             ? `For “${askQuote(askText)}” — nearby ${fuelLabel} · ${sourceLabel}.`
-            : `Nearby ${fuelLabel} · ${sourceLabel}. Your fuel type and sort stay on this phone.`
+            : `Nearby ${fuelLabel} · ${sourceLabel}. Seed boards follow the live Nairobi EPRA max — tip a pump if they charge less.`
         }
       />
 
@@ -178,7 +179,7 @@ function FuelInner() {
                 {" — "}
                 best nearby is{" "}
                 <span className="font-semibold text-savr-ink">{best.brand}</span>
-                {savedPerLitre > 0 ? (
+                {savingsOk ? (
                   <>
                     {" "}
                     · keep about{" "}
@@ -192,7 +193,7 @@ function FuelInner() {
                 )}
               </p>
             )}
-            {best && (
+            {best && savingsOk && (
               <SavingsMoment
                 amountLabel={`Go to ${best.brand}`}
                 amountCents={savedPerLitre}

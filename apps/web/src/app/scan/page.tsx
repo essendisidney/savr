@@ -157,6 +157,44 @@ export default function ScanPage() {
     setCameraBusy(false);
   }
 
+  async function scanPhoto(file: File) {
+    setCameraError(null);
+    setCameraBusy(true);
+    setStatus("Reading photo…");
+    try {
+      await stopCamera();
+      await new Promise((r) => window.setTimeout(r, 40));
+      const scanner = new Html5Qrcode(READER_ID, {
+        verbose: false,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE,
+        ],
+        useBarCodeDetectorIfSupported: false,
+      });
+      scannerRef.current = scanner;
+      const decoded = await scanner.scanFile(file, false);
+      onCode(decoded);
+      track("scan_photo", { ok: true });
+    } catch {
+      setCameraError("Couldn’t read that photo — try a sharper close-up, or type the digits.");
+      track("scan_photo", { ok: false });
+    } finally {
+      setCameraBusy(false);
+      try {
+        scannerRef.current?.clear();
+      } catch {
+        /* ignore */
+      }
+      scannerRef.current = null;
+    }
+  }
+
   async function startCamera() {
     setCameraError(null);
     setCameraBusy(true);
@@ -207,7 +245,7 @@ export default function ScanPage() {
       setCameraError(
         /NotAllowedError|Permission|denied/i.test(msg)
           ? "Camera permission blocked — allow camera for this site, or type the digits below."
-          : `Camera couldn’t start (${msg}). Type the barcode digits below.`,
+          : `Camera couldn’t start (${msg}). Upload a barcode photo or type the digits below.`,
       );
       setCameraOn(false);
       try {
@@ -274,7 +312,7 @@ export default function ScanPage() {
       <PageHero
         theme="prices"
         title="Scan to tip"
-        subtitle="Hold a pack barcode in the wide box — or a Savr QR. Confirm KES, then tip. Works on phone browsers (HTTPS)."
+        subtitle="Phone camera, a barcode photo, or typed digits. Confirm KES, then tip."
         action={{ href: "/prices", label: "Compare prices" }}
       />
 
@@ -298,6 +336,20 @@ export default function ScanPage() {
                     >
                       {cameraBusy ? "Starting…" : "Open camera"}
                     </button>
+                    <label className="btn-dark cursor-pointer disabled:opacity-60">
+                      Upload photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={cameraBusy}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (file) void scanPhoto(file);
+                        }}
+                      />
+                    </label>
                   </div>
                 )}
                 {cameraOn && (

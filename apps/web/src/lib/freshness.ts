@@ -15,6 +15,9 @@ export function formatPriceFreshness(
   if (src === "scrape") {
     return { label: "Online · confirm on shelf", stale: true };
   }
+  if (src === "epra") {
+    return { label: "EPRA max · tip this pump if cheaper", stale: false };
+  }
   if (src === "fallback") {
     return { label: "Demo price · not a live shelf", stale: true };
   }

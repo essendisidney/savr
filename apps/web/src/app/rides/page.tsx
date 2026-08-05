@@ -150,19 +150,20 @@ function RidesInner() {
     <PageFrame>
       <PageHero
         theme="rides"
-        title={askText ? "Here’s the cheaper ride estimate" : "Who looks cheaper?"}
+        title={askText ? "Here’s the live road + fare band" : "Open the live fare"}
         subtitle={
           askText
-            ? `For “${askQuote(askText)}” — Savr estimates only (not live Bolt/Uber/Little quotes). Confirm in-app.`
-            : "Savr estimates from distance + time-of-day — not live partner APIs. Confirm fare in their app before you request."
+            ? `For “${askQuote(askText)}” — live road distance, then open Bolt / Uber / Little for the real quote.`
+            : "Live Nairobi road distance. Same fare band for every partner — tap through for the live in-app price."
         }
       />
 
       <div className="page-band">
         <PageShell>
           <div className="space-y-8">
-            <p className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              Estimated fares · not live partner quotes. Open the app to confirm price and surge.
+            <p className="rounded-2xl border border-savr-forest/20 bg-savr-forest/[0.06] px-4 py-3 text-sm text-savr-ink">
+              {meta?.label ||
+                "Live road distance from OpenStreetMap. Partner apps still set the final fare."}
             </p>
             {askText && (
               <p className="text-sm text-savr-mute">

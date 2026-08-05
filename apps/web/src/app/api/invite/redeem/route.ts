@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase-admin";
-import { INVITE_COOKIE, signInviteCookie } from "@/lib/invite-cookie";
+import {
+  INVITE_COOKIE,
+  canSignInviteCookie,
+  inviteGateEnabled,
+  signInviteCookie,
+} from "@/lib/invite-cookie";
 
 export async function POST(req: Request) {
   let body: { code?: string };
@@ -26,8 +31,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result?.error ?? "Invalid invite code" }, { status: 400 });
     }
 
+    // Gate is open: code is valid even if we cannot mint a cookie yet.
+    if (!canSignInviteCookie()) {
+      if (!inviteGateEnabled()) {
+        return NextResponse.json({ ok: true, cookie: false });
+      }
+      return NextResponse.json(
+        { error: "Invite wall is on but INVITE_COOKIE_SECRET is not set." },
+        { status: 503 },
+      );
+    }
+
     const signed = await signInviteCookie(result.code ?? code);
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({ ok: true, cookie: true });
     res.cookies.set(INVITE_COOKIE, signed, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

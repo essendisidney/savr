@@ -17,6 +17,10 @@ export function inviteGateEnabled(): boolean {
   return process.env.INVITE_GATE_ENABLED === "true";
 }
 
+export function canSignInviteCookie(): boolean {
+  return Boolean(secret());
+}
+
 async function hmacHex(payload: string): Promise<string> {
   const keyMaterial = secret();
   if (!keyMaterial) {

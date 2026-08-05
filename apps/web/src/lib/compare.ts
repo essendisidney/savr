@@ -508,7 +508,7 @@ export function compareBasket(
   }));
 }
 
-export function compareRides(destination: string): RideQuote[] {
+export async function compareRides(destination: string): Promise<RideQuote[]> {
   return compareRidesForRoute("Westlands", destination);
 }
 

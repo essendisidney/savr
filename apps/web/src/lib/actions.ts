@@ -435,7 +435,7 @@ export async function loadWallet(): Promise<{
 export async function requestRedeem(params: {
   amountCents: number;
   phone?: string;
-}): Promise<{ requestId: string } | { error: string }> {
+}): Promise<{ requestId: string; dryRun?: boolean; processed?: boolean } | { error: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Supabase is not configured." };
 
@@ -449,7 +449,39 @@ export async function requestRedeem(params: {
     p_phone: params.phone?.trim() || null,
   });
   if (error) return { error: error.message };
-  return { requestId: data as string };
+  const requestId = data as string;
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (token) {
+      const proc = await fetch("/api/wallet/process-redeem", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ requestId }),
+      });
+      const body = (await proc.json().catch(() => ({}))) as {
+        error?: string;
+        dryRun?: boolean;
+        processed?: boolean;
+      };
+      if (!proc.ok) {
+        return { requestId, processed: false, dryRun: body.dryRun };
+      }
+      return {
+        requestId,
+        processed: Boolean(body.processed),
+        dryRun: Boolean(body.dryRun),
+      };
+    }
+  } catch {
+    /* queue stays pending for ops disburse */
+  }
+
+  return { requestId };
 }
 export type SavedListSummary = {
   id: string;

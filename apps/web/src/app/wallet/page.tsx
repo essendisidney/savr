@@ -100,7 +100,9 @@ export default function WalletPage() {
       return;
     }
     setStatus(
-      "Redeem requested — queued for payout. Live M-Pesa is still dry-run until we flip it on.",
+      res.dryRun || !res.processed
+        ? "Simulated payout recorded — no M-Pesa money moved until live Daraja is on."
+        : "Payout sent to M-Pesa — wait for the confirmation SMS.",
     );
     track("redeem_request", { amountKes: Math.round(cents / 100) });
     await refresh();

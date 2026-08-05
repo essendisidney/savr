@@ -26,12 +26,19 @@ function isProdRuntime() {
   return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
 }
 
-/** Founder ops — hidden unless OPS_ACCESS_KEY is set and presented. */
+/** Founder ops — hidden unless OPS_ACCESS_KEY (or invite secret fallback) is presented. */
+function opsAccessKey(): string {
+  return (
+    (process.env.OPS_ACCESS_KEY ?? "").trim() ||
+    (process.env.INVITE_COOKIE_SECRET ?? "").trim()
+  );
+}
+
 function allowOps(req: NextRequest): NextResponse | null {
   const { pathname } = req.nextUrl;
   if (!pathname.startsWith("/ops")) return null;
 
-  const key = (process.env.OPS_ACCESS_KEY ?? "").trim();
+  const key = opsAccessKey();
   if (!key) {
     // No key: allow locally, hide in production.
     if (isProdRuntime()) {

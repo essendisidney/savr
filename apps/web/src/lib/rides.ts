@@ -72,48 +72,82 @@ export type RideQuoteResult = {
   label: string;
 };
 
+async function liveDrivingRoute(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+): Promise<{ km: number; minutes: number } | null> {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=false`;
+    const res = await fetch(url, { headers: { accept: "application/json" } });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      routes?: { distance?: number; duration?: number }[];
+    };
+    const route = data.routes?.[0];
+    if (!route?.distance || !route.duration) return null;
+    return {
+      km: Math.max(1.2, route.distance / 1000),
+      minutes: Math.max(4, Math.round(route.duration / 60)),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Nairobi ride fare *estimates* from distance + time-of-day surge.
- * Not live Bolt/Uber/Little API quotes — deep-link to partner apps to confirm.
+ * Nairobi ride board: live road distance (OSRM) + one transparent fare band.
+ * Partner apps still own the live quote — we deep-link, we don't invent Bolt vs Uber spreads.
  */
-export function buildRideQuotes(pickup: string, destination: string, now = new Date()): RideQuoteResult {
+export async function buildRideQuotes(
+  pickup: string,
+  destination: string,
+  now = new Date(),
+): Promise<RideQuoteResult> {
   const from = resolveRidePlace(pickup);
   const to = resolveRidePlace(destination);
   let km = 8;
+  let minutes = 18;
+  let liveRoad = false;
   if (from && to) {
-    km = Math.max(1.5, haversineKm(from, to));
+    const live = await liveDrivingRoute(from, to);
+    if (live) {
+      km = live.km;
+      minutes = live.minutes;
+      liveRoad = true;
+    } else {
+      km = Math.max(1.5, haversineKm(from, to));
+      minutes = Math.max(6, Math.round(km * 2.4));
+    }
   } else {
     const seed = routeSeed(pickup, destination);
     km = 4 + (seed % 18);
+    minutes = Math.max(6, Math.round(km * 2.4));
   }
 
   const surge = surgeMultiplier(now);
-  const perKm = 55;
-  const base = Math.round((320 + km * perKm) * 100 * surge);
-  const seed = routeSeed(pickup, destination || "nairobi");
+  const fareCents = Math.round((280 + km * 52 + minutes * 6) * surge * 100);
   const destQ = encodeURIComponent(destination.trim() || "Nairobi");
   const pickQ = encodeURIComponent(pickup.trim() || "Westlands");
 
-  // No invented partner cashback — rank by fare estimate only.
   const partners: Omit<RideQuote, "netCents" | "isEstimated">[] = [
     {
       partner: "Bolt",
-      priceCents: Math.round(base * (0.92 + (seed % 5) * 0.01)),
-      etaMin: Math.max(3, Math.round(4 + km * 0.35 * Math.min(surge, 1.25))),
+      priceCents: fareCents,
+      etaMin: minutes,
       cashbackCents: 0,
       deepLink: `https://bolt.eu/en-ke/?pickup=${pickQ}&destination=${destQ}`,
     },
     {
       partner: "Little",
-      priceCents: Math.round(base * (0.98 + (seed % 7) * 0.012)),
-      etaMin: Math.max(4, Math.round(5 + km * 0.4 * Math.min(surge, 1.25))),
+      priceCents: fareCents,
+      etaMin: minutes,
       cashbackCents: 0,
       deepLink: `https://little.africa/?from=${pickQ}&to=${destQ}`,
     },
     {
       partner: "Uber",
-      priceCents: Math.round(base * (1.05 + (seed % 4) * 0.015)),
-      etaMin: Math.max(3, Math.round(4 + km * 0.38 * Math.min(surge, 1.25))),
+      priceCents: fareCents,
+      etaMin: minutes,
       cashbackCents: 0,
       deepLink: `https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=${destQ}`,
     },
@@ -137,10 +171,12 @@ export function buildRideQuotes(pickup: string, destination: string, now = new D
     pickupLng: from?.lng ?? null,
     destLat: to?.lat ?? null,
     destLng: to?.lng ?? null,
-    label: "",
+    label: liveRoad
+      ? `Live road ${Math.round(km * 10) / 10} km · ~${minutes} min · open an app for the live fare`
+      : `Approx ${Math.round(km * 10) / 10} km · open an app for the live fare`,
   };
 }
 
-export function compareRidesForRoute(pickup: string, destination: string): RideQuote[] {
-  return buildRideQuotes(pickup, destination).quotes;
+export async function compareRidesForRoute(pickup: string, destination: string): Promise<RideQuote[]> {
+  return (await buildRideQuotes(pickup, destination)).quotes;
 }
