@@ -17,3 +17,11 @@ export function countryFromVercelHeader(raw: string | null | undefined): MarketC
   if (isMarketCountry(lower)) return lower;
   return "ke";
 }
+
+export const COUNTRY_BADGE: Record<MarketCountry, string> = {
+  ke: "KE",
+  ng: "NG",
+  ug: "UG",
+  tz: "TZ",
+  gh: "GH",
+};

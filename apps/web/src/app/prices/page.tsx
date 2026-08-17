@@ -14,7 +14,7 @@ import { loadCatalog } from "@/lib/catalog";
 import { bestAskProductMatch, askRecoveryProducts, compareProduct, formatKes } from "@/lib/compare";
 import { catalogHonesty } from "@/lib/data-honesty";
 import { askQuote } from "@/lib/intents";
-import { buildPriceTipShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
+import { buildPriceTipShare, buildShelfDealShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
 import { markAskRequested, pushUnmatchedAsk } from "@/lib/unmatched-asks";
 import { formatPriceFreshness, freshnessClassName, formatPriceTrend, trendClassName, confidenceClassName } from "@/lib/freshness";
@@ -572,7 +572,7 @@ function PricesInner() {
                   )}
                 </div>
 
-                {cheapest && (
+                {cheapest && selected && (
                   <SavingsMoment
                     amountLabel={`Cheapest at ${cheapest.merchantName}`}
                     amountCents={saved}
@@ -581,6 +581,16 @@ function PricesInner() {
                         ? `Less than the highest store price for this item`
                         : "Same price everywhere right now"
                     }
+                    share={buildShelfDealShare({
+                      productName: selected.name,
+                      productId: selected.id,
+                      merchantName: cheapest.merchantName,
+                      branchName: cheapest.branchName,
+                      priceCents: cheapest.priceCents,
+                      saveCents: saved,
+                    })}
+                    shareLabel="Share another way"
+                    emphasizeShare={saved > 0}
                   />
                 )}
                 {cheapest && (

@@ -600,10 +600,11 @@ export function HomeDecision() {
             <div>
               <p className="home-eyebrow home-eyebrow-mute">Share Savr</p>
               <p className="mt-1.5 text-[14px] font-semibold text-savr-ink">
-                Invite a Nairobi shopper
+                WhatsApp a Kenya group
               </p>
               <p className="mt-1 text-[13px] text-savr-mute">
-                Basket compare is open — tippers make prices honest.
+                Rank Jumia and Nairobi shelves before anyone buys. Confirm at the shop — Savr isn’t
+                the seller.
               </p>
             </div>
             <a

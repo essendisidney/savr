@@ -219,14 +219,75 @@ export function buildTipperInviteShare(): SharePayload {
   };
 }
 
+function publicOrigin(): string {
+  return typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
+}
+
 /** Soft market open — share the product, not ops. */
 export function buildMarketInviteShare(): SharePayload {
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
-  const url = `${origin}/invite?store=Savr&next=${encodeURIComponent(STAPLES_NEXT)}`;
+  const url = `${publicOrigin()}/invite?store=Savr&next=${encodeURIComponent("/market")}`;
   return {
-    title: "Savr is open in Nairobi",
-    text: `Savr is open in Nairobi — compare your grocery basket across branches before you shop. Tip what you see so prices stay honest. Before you spend, Savr it.`,
+    title: "Savr is open in Kenya",
+    text: `Free tool that ranks Jumia/Kilimall listings and Nairobi grocery shelves before you buy — Unga, iPhone, the weekly basket. Confirm at the shop; Savr isn’t the seller. Before you spend, Savr it.`,
+    url,
+  };
+}
+
+/** One live online listing — never claim a checkout save. */
+export function buildMarketDealShare(params: {
+  name: string;
+  shop: string;
+  priceLabel: string;
+  path: string;
+}): SharePayload {
+  const path = params.path.startsWith("/") ? params.path : `/${params.path}`;
+  return {
+    title: "Listed on Savr",
+    text: `Listed “${params.name}” at ${params.priceLabel} on ${params.shop} (Savr crawl). Confirm at checkout — Savr isn’t the seller. Before you spend, Savr it.`,
+    url: `${publicOrigin()}${path}`,
+  };
+}
+
+/** Cheapest row in this crawl, with optional spread vs the priciest listing. */
+export function buildMarketBoardShare(params: {
+  query: string;
+  shop: string;
+  priceLabel: string;
+  spreadLabel: string | null;
+  path: string;
+}): SharePayload {
+  const path = params.path.startsWith("/") ? params.path : `/${params.path}`;
+  const spread = params.spreadLabel
+    ? ` ${params.spreadLabel} cheaper than the priciest listing in this crawl.`
+    : "";
+  return {
+    title: "Cheapest listed on Savr",
+    text: `Cheapest listed “${params.query}” this crawl: ${params.priceLabel} at ${params.shop}.${spread} Confirm at checkout. Before you spend, Savr it.`,
+    url: `${publicOrigin()}${path}`,
+  };
+}
+
+/** Nairobi shelf rank — confirm on the pack, not a Savr guarantee. */
+export function buildShelfDealShare(params: {
+  productName: string;
+  productId: string;
+  merchantName: string;
+  branchName?: string | null;
+  priceCents: number;
+  saveCents: number;
+}): SharePayload {
+  const place = params.branchName?.trim()
+    ? `${params.merchantName} · ${params.branchName.trim()}`
+    : params.merchantName;
+  const next = `/prices?id=${encodeURIComponent(params.productId)}&q=${encodeURIComponent(params.productName)}`;
+  const url = inviteUrl(Math.max(0, params.saveCents) / 100, params.merchantName, next);
+  const saveBit =
+    params.saveCents > 0
+      ? ` ${formatKes(params.saveCents)} less than the highest compared store.`
+      : "";
+  return {
+    title: "Cheapest on Savr",
+    text: `Cheapest listed ${params.productName} on Savr: ${formatKes(params.priceCents)} at ${place}.${saveBit} Confirm on the shelf. Before you spend, Savr it.`,
     url,
   };
 }

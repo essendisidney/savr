@@ -56,6 +56,18 @@ export function formatObservedKenya(iso: string | null | undefined): string {
   });
 }
 
+/** Relative age of a crawl — “6 min ago”, never “verified”. */
+export function formatObservedAge(iso: string | null | undefined): string {
+  if (!iso) return "time unknown";
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return "time unknown";
+  const age = Date.now() - then;
+  if (age < 45_000) return "just now";
+  if (age < 3_600_000) return `${Math.max(1, Math.round(age / 60_000))} min ago`;
+  if (age < 86_400_000) return `${Math.max(1, Math.round(age / 3_600_000))}h ago`;
+  return `${Math.max(1, Math.round(age / 86_400_000))}d ago`;
+}
+
 export type MarketSourceNote = {
   shopId: string;
   shop: string;

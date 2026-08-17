@@ -11,7 +11,7 @@ import { askQuote } from "@/lib/intents";
 import {
   MARKET_COUNTRIES,
   formatMarketMoney,
-  formatObservedKenya,
+  formatObservedAge,
   isMarketCountry,
   type MarketCountry,
   type MarketListing,
@@ -21,6 +21,7 @@ import {
 import { track } from "@/lib/track";
 import { useAuth } from "@/lib/auth";
 import { watchMarketListing } from "@/lib/actions";
+import { buildMarketBoardShare, buildMarketDealShare, whatsAppShareUrl } from "@/lib/share";
 
 export default function MarketPage() {
   return (
@@ -154,8 +155,8 @@ function MarketInner() {
         <PageShell>
           <div className="space-y-6">
             <p className="rounded-2xl border border-savr-forest/20 bg-savr-forest/[0.06] px-4 py-3 text-sm text-savr-ink">
-              Live public crawl · confirm price and stock on the shop site. Delivery and tax are
-              not included.
+              Live public crawl · last listed time on each row. Confirm price and stock on the shop
+              site. Savr is not the seller and does not pay a price-match bonus.
             </p>
 
             <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -192,18 +193,37 @@ function MarketInner() {
               ))}
             </div>
 
-            {data?.spread && data.spread.saveCents > 0 && (
-              <p className="rounded-2xl border border-savr-ink/10 bg-white px-4 py-3 text-sm text-savr-ink">
-                Cheapest listed at{" "}
-                <span className="font-semibold">{data.spread.cheapestShop}</span>
-                {" · "}
-                {formatMarketMoney(data.listings[0]?.priceCents ?? 0, data.listings[0]?.currency ?? "KES")}
-                . Spread vs {data.spread.priciestShop} in this crawl is{" "}
-                <span className="font-semibold text-savr-forest">
-                  {formatMarketMoney(data.spread.saveCents, data.listings[0]?.currency ?? "KES")}
-                </span>
-                . Confirm at checkout — not a guaranteed save.
-              </p>
+            {data?.spread && data.spread.saveCents > 0 && cheapest && (
+              <div className="flex flex-col gap-3 rounded-2xl border border-savr-ink/10 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-savr-ink">
+                  Cheapest listed at{" "}
+                  <span className="font-semibold">{data.spread.cheapestShop}</span>
+                  {" · "}
+                  {formatMarketMoney(cheapest.priceCents, cheapest.currency)}. Spread vs{" "}
+                  {data.spread.priciestShop} in this crawl is{" "}
+                  <span className="font-semibold text-savr-forest">
+                    {formatMarketMoney(data.spread.saveCents, cheapest.currency)}
+                  </span>
+                  . Confirm at checkout — not a guaranteed save.
+                </p>
+                <a
+                  href={whatsAppShareUrl(
+                    buildMarketBoardShare({
+                      query: qParam,
+                      shop: cheapest.shop,
+                      priceLabel: formatMarketMoney(cheapest.priceCents, cheapest.currency),
+                      spreadLabel: formatMarketMoney(data.spread.saveCents, cheapest.currency),
+                      path: `/market?q=${encodeURIComponent(qParam)}&country=${country}`,
+                    }),
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("share_save", { via: "whatsapp_market_board", q: qParam.slice(0, 80) })}
+                  className="btn-ghost shrink-0 py-2 text-sm"
+                >
+                  WhatsApp this find
+                </a>
+              </div>
             )}
 
             {data && (
@@ -241,33 +261,57 @@ function MarketInner() {
             )}
 
             {!loading && data && data.listings.length > 0 && (
-              <ol className="divide-y divide-savr-ink/[0.06] overflow-hidden rounded-2xl border border-savr-ink/[0.08] bg-white">
-                {data.listings.map((row, i) => (
-                  <li key={row.id}>
-                    <ListingRow
-                      row={row}
-                      rank={i + 1}
-                      cheapest={i === 0}
-                      signedIn={Boolean(user)}
-                      watching={watched.has(row.url)}
-                      onWatch={async () => {
-                        const res = await watchMarketListing({
-                          url: row.url,
-                          name: row.name,
-                          shop: row.shop,
-                          baselineCents: row.priceCents,
-                        });
-                        if ("error" in res) {
-                          setError(res.error);
-                          return;
-                        }
-                        setWatched((prev) => new Set(prev).add(row.url));
-                        track("market_watch", { shop: row.shop });
-                      }}
-                    />
-                  </li>
-                ))}
-              </ol>
+              <div className="space-y-3">
+                {cheapest && !(data.spread && data.spread.saveCents > 0) ? (
+                  <a
+                    href={whatsAppShareUrl(
+                      buildMarketBoardShare({
+                        query: qParam,
+                        shop: cheapest.shop,
+                        priceLabel: formatMarketMoney(cheapest.priceCents, cheapest.currency),
+                        spreadLabel: null,
+                        path: `/market?q=${encodeURIComponent(qParam)}&country=${country}`,
+                      }),
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() =>
+                      track("share_save", { via: "whatsapp_market_board", q: qParam.slice(0, 80) })
+                    }
+                    className="btn-ghost inline-flex py-2 text-sm"
+                  >
+                    WhatsApp this find
+                  </a>
+                ) : null}
+                <ol className="divide-y divide-savr-ink/[0.06] overflow-hidden rounded-2xl border border-savr-ink/[0.08] bg-white">
+                  {data.listings.map((row, i) => (
+                    <li key={row.id}>
+                      <ListingRow
+                        row={row}
+                        rank={i + 1}
+                        cheapest={i === 0}
+                        boardPath={`/market?q=${encodeURIComponent(qParam)}&country=${country}`}
+                        signedIn={Boolean(user)}
+                        watching={watched.has(row.url)}
+                        onWatch={async () => {
+                          const res = await watchMarketListing({
+                            url: row.url,
+                            name: row.name,
+                            shop: row.shop,
+                            baselineCents: row.priceCents,
+                          });
+                          if ("error" in res) {
+                            setError(res.error);
+                            return;
+                          }
+                          setWatched((prev) => new Set(prev).add(row.url));
+                          track("market_watch", { shop: row.shop });
+                        }}
+                      />
+                    </li>
+                  ))}
+                </ol>
+              </div>
             )}
 
             {!qParam && !loading && (
@@ -293,6 +337,7 @@ function ListingRow({
   row,
   rank,
   cheapest,
+  boardPath,
   signedIn,
   watching,
   onWatch,
@@ -300,10 +345,18 @@ function ListingRow({
   row: MarketListing;
   rank: number;
   cheapest: boolean;
+  boardPath: string;
   signedIn: boolean;
   watching: boolean;
   onWatch: () => void;
 }) {
+  const priceLabel = formatMarketMoney(row.priceCents, row.currency);
+  const share = buildMarketDealShare({
+    name: row.name,
+    shop: row.shop,
+    priceLabel,
+    path: boardPath,
+  });
   return (
     <div className="flex items-start justify-between gap-3 px-4 py-3.5">
       <div className="min-w-0">
@@ -313,13 +366,13 @@ function ListingRow({
         </p>
         <p className="mt-0.5 font-semibold text-savr-ink">{row.name}</p>
         <p className="text-xs text-savr-mute">
-          Listed price from {row.shop} at {formatObservedKenya(row.observedAt)} · confirm at
-          checkout
+          Last listed {formatObservedAge(row.observedAt)} · confirm at checkout — not a Savr
+          guarantee
         </p>
       </div>
       <div className="shrink-0 text-right">
         <p className="font-display text-lg font-bold tabular-nums text-savr-forest">
-          {formatMarketMoney(row.priceCents, row.currency)}
+          {priceLabel}
         </p>
         <a
           href={row.url}
@@ -328,6 +381,15 @@ function ListingRow({
           className="text-xs font-semibold text-savr-ink hover:text-savr-forest"
         >
           Open listing →
+        </a>
+        <a
+          href={whatsAppShareUrl(share)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track("share_save", { via: "whatsapp_market_deal", shop: row.shop })}
+          className="mt-1.5 block text-[11px] font-semibold text-savr-forest"
+        >
+          WhatsApp this
         </a>
         {signedIn ? (
           <button

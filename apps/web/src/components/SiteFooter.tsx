@@ -10,7 +10,8 @@ export function SiteFooter() {
           <p className="font-display text-2xl font-extrabold tracking-brand text-savr-ink">Savr</p>
           <p className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-savr-mute">
             Before you spend, Savr it. Kenya’s cheapest-price search — live online listings, plus
-            Nairobi grocery, rides, and fuel before money leaves your wallet.
+            Nairobi grocery, rides, and fuel before money leaves your wallet. We rank listed prices;
+            the shop wins if it differs. No paid “cheapest” slot. No fake price-match payout.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 text-[13px]">
