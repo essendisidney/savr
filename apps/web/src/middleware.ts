@@ -11,6 +11,8 @@ const PUBLIC_PREFIXES = [
   "/api/mpesa/b2c",
   "/api/market",
   "/api/cron",
+  "/api/geo",
+  "/api/bundles",
   "/manifest.webmanifest",
 ];
 

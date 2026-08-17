@@ -15,6 +15,18 @@ export const SPEND_INTENTS: SpendIntent[] = [
     hint: "Compare a full grocery basket",
   },
   {
+    id: "unga",
+    label: "How much is Unga today?",
+    href: "/prices?q=maize%20flour",
+    hint: "Maize flour across Nairobi shelves",
+  },
+  {
+    id: "bundles",
+    label: "Cheaper data bundle",
+    href: "/bundles",
+    hint: "Safaricom packs — confirm in the official app",
+  },
+  {
     id: "work",
     label: "Get to work",
     href: "/rides",
@@ -71,23 +83,23 @@ export const SPEND_INTENTS: SpendIntent[] = [
 ];
 
 export const ASK_PLACEHOLDERS = [
+  "How much is Unga today…",
+  "Cheapest cooking oil…",
+  "1GB data bundle…",
   "Cheapest iPhone 13…",
-  "Samsung A15…",
   "Weekly groceries under KES 5,000…",
-  "Find the cheapest cooking oil…",
-  "Best taxi to the airport…",
   "Where is fuel cheapest near me…",
-  "Rice cooker under 5,000…",
+  "Samsung A15…",
   "Milk prices…",
 ];
 
 /** One-tap Asks — same chips on Home and /ask. */
 export const POPULAR_ASKS = [
-  { label: "Cheapest iPhone", q: "cheapest iPhone 13" },
-  { label: "Samsung A15", q: "Samsung A15" },
-  { label: "Milk", q: "milk" },
+  { label: "Unga today", q: "how much is unga today" },
+  { label: "Data bundles", q: "safaricom data bundles" },
   { label: "Cooking oil", q: "cooking oil" },
   { label: "Weekly groceries", q: "weekly groceries" },
+  { label: "Cheapest iPhone", q: "cheapest iPhone 13" },
 ] as const;
 
 /** Everyday staples people type — prefer Prices over map/rides when present. */
@@ -309,6 +321,10 @@ export function routeAskQuery(raw: string): string {
       return withAskParam("/check", trimmed);
     }
     return pricesPath(trimmed);
+  }
+
+  if (/\b(airtime|safaricom|data\s*bundle|gb\s*bundle)\b/.test(q)) {
+    return withAskParam("/bundles", trimmed);
   }
 
   if (/\b(jumia|kilimall|jiji|konga|online)\b/.test(q)) {

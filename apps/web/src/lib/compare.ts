@@ -158,6 +158,27 @@ export function bestAskProductMatch(catalog: Catalog, raw: string) {
   return hits[0] ?? null;
 }
 
+/** Nairobi unga (maize flour) — Kenya staple board from the live catalog. */
+export function kenyaUngaDeal(catalog: Catalog) {
+  const product =
+    bestAskProductMatch(catalog, "unga") ?? bestAskProductMatch(catalog, "maize flour");
+  if (!product) return null;
+  const ranks = compareProduct(catalog, product.id);
+  const best = ranks[0];
+  if (!best) return null;
+  const worst = ranks[ranks.length - 1];
+  const saveCents = worst ? Math.max(0, worst.priceCents - best.priceCents) : 0;
+  return {
+    productId: product.id,
+    name: product.name,
+    merchantName: best.merchantName,
+    branchName: best.branchName,
+    priceCents: best.priceCents,
+    saveCents,
+    href: `/prices?q=${encodeURIComponent("maize flour")}&id=${product.id}&ask=${encodeURIComponent("How much is Unga today?")}`,
+  };
+}
+
 /** Soft suggestions when Ask misses — Weekly 30 first, then catalog head. */
 export function askRecoveryProducts(catalog: Catalog, limit = 8) {
   const weeklyIds = weekly30ProductIds();

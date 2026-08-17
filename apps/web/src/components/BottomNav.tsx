@@ -28,6 +28,7 @@ const tabs = [
       p.startsWith("/basket") ||
       p.startsWith("/rides") ||
       p.startsWith("/market") ||
+      p.startsWith("/bundles") ||
       p.startsWith("/check"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>

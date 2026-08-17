@@ -10,6 +10,7 @@ const themes = {
   account: { label: "Your profile" },
   check: { label: "After the shop" },
   market: { label: "Live cheapest · online" },
+  bundles: { label: "Airtime · Kenya" },
 } as const;
 
 export type PageTheme = keyof typeof themes;

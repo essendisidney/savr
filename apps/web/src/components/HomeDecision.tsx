@@ -12,7 +12,7 @@ import {
   type HomeBasketCta,
 } from "@/lib/basket-draft";
 import { loadCatalog, loadFuelStations } from "@/lib/catalog";
-import { compareBasket, formatKes } from "@/lib/compare";
+import { compareBasket, formatKes, kenyaUngaDeal } from "@/lib/compare";
 import { cityProofFromCatalog } from "@/lib/city-proof";
 import { fuelSavingsCredible } from "@/lib/data-honesty";
 import {
@@ -70,6 +70,7 @@ export function HomeDecision() {
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [proofChip, setProofChip] = useState<string | null>(null);
+  const [ungaHref, setUngaHref] = useState("/prices?q=maize%20flour");
 
   const hour = useMemo(() => new Date().getHours(), []);
   const greeting = greetingForHour(hour);
@@ -102,10 +103,26 @@ export function HomeDecision() {
 
       setProofChip(cityProofFromCatalog(catalog)?.chip ?? null);
 
+      const unga = kenyaUngaDeal(catalog);
+      if (unga) setUngaHref(unga.href);
+
       const groceryN = catalog.merchants.filter((m) => m.category === "grocery").length;
       setNearby({ grocery: groceryN, fuel: fuel.stations.length });
 
       const ways: Opportunity[] = [];
+      if (unga && unga.saveCents >= 200) {
+        ways.push({
+          id: "unga",
+          eyebrow: "Unga today",
+          title: `Cheapest ${unga.name}`,
+          body: `${formatKes(unga.priceCents)} at ${unga.merchantName}${
+            unga.branchName ? ` · ${unga.branchName}` : ""
+          }. Confirm on the shelf.`,
+          href: unga.href,
+          cta: "Compare unga →",
+          amountCents: unga.saveCents,
+        });
+      }
       let saveCents = 0;
       if (draft?.items.length) {
         const ranks = compareBasket(catalog, draft.items);
@@ -306,7 +323,7 @@ export function HomeDecision() {
         <p className="animate-rise-delay mt-5 max-w-md text-[1.2rem] font-medium leading-[1.35] tracking-tightish text-savr-ink/80 md:text-[1.35rem]">
           {ready && primary
             ? "Before you spend anything today — Savr already sees where you can save."
-            : "Before you spend, Ask Savr — cheapest live listing, or a Nairobi grocery basket."}
+            : "Before you spend, Ask Savr — Unga, data, a Nairobi grocery basket, or a live online listing."}
         </p>
         {!primary && (
           <p className="animate-rise-delay mt-2 text-[13px] leading-relaxed text-savr-mute/90">
@@ -383,7 +400,17 @@ export function HomeDecision() {
         </form>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {POPULAR_ASKS.map((chip) => (
+          <Link href={ungaHref} className="home-chip">
+            How much is Unga today?
+          </Link>
+          <Link href="/bundles" className="home-chip">
+            Data bundles
+          </Link>
+          <Link href="/basket?staples=1" className="home-chip">
+            Cheapest grocery cart
+          </Link>
+          {POPULAR_ASKS.filter((c) => c.q !== "how much is unga today" && c.q !== "safaricom data bundles").map(
+            (chip) => (
             <button
               key={chip.q}
               type="button"
@@ -393,7 +420,8 @@ export function HomeDecision() {
             >
               {chip.label}
             </button>
-          ))}
+          ),
+          )}
         </div>
 
         <div className="home-stack alive-stack animate-rise-delay-2 mt-9">

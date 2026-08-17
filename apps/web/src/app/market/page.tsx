@@ -45,7 +45,9 @@ function MarketInner() {
   const askText = (searchParams.get("ask") ?? "").trim();
   const qParam = (searchParams.get("q") ?? askText).trim();
   const countryParam = searchParams.get("country");
-  const country: MarketCountry = isMarketCountry(countryParam) ? countryParam : "ke";
+  const [country, setCountryState] = useState<MarketCountry>(
+    isMarketCountry(countryParam) ? countryParam : "ke",
+  );
   const [query, setQuery] = useState(qParam);
   const [data, setData] = useState<MarketSearchResult | null>(null);
   const [loading, setLoading] = useState(Boolean(qParam));
@@ -56,6 +58,21 @@ function MarketInner() {
   useEffect(() => {
     setQuery(qParam);
   }, [qParam]);
+
+  useEffect(() => {
+    if (isMarketCountry(countryParam)) {
+      setCountryState(countryParam);
+      return;
+    }
+    void fetch("/api/geo")
+      .then((r) => r.json())
+      .then((d: { country?: string }) => {
+        if (isMarketCountry(d.country)) setCountryState(d.country);
+      })
+      .catch(() => {
+        /* stay Kenya */
+      });
+  }, [countryParam]);
 
   const fetchListings = useCallback(async (q: string, c: MarketCountry) => {
     if (!q.trim()) {
@@ -102,7 +119,7 @@ function MarketInner() {
     router.push(`/market?${params.toString()}`);
   }
 
-  function setCountry(id: MarketCountry) {
+  function pickCountry(id: MarketCountry) {
     const q = (query.trim() || qParam).trim();
     const params = new URLSearchParams();
     if (q) params.set("q", q);
@@ -163,7 +180,7 @@ function MarketInner() {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setCountry(c.id)}
+                  onClick={() => pickCountry(c.id)}
                   className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
                     country === c.id
                       ? "bg-savr-forest text-white"

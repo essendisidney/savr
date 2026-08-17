@@ -1,5 +1,6 @@
 import type { CrawlerResult, MarketCountry, MarketCurrency, MarketListing } from "./types";
 import { decodeHtml, fetchHtml, parseAmountCents } from "./http";
+import { withJumiaPartnerTag } from "./affiliate";
 
 const HOSTS: Record<
   MarketCountry,
@@ -46,7 +47,7 @@ export async function searchJumia(query: string, country: MarketCountry): Promis
     const href = (a.match(/href="(\/[^"]+\.html)"/) || [])[1];
     const priceCents = parseAmountCents(prc) ?? parseAmountCents(gaPrice || "");
     if (!name || !priceCents) continue;
-    const listingUrl = href ? `https://${meta.host}${href}` : url;
+    const listingUrl = withJumiaPartnerTag(href ? `https://${meta.host}${href}` : url);
     if (seen.has(listingUrl)) continue;
     seen.add(listingUrl);
     listings.push({

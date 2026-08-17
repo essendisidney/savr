@@ -118,11 +118,12 @@ export async function searchLiveMarket(
 }
 
 export const DAILY_SEEDS = [
-  "iphone 13",
-  "samsung a15",
-  "laptop",
+  "unga",
+  "maize flour",
+  "sugar",
   "cooking oil",
   "fresh milk",
+  "iphone 13",
 ];
 
 export async function runDailyMarketBoard(): Promise<{
