@@ -57,6 +57,12 @@ export const SPEND_INTENTS: SpendIntent[] = [
     hint: "Catch drops on staples you care about",
   },
   {
+    id: "haggle",
+    label: "Haggle with listed facts",
+    href: "/market",
+    hint: "Show the seller a real listed price — we don’t invent wholesale",
+  },
+  {
     id: "map",
     label: "See nearby value",
     href: "/map",

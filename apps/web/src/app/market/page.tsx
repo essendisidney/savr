@@ -21,6 +21,7 @@ import {
 import { track } from "@/lib/track";
 import { useAuth } from "@/lib/auth";
 import { watchMarketListing } from "@/lib/actions";
+import { HaggleFacts } from "@/components/HaggleFacts";
 import { buildMarketBoardShare, buildMarketDealShare, whatsAppShareUrl } from "@/lib/share";
 
 export default function MarketPage() {
@@ -130,6 +131,8 @@ function MarketInner() {
   }
 
   const cheapest = data?.listings[0] ?? null;
+  const priciest =
+    data && data.listings.length > 1 ? data.listings[data.listings.length - 1] : null;
   const okSources = data?.sources.filter((s) => s.status === "ok") ?? [];
   const blocked = data?.sources.filter((s) => s.status === "blocked") ?? [];
 
@@ -224,6 +227,19 @@ function MarketInner() {
                   WhatsApp this find
                 </a>
               </div>
+            )}
+
+            {!loading && cheapest && qParam && (
+              <HaggleFacts
+                itemName={cheapest.name}
+                listedLabel={`${formatMarketMoney(cheapest.priceCents, cheapest.currency)} at ${cheapest.shop}`}
+                highLabel={
+                  priciest && data?.spread && data.spread.saveCents > 0
+                    ? `${formatMarketMoney(priciest.priceCents, priciest.currency)} at ${priciest.shop}`
+                    : null
+                }
+                path={`/market?q=${encodeURIComponent(qParam)}&country=${country}`}
+              />
             )}
 
             {data && (

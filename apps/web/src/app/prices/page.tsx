@@ -23,6 +23,7 @@ import type { Catalog, Product } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { SavingsMoment } from "@/components/SavingsMoment";
+import { HaggleFacts } from "@/components/HaggleFacts";
 import { ShopperOriginBar } from "@/components/ShopperOriginBar";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
@@ -591,6 +592,20 @@ function PricesInner() {
                     })}
                     shareLabel="Share another way"
                     emphasizeShare={saved > 0}
+                  />
+                )}
+                {cheapest && selected && (
+                  <HaggleFacts
+                    itemName={selected.name}
+                    listedLabel={`${formatKes(cheapest.priceCents)} at ${cheapest.merchantName}${
+                      cheapest.branchName ? ` · ${cheapest.branchName}` : ""
+                    }`}
+                    highLabel={
+                      saved > 0 && dearest
+                        ? `${formatKes(dearest.priceCents)} at ${dearest.merchantName}`
+                        : null
+                    }
+                    path={`/prices?id=${encodeURIComponent(selected.id)}&q=${encodeURIComponent(selected.name)}`}
                   />
                 )}
                 {cheapest && (

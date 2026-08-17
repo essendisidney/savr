@@ -292,6 +292,20 @@ export function buildShelfDealShare(params: {
   };
 }
 
+/** In-person haggle — listed facts only, never a fake wholesale floor. */
+export function buildHaggleShare(params: {
+  itemName: string;
+  listedLabel: string;
+  path: string;
+}): SharePayload {
+  const path = params.path.startsWith("/") ? params.path : `/${params.path}`;
+  return {
+    title: "Savr listed price",
+    text: `Savr listed “${params.itemName}” at ${params.listedLabel}. That’s a listed shop price — not invented wholesale. If you’re bargaining in person, ask them to beat it in cash. Confirm there. Before you spend, Savr it.`,
+    url: `${publicOrigin()}${path}`,
+  };
+}
+
 export async function sharePayload(payload: SharePayload): Promise<"shared" | "copied" | "failed"> {
   const full = `${payload.text}\n${payload.url}`;
   try {
