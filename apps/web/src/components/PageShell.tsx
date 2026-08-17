@@ -7,7 +7,7 @@ export function PageShell({
 }) {
   return (
     <div
-      className={`mx-auto px-4 py-9 md:px-6 md:py-12 ${narrow ? "max-w-md" : "max-w-5xl"}`}
+      className={`mx-auto px-4 py-6 md:px-6 md:py-8 ${narrow ? "max-w-md" : "max-w-5xl"}`}
     >
       {children}
     </div>

@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { JobRail, type JobRailKind } from "@/components/JobRail";
 
 const themes = {
   basket: { label: "Groceries · Nairobi" },
   rides: { label: "Transport" },
   fuel: { label: "Fuel · Nearby" },
-  wallet: { label: "Saved with Savr" },
+  wallet: { label: "Wallet" },
   prices: { label: "Compare · Nairobi" },
   login: { label: "Account" },
-  account: { label: "Your profile" },
+  account: { label: "You" },
   check: { label: "After the shop" },
   market: { label: "Compare · Online" },
   bundles: { label: "Airtime · Kenya" },
@@ -21,32 +20,28 @@ export function PageHero({
   title,
   subtitle,
   action,
-  jobs,
 }: {
   theme: PageTheme;
   title: string;
   subtitle?: string;
   action?: { href: string; label: string };
-  jobs?: JobRailKind;
 }) {
   const t = themes[theme];
 
   return (
-    <section className="page-hero relative overflow-hidden border-b border-white/40">
-      <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
-      <div className="relative mx-auto max-w-5xl px-4 pb-9 pt-11 md:px-6 md:pb-11 md:pt-14">
-        <p className="page-eyebrow animate-rise">{t.label}</p>
-        <h1 className="page-title animate-rise-delay mt-2.5 max-w-2xl text-[clamp(1.9rem,4.6vw,2.85rem)]">
+    <section className="page-hero relative overflow-hidden border-b border-white/50">
+      <div className="relative mx-auto max-w-5xl px-4 pb-6 pt-7 md:px-6 md:pb-8 md:pt-9">
+        <p className="page-eyebrow">{t.label}</p>
+        <h1 className="page-title mt-1.5 max-w-2xl text-[clamp(1.45rem,3.8vw,2.15rem)]">
           {title}
         </h1>
         {subtitle && (
-          <p className="animate-rise-delay-2 mt-3.5 max-w-lg text-[15px] leading-relaxed text-savr-mute md:text-base">
+          <p className="mt-2.5 max-w-lg text-[14px] leading-relaxed text-savr-mute md:text-[15px]">
             {subtitle}
           </p>
         )}
-        {jobs ? <JobRail kind={jobs} /> : null}
         {action && (
-          <Link href={action.href} className="btn-primary mt-7 inline-flex animate-rise-delay-2">
+          <Link href={action.href} className="btn-primary mt-5 inline-flex">
             {action.label}
           </Link>
         )}

@@ -113,19 +113,21 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-white/50 bg-white/70 shadow-[0_-16px_48px_-28px_rgba(11,18,32,0.35)] backdrop-blur-2xl md:hidden"
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-savr-ink/[0.08] bg-white/95 backdrop-blur-xl md:hidden"
+      style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}
       aria-label="Primary"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-between px-1 pt-1.5">
+      <ul className="mx-auto flex max-w-lg items-stretch justify-between px-1.5 pt-1">
         {tabs.map((tab) => {
           const active = tab.match(pathname);
           return (
             <li key={tab.href} className="flex-1">
               <Link
                 href={tab.href}
-                className={`flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-semibold tracking-wide transition ${
-                  active ? "text-savr-forest" : "text-savr-mute hover:text-savr-ink"
+                className={`mx-0.5 flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-semibold tracking-wide transition ${
+                  active
+                    ? "bg-savr-forest/10 text-savr-forest"
+                    : "text-savr-mute hover:text-savr-ink"
                 }`}
               >
                 {tab.icon(active)}

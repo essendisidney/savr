@@ -1,6 +1,7 @@
 import type { CrawlerResult, MarketCountry, MarketCurrency, MarketListing } from "./types";
 import { decodeHtml, fetchHtml, parseAmountCents } from "./http";
 import { withJumiaPartnerTag } from "./affiliate";
+import { withHtmlOmniFallback } from "./omni";
 
 const HOSTS: Record<
   MarketCountry,
@@ -65,10 +66,19 @@ export async function searchJumia(query: string, country: MarketCountry): Promis
     if (listings.length >= 12) break;
   }
 
+  const resolved = withHtmlOmniFallback(listings, fetched.html, {
+    shopId,
+    shop,
+    country,
+    currency: meta.currency,
+    pageUrl: url,
+    limit: 12,
+  }).map((row) => ({ ...row, url: withJumiaPartnerTag(row.url) }));
+
   return {
     shopId,
     shop,
-    status: listings.length ? "ok" : "empty",
-    listings,
+    status: resolved.length ? "ok" : "empty",
+    listings: resolved,
   };
 }

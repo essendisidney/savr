@@ -2,35 +2,32 @@
 
 import Link from "next/link";
 import { PageFrame, PageShell } from "@/components/PageShell";
+import { PageHero } from "@/components/PageHero";
 import { SPEND_INTENTS, withAskParam } from "@/lib/intents";
 
 export default function ComparePage() {
   return (
     <PageFrame>
-      <div className="page-hero relative overflow-hidden border-b border-white/40">
-        <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative mx-auto max-w-2xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
-          <p className="page-eyebrow">Compare</p>
-          <h1 className="page-title mt-2.5 text-[clamp(1.85rem,4vw,2.5rem)]">
-            What are you deciding?
-          </h1>
-          <p className="mt-3.5 text-[15px] leading-relaxed text-savr-mute">
-            Ask from Home, or pick the job. Savr ranks listed prices — confirm at the shop.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        theme="prices"
+        title="What are you deciding?"
+        subtitle="Ask from Home, or pick the job. Savr ranks listed prices — confirm at the shop."
+      />
 
       <PageShell narrow>
         <ul className="space-y-2">
-          {SPEND_INTENTS.map((intent) => (
+          {SPEND_INTENTS.map((intent, i) => (
             <li key={intent.id}>
               <Link
                 href={withAskParam(intent.href, intent.label)}
-                className="card flex items-center justify-between gap-3 px-4 py-3.5 hover:border-savr-forest/30"
+                className="card flex items-center gap-3.5 px-4 py-3.5"
               >
-                <span>
+                <span className="intent-index" aria-hidden>
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-savr-ink">{intent.label}</span>
-                  <span className="text-xs text-savr-mute">{intent.hint}</span>
+                  <span className="text-[13px] text-savr-mute">{intent.hint}</span>
                 </span>
                 <span className="text-sm font-semibold text-savr-forest">→</span>
               </Link>

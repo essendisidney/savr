@@ -1,5 +1,6 @@
 import type { CrawlerResult, MarketListing } from "./types";
 import { fetchHtml, parseAmountCents, stripTags } from "./http";
+import { withHtmlOmniFallback } from "./omni";
 
 /** Naivas public shop HTML. Magento-style storefronts often JS-render — fail soft. */
 export async function searchNaivas(query: string): Promise<CrawlerResult> {
@@ -45,11 +46,20 @@ export async function searchNaivas(query: string): Promise<CrawlerResult> {
     });
   }
 
+  const resolved = withHtmlOmniFallback(listings, fetched.html, {
+    shopId,
+    shop,
+    country: "ke",
+    currency: "KES",
+    pageUrl: url,
+    limit: 12,
+  });
+
   return {
     shopId,
     shop,
-    status: listings.length ? "ok" : "blocked",
-    listings,
-    error: listings.length ? undefined : "Naivas HTML had no priced cards (often JS-only)",
+    status: resolved.length ? "ok" : "blocked",
+    listings: resolved,
+    error: resolved.length ? undefined : "Naivas HTML had no priced cards (often JS-only)",
   };
 }

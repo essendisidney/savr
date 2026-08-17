@@ -17,7 +17,6 @@ import { cityProofFromCatalog } from "@/lib/city-proof";
 import { fuelSavingsCredible } from "@/lib/data-honesty";
 import {
   ASK_PLACEHOLDERS,
-  POPULAR_ASKS,
   routeAskQuery,
   savingsBuys,
   weekdayPulse,
@@ -242,9 +241,7 @@ export function HomeDecision() {
     pushRecentAsk(trimmed);
     setRecent(loadRecentAsks());
     setAsking(true);
-    window.setTimeout(() => {
-      router.push(routeAskQuery(trimmed));
-    }, 520);
+    router.push(routeAskQuery(trimmed));
   }
 
   function onAsk(e: FormEvent) {
@@ -297,56 +294,41 @@ export function HomeDecision() {
   }
 
   const primary = opportunities[0] ?? null;
-  const waysTotal = opportunities.reduce((s, o) => s + o.amountCents, 0);
   const nearbyOffers = nearby.grocery + nearby.fuel;
+  const showContinue = primary?.id !== "basket";
 
   return (
     <div className="home-stage relative min-h-[calc(100svh-3.5rem)] overflow-hidden">
       <div className="home-stage-glow pointer-events-none absolute inset-0" aria-hidden />
-      <div className="home-stage-mesh pointer-events-none absolute inset-0" aria-hidden />
-      <div className="home-city pointer-events-none absolute inset-x-0 bottom-0 h-40 opacity-[0.08]" aria-hidden />
 
-      <div className="relative z-10 mx-auto flex max-w-lg flex-col px-4 pb-28 pt-11 md:px-6 md:pb-32 md:pt-16">
-        <p className="home-eyebrow animate-rise">
+      <div className="relative z-10 mx-auto flex max-w-lg flex-col px-4 pb-24 pt-8 md:px-6 md:pb-28 md:pt-12">
+        <p className="home-eyebrow">
+          {proofChip ? `Nairobi · ${proofChip}` : "Nairobi"}
+        </p>
+        <h1 className="home-hello mt-2">
           {greeting}
           {name !== "there" ? `, ${name}` : ""}
-        </p>
-
-        <p className="home-brand animate-rise mt-3">Savr</p>
-
-        {proofChip && (
-          <p className="animate-rise mt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-savr-forest">
-            Nairobi open · {proofChip}
-          </p>
-        )}
-
-        <p className="animate-rise-delay mt-5 max-w-md text-[1.2rem] font-medium leading-[1.35] tracking-tightish text-savr-ink/80 md:text-[1.35rem]">
+        </h1>
+        <p className="mt-2 max-w-md text-[15px] leading-relaxed text-savr-mute md:text-base">
           {ready && primary
-            ? "Before you spend anything today — Savr already sees where you can save."
-            : "Before you spend, Ask Savr — Unga, data, a Nairobi grocery basket, or a live online listing."}
+            ? "Ask before you spend — or open the opportunity Savr already sees."
+            : pulse}
         </p>
-        {!primary && (
-          <p className="animate-rise-delay mt-2 text-[13px] leading-relaxed text-savr-mute/90">
-            {pulse}
-          </p>
-        )}
 
-        {/* HERO — Ask */}
-        <form onSubmit={onAsk} className="animate-rise-delay-2 mt-8">
+        <form onSubmit={onAsk} className="mt-6">
           <label className="sr-only" htmlFor="savr-home-ask">
             Ask Savr
           </label>
-          <div className={`home-ask animate-breathe ${asking || listening ? "home-ask-busy" : ""}`}>
-            <div className="flex w-full items-center gap-2 px-3.5 sm:gap-3 sm:px-5">
-              <span className="home-ask-label hidden sm:inline">Ask Savr</span>
-              <div className="relative min-h-[1.55rem] min-w-0 flex-1">
+          <div className={`home-ask ${asking || listening ? "home-ask-busy" : ""}`}>
+            <div className="flex w-full items-center gap-1.5 px-3 sm:gap-2.5 sm:px-4">
+              <div className="relative min-h-[1.45rem] min-w-0 flex-1">
                 <input
                   ref={inputRef}
                   id="savr-home-ask"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={placeholder}
-                  className="w-full border-0 bg-transparent py-1 text-[16.5px] font-medium tracking-tightish text-savr-ink outline-none placeholder:text-transparent"
+                  className="w-full border-0 bg-transparent py-1 text-[16px] font-medium tracking-tightish text-savr-ink outline-none placeholder:text-transparent"
                   autoComplete="off"
                   autoFocus
                   disabled={asking}
@@ -354,7 +336,7 @@ export function HomeDecision() {
                 {!query && (
                   <span
                     key={placeholderKey}
-                    className="home-ask-placeholder pointer-events-none absolute inset-0 flex items-center text-[15px] text-savr-mute/50 sm:text-[16px]"
+                    className="home-ask-placeholder pointer-events-none absolute inset-0 flex items-center text-[15px] text-savr-mute/55 sm:text-[16px]"
                     aria-hidden
                   >
                     {placeholder}
@@ -373,75 +355,49 @@ export function HomeDecision() {
               </button>
               <Link
                 href="/scan"
-                className="home-ask-icon"
+                className="home-ask-icon hidden sm:inline-flex"
                 aria-label="Scan barcode to tip a shelf"
                 title="Scan to tip"
               >
                 <ScanIcon />
               </Link>
-              <button
-                type="submit"
-                disabled={asking}
-                className="home-ask-go disabled:opacity-70"
-              >
+              <button type="submit" disabled={asking} className="home-ask-go disabled:opacity-70">
                 {asking ? "…" : "Go"}
               </button>
             </div>
           </div>
           {(asking || listening) && (
-            <p className="home-status mt-3.5">
+            <p className="home-status mt-3">
               <span className="home-status-dot" aria-hidden />
-              {listening ? "Listening…" : "Savr is looking for the smartest path…"}
+              {listening ? "Listening…" : "Looking for the smartest path…"}
             </p>
           )}
-          {voiceError && (
-            <p className="mt-2 text-sm text-amber-800/90">{voiceError}</p>
-          )}
+          {voiceError && <p className="mt-2 text-sm text-amber-800/90">{voiceError}</p>}
         </form>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3.5 flex flex-wrap gap-2">
           <Link href={ungaHref} className="home-chip">
-            How much is Unga today?
+            Unga today
           </Link>
           <Link href="/bundles" className="home-chip">
-            Data bundles
+            Data
           </Link>
           <Link href="/basket?staples=1" className="home-chip">
-            Cheapest grocery cart
+            Grocery cart
           </Link>
-          {POPULAR_ASKS.filter(
-            (c) =>
-              c.q !== "how much is unga today" &&
-              c.q !== "safaricom data bundles" &&
-              c.q !== "weekly groceries",
-          ).map(
-            (chip) => (
-            <button
-              key={chip.q}
-              type="button"
-              disabled={asking}
-              onClick={() => goAsk(chip.q)}
-              className="home-chip"
-            >
-              {chip.label}
-            </button>
-          ),
-          )}
+          <Link href="/market" className="home-chip">
+            Shop online
+          </Link>
         </div>
 
-        <div className="home-stack alive-stack animate-rise-delay-2 mt-9">
-          {/* Opportunity — rule-based, not AI theatre */}
+        <div className="home-stack mt-7">
           {ready && opportunities.length >= 2 ? (
-            <div className="home-card-hero alive-card">
-              <p className="home-eyebrow home-eyebrow-on-light">Today’s opportunity</p>
-              <p className="mt-2.5 font-display text-xl font-bold tracking-tightish text-savr-ink md:text-[1.65rem]">
-                I found {opportunities.length} ways you can save today
+            <div className="home-card-hero">
+              <p className="home-eyebrow home-eyebrow-on-light">Today</p>
+              <p className="mt-2 font-display text-lg font-bold tracking-tightish text-savr-ink">
+                {opportunities.length} paths — listed spread, not a promise
               </p>
-              <p className="home-amount mt-2">{formatKes(waysTotal)}</p>
-              <p className="mt-2 text-[13px] leading-relaxed text-savr-mute">
-                Potential across basket, fuel, and watches — not a promise, a path. Confirm on shelf.
-              </p>
-              <ul className="mt-5 space-y-2">
+              <ul className="mt-4 space-y-2">
                 {opportunities.map((o) => (
                   <li key={o.id}>
                     <Link href={o.href} className="home-way-row">
@@ -460,81 +416,71 @@ export function HomeDecision() {
               </ul>
             </div>
           ) : primary ? (
-            <Link href={primary.href} className="home-card-hero alive-card block">
-              <p className="home-eyebrow home-eyebrow-on-light">Today’s opportunity</p>
-              <p className="home-amount mt-3">{formatKes(primary.amountCents)}</p>
-              <p className="mt-2.5 font-display text-lg font-bold tracking-tightish text-savr-ink">
+            <Link href={primary.href} className="home-card-hero block">
+              <p className="home-eyebrow home-eyebrow-on-light">{primary.eyebrow}</p>
+              <p className="mt-2 font-display text-lg font-bold tracking-tightish text-savr-ink">
                 {primary.title}
               </p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-savr-mute">{primary.body}</p>
-              <p className="mt-4 text-[13px] font-semibold text-savr-forest">{primary.cta}</p>
+              <p className="mt-3 flex items-center justify-between gap-3 text-[13px] font-semibold text-savr-forest">
+                <span>{primary.cta}</span>
+                <span className="tabular-nums">{formatKes(primary.amountCents)}</span>
+              </p>
             </Link>
           ) : null}
 
-          {/* Continue — medium */}
-          <div className="home-card-mid alive-card">
-            <Link href={cta.href} className="flex items-start justify-between gap-3">
-              <div>
+          <div className="home-quick">
+            {showContinue && (
+              <Link href={cta.href} className="home-quick-tile">
                 <p className="home-eyebrow home-eyebrow-mute">Continue</p>
-                <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
+                <p className="mt-1.5 font-display text-[15px] font-bold tracking-tightish text-savr-ink">
                   {cta.label}
                 </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-savr-mute">{cta.detail}</p>
-              </div>
-              {continueSaveCents >= 500 ? (
-                <div className="text-right">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                    Potential
+                {continueSaveCents >= 500 ? (
+                  <p className="mt-1 text-[13px] font-semibold tabular-nums text-savr-forest">
+                    {formatKes(continueSaveCents)} spread
                   </p>
-                  <p className="mt-0.5 font-display text-2xl font-extrabold tabular-nums tracking-tightish text-savr-forest">
-                    {formatKes(continueSaveCents)}
-                  </p>
-                </div>
-              ) : (
-                <span className="pt-1 text-sm font-semibold text-savr-forest">→</span>
-              )}
-            </Link>
-            {cta.secondaryHref && cta.secondaryLabel && (
-              <Link
-                href={cta.secondaryHref}
-                className="mt-3.5 inline-block text-[13px] font-semibold text-savr-mute transition hover:text-savr-forest"
-              >
-                {cta.secondaryLabel} →
+                ) : (
+                  <p className="mt-1 text-[12px] leading-snug text-savr-mute">{cta.detail}</p>
+                )}
               </Link>
             )}
+            <Link href="/map" className="home-quick-tile">
+              <p className="home-eyebrow home-eyebrow-mute">Nearby</p>
+              <p className="mt-1.5 font-display text-[15px] font-bold tracking-tightish text-savr-ink">
+                {nearbyOffers > 0
+                  ? `${nearby.grocery} shops · ${nearby.fuel} fuel`
+                  : "Value map"}
+              </p>
+              <p className="mt-1 text-[12px] text-savr-mute">Open the map</p>
+            </Link>
+            <Link href={user ? "/wallet" : "/login?next=/wallet"} className="home-quick-tile">
+              <p className="home-eyebrow home-eyebrow-mute">Wallet</p>
+              <p className="mt-1.5 font-display text-[15px] font-bold tracking-tightish text-savr-ink">
+                {user
+                  ? balanceCents > 0
+                    ? formatKes(balanceCents)
+                    : todayCents > 0
+                      ? formatKes(todayCents)
+                      : "Ledger"
+                  : "Sign in"}
+              </p>
+              <p className="mt-1 text-[12px] text-savr-mute">
+                {user
+                  ? lifetimeCents > 0
+                    ? `${formatKes(lifetimeCents)} lifetime`
+                    : "Cashback & shops"
+                  : "Keep cashback"}
+              </p>
+            </Link>
           </div>
 
-          {/* Wallet — medium */}
-          <Link href="/wallet" className="home-card-mid alive-card block">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="home-eyebrow home-eyebrow-mute">Wallet</p>
-                <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
-                  {user
-                    ? balanceCents > 0
-                      ? `${formatKes(balanceCents)} cashback`
-                      : todayCents > 0
-                        ? `${formatKes(todayCents)} kept today`
-                        : "Your savings ledger"
-                    : "Sign in to keep cashback"}
-                </p>
-              </div>
-              <span className="text-sm font-semibold text-savr-forest">→</span>
-            </div>
-          </Link>
-
-          {/* Recent — small */}
           {recent.length > 0 && (
-            <div className="home-card-sm">
+            <div>
               <p className="home-eyebrow home-eyebrow-mute">Recent</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 {recent.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => goAsk(r)}
-                    className="home-chip"
-                  >
+                  <button key={r} type="button" onClick={() => goAsk(r)} className="home-chip">
                     {r.length > 28 ? `${r.slice(0, 28)}…` : r}
                   </button>
                 ))}
@@ -542,65 +488,17 @@ export function HomeDecision() {
             </div>
           )}
 
-          {/* Nearby map preview — medium */}
-          <Link href="/map" className="home-card-map alive-card block">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="home-eyebrow home-eyebrow-on-light">Nearby</p>
-                <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
-                  {nearbyOffers > 0
-                    ? `${nearby.grocery} supermarket${nearby.grocery === 1 ? "" : "s"} · ${nearby.fuel} fuel`
-                    : "Value map"}
-                </p>
-                <p className="mt-1 text-[13px] text-savr-mute">
-                  {nearbyOffers > 0
-                    ? `${nearbyOffers} places Savr can rank near you`
-                    : "See where Nairobi saves"}
-                </p>
-              </div>
-              <span className="home-map-thumb" aria-hidden />
-            </div>
-          </Link>
-
-          {/* Lifetime — small */}
-          {ready && lifetimeCents > 0 && (
-            <div className="home-card-sm flex items-center justify-between gap-3">
-              <div>
-                <p className="home-eyebrow home-eyebrow-mute">Lifetime saved</p>
-                <p className="mt-1.5 font-display text-xl font-bold tabular-nums tracking-tightish text-savr-ink">
-                  {formatKes(lifetimeCents)}
-                </p>
-              </div>
-              <Link
-                href="/wallet"
-                className="text-[13px] font-semibold text-savr-forest transition hover:text-savr-ink"
-              >
-                Wallet →
-              </Link>
-            </div>
-          )}
-
-          {/* Market share */}
-          <div className="home-card-sm space-y-3">
-            <div>
-              <p className="home-eyebrow home-eyebrow-mute">Share Savr</p>
-              <p className="mt-1.5 text-[14px] font-semibold text-savr-ink">
-                WhatsApp a Kenya group
-              </p>
-              <p className="mt-1 text-[13px] text-savr-mute">
-                Rank Jumia and Nairobi shelves before anyone buys. Confirm at the shop — Savr isn’t
-                the seller.
-              </p>
-            </div>
+          <p className="pt-1 text-center text-[13px] text-savr-mute">
             <a
               href={whatsAppShareUrl(buildMarketInviteShare())}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary inline-flex text-sm"
+              className="font-semibold text-savr-forest hover:underline"
             >
-              WhatsApp invite →
+              WhatsApp Savr
             </a>
-          </div>
+            {" · "}confirm at the shop — we aren’t the seller
+          </p>
         </div>
       </div>
     </div>

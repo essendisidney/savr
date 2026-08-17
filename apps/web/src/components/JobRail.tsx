@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const RAILS = {
   buy: [
+    { href: "/ask", label: "Jobs", prefix: "/ask" },
     { href: "/prices", label: "Item", prefix: "/prices" },
     { href: "/basket?staples=1", label: "Basket", prefix: "/basket" },
     { href: "/market", label: "Online", prefix: "/market" },
@@ -20,11 +21,17 @@ const RAILS = {
 
 export type JobRailKind = keyof typeof RAILS;
 
-export function JobRail({ kind }: { kind: JobRailKind }) {
+export function JobRail({
+  kind,
+  className = "mt-5",
+}: {
+  kind: JobRailKind;
+  className?: string;
+}) {
   const pathname = usePathname();
   return (
     <nav
-      className="job-rail mt-5 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className={`job-rail flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
       aria-label={kind === "buy" ? "Compare" : "Nearby"}
     >
       {RAILS[kind].map((item) => {

@@ -1,5 +1,6 @@
 import type { CrawlerResult, MarketListing } from "./types";
 import { fetchHtml, parseAmountCents, stripTags } from "./http";
+import { withHtmlOmniFallback } from "./omni";
 
 /** Jiji is often Cloudflare-gated. Fail soft — never invent classified prices. */
 export async function searchJiji(query: string): Promise<CrawlerResult> {
@@ -42,11 +43,20 @@ export async function searchJiji(query: string): Promise<CrawlerResult> {
     });
   }
 
+  const resolved = withHtmlOmniFallback(listings, fetched.html, {
+    shopId,
+    shop,
+    country: "ke",
+    currency: "KES",
+    pageUrl: url,
+    limit: 12,
+  });
+
   return {
     shopId,
     shop,
-    status: listings.length ? "ok" : fetched.html.length > 8000 ? "empty" : "blocked",
-    listings,
-    error: listings.length ? undefined : "No priced classifieds in HTML (often JS-only)",
+    status: resolved.length ? "ok" : fetched.html.length > 8000 ? "empty" : "blocked",
+    listings: resolved,
+    error: resolved.length ? undefined : "No priced classifieds in HTML (often JS-only)",
   };
 }

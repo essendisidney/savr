@@ -9,12 +9,12 @@ export function SiteFooter() {
   if (pathname === "/") return null;
   const wa = supportWhatsAppUrl();
   return (
-    <footer className="relative mt-4 border-t border-white/50 bg-white/55 px-4 py-12 backdrop-blur-xl md:px-6">
-      <div className="mx-auto flex max-w-5xl flex-col gap-7 md:flex-row md:items-start md:justify-between">
+    <footer className="relative mt-2 border-t border-savr-ink/[0.07] bg-white/90 px-4 py-8 md:px-6">
+      <div className="mx-auto flex max-w-5xl flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="font-display text-2xl font-extrabold tracking-brand text-savr-ink">Savr</p>
-          <p className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-savr-mute">
-            Before you spend, Savr it. We rank listed Kenya prices. Confirm at the shop.
+          <p className="font-display text-lg font-extrabold tracking-brand text-savr-ink">Savr</p>
+          <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-savr-mute">
+            We rank listed Kenya prices. Confirm at the shop.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 text-[13px]">

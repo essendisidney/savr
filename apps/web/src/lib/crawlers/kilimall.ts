@@ -1,5 +1,6 @@
 import type { CrawlerResult, MarketListing } from "./types";
 import { fetchHtml, parseAmountCents, stripTags } from "./http";
+import { withHtmlOmniFallback } from "./omni";
 
 export async function searchKilimall(query: string): Promise<CrawlerResult> {
   const shopId = "kilimall-ke";
@@ -37,10 +38,19 @@ export async function searchKilimall(query: string): Promise<CrawlerResult> {
     });
   }
 
+  const resolved = withHtmlOmniFallback(listings, fetched.html, {
+    shopId,
+    shop,
+    country: "ke",
+    currency: "KES",
+    pageUrl: url,
+    limit: 12,
+  });
+
   return {
     shopId,
     shop,
-    status: listings.length ? "ok" : "empty",
-    listings,
+    status: resolved.length ? "ok" : "empty",
+    listings: resolved,
   };
 }

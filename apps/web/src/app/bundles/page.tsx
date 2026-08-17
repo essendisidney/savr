@@ -42,7 +42,6 @@ function BundlesInner() {
     <PageFrame>
       <PageHero
         theme="bundles"
-        jobs="buy"
         title={askText ? "Data & airtime — confirm live" : "Safaricom data packs"}
         subtitle={
           askText

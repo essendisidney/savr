@@ -13,7 +13,6 @@ import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare"
 import { catalogHonesty, fuelHonesty } from "@/lib/data-honesty";
 import { haversineKm, useShopperOrigin } from "@/lib/geo";
 import { askQuote } from "@/lib/intents";
-import { JobRail } from "@/components/JobRail";
 import type { MapPoint, ValueTier } from "@/components/NairobiMap";
 
 const NairobiMap = dynamic(() => import("@/components/NairobiMap").then((m) => m.NairobiMap), {
@@ -195,14 +194,13 @@ function MapInner() {
 
   return (
     <PageFrame>
-      <div className="page-hero relative overflow-hidden border-b border-white/40">
-        <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative mx-auto max-w-5xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
+      <div className="page-hero relative overflow-hidden border-b border-white/50">
+        <div className="relative mx-auto max-w-5xl px-4 pb-6 pt-7 md:px-6 md:pb-8 md:pt-9">
           <p className="page-eyebrow">Value map</p>
-          <h1 className="page-title mt-2.5 max-w-2xl text-[clamp(1.85rem,4.5vw,2.75rem)]">
+          <h1 className="page-title mt-1.5 max-w-2xl text-[clamp(1.45rem,3.8vw,2.15rem)]">
             {askText ? "Here’s nearby value" : "Where Nairobi saves money"}
           </h1>
-          <p className="mt-3.5 max-w-lg text-[15px] leading-relaxed text-savr-mute">
+          <p className="mt-2.5 max-w-lg text-[14px] leading-relaxed text-savr-mute md:text-[15px]">
             {askText
               ? `For “${askQuote(askText)}” — green is best value, yellow middle, red expensive. Confirm on shelf / board.`
               : "Green = best value. Yellow = middle. Red = expensive. Ranks use catalog + tips — confirm before you spend."}
@@ -214,7 +212,6 @@ function MapInner() {
               {filter !== "all" ? ` · showing ${filter}` : ""}.
             </p>
           )}
-          <JobRail kind="city" />
         </div>
       </div>
 

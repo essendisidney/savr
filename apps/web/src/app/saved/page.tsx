@@ -120,9 +120,8 @@ function SavedInner() {
       : "/login?next=/saved";
     return (
       <PageFrame>
-        <div className="page-hero relative overflow-hidden border-b border-white/40">
-          <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
-          <div className="relative mx-auto max-w-2xl px-4 py-10 md:px-6">
+        <div className="page-hero relative overflow-hidden border-b border-white/50">
+          <div className="relative mx-auto max-w-2xl px-4 pb-6 pt-7 md:px-6 md:pt-8">
             <p className="page-eyebrow">Saved</p>
             <h1 className="page-title mt-2.5 text-3xl">Your lists & wins</h1>
             {askText ? (
@@ -158,9 +157,8 @@ function SavedInner() {
 
   return (
     <PageFrame>
-      <div className="page-hero relative overflow-hidden border-b border-white/40">
-        <div className="page-hero-glow pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative mx-auto max-w-2xl px-4 py-10 md:px-6">
+      <div className="page-hero relative overflow-hidden border-b border-white/50">
+        <div className="relative mx-auto max-w-2xl px-4 pb-6 pt-7 md:px-6 md:pt-8">
           <p className="page-eyebrow">Saved</p>
           <h1 className="page-title mt-2.5 text-3xl">
             {askText ? "Your watches & shops" : "Lists, watches & shops"}
