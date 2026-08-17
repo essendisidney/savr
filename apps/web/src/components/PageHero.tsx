@@ -1,15 +1,16 @@
 import Link from "next/link";
+import { JobRail, type JobRailKind } from "@/components/JobRail";
 
 const themes = {
   basket: { label: "Groceries · Nairobi" },
   rides: { label: "Transport" },
   fuel: { label: "Fuel · Nearby" },
   wallet: { label: "Saved with Savr" },
-  prices: { label: "Price check · Nairobi" },
+  prices: { label: "Compare · Nairobi" },
   login: { label: "Account" },
   account: { label: "Your profile" },
   check: { label: "After the shop" },
-  market: { label: "Live cheapest · online" },
+  market: { label: "Compare · Online" },
   bundles: { label: "Airtime · Kenya" },
 } as const;
 
@@ -20,11 +21,13 @@ export function PageHero({
   title,
   subtitle,
   action,
+  jobs,
 }: {
   theme: PageTheme;
   title: string;
   subtitle?: string;
   action?: { href: string; label: string };
+  jobs?: JobRailKind;
 }) {
   const t = themes[theme];
 
@@ -41,6 +44,7 @@ export function PageHero({
             {subtitle}
           </p>
         )}
+        {jobs ? <JobRail kind={jobs} /> : null}
         {action && (
           <Link href={action.href} className="btn-primary mt-7 inline-flex animate-rise-delay-2">
             {action.label}

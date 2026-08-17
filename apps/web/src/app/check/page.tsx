@@ -417,6 +417,7 @@ function CheckInner() {
     <PageFrame>
       <PageHero
         theme="check"
+        jobs="buy"
         title={askText ? "Let’s check that shop" : "Could you have saved?"}
         subtitle={
           askText

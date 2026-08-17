@@ -140,6 +140,7 @@ function MarketInner() {
     <PageFrame>
       <PageHero
         theme="market"
+        jobs="buy"
         title={
           qParam
             ? cheapest

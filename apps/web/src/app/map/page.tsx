@@ -13,6 +13,7 @@ import { compareBasket, defaultListFromCatalog, formatKes } from "@/lib/compare"
 import { catalogHonesty, fuelHonesty } from "@/lib/data-honesty";
 import { haversineKm, useShopperOrigin } from "@/lib/geo";
 import { askQuote } from "@/lib/intents";
+import { JobRail } from "@/components/JobRail";
 import type { MapPoint, ValueTier } from "@/components/NairobiMap";
 
 const NairobiMap = dynamic(() => import("@/components/NairobiMap").then((m) => m.NairobiMap), {
@@ -213,6 +214,7 @@ function MapInner() {
               {filter !== "all" ? ` · showing ${filter}` : ""}.
             </p>
           )}
+          <JobRail kind="city" />
         </div>
       </div>
 

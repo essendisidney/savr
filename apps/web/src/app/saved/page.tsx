@@ -254,12 +254,7 @@ function SavedInner() {
         </section>
 
         <section className="mt-10 space-y-3">
-          <div className="flex items-end justify-between gap-3">
-            <h2 className="font-display text-lg font-bold text-savr-ink">Watching for drops</h2>
-            <Link href="/alerts" className="text-sm font-semibold text-savr-forest hover:underline">
-              Alerts →
-            </Link>
-          </div>
+          <h2 className="font-display text-lg font-bold text-savr-ink">Watching for drops</h2>
           {watches.length === 0 ? (
             <EmptyState
               title="No watches yet"
@@ -274,7 +269,7 @@ function SavedInner() {
             <ul className="space-y-2">
               {watches.map((w) => (
                 <li key={w.id} className="card flex items-center justify-between gap-3 px-4 py-3.5">
-                  <Link href={w.unread ? "/alerts" : w.href} className="min-w-0 flex-1 hover:opacity-90">
+                  <Link href={w.href} className="min-w-0 flex-1 hover:opacity-90">
                     <span className="flex items-center gap-2">
                       {w.unread && (
                         <span className="h-2 w-2 shrink-0 rounded-full bg-savr-forest" aria-hidden />

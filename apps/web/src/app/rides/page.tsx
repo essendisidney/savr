@@ -150,6 +150,7 @@ function RidesInner() {
     <PageFrame>
       <PageHero
         theme="rides"
+        jobs="city"
         title={askText ? "Here’s the live road + fare band" : "Open the live fare"}
         subtitle={
           askText

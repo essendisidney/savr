@@ -156,6 +156,7 @@ function FuelInner() {
     <PageFrame>
       <PageHero
         theme="fuel"
+        jobs="city"
         title={askText ? "Here’s cheaper fuel nearby" : "Fill up smarter"}
         subtitle={
           askText

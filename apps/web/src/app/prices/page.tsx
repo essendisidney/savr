@@ -258,6 +258,7 @@ function PricesInner() {
     <PageFrame>
       <PageHero
         theme="prices"
+        jobs="buy"
         title={
           askText || fromAsk
             ? cheapest

@@ -206,7 +206,7 @@ export function HomeDecision() {
           body: `${formatKes(drop.dropCents)} below your watch${
             drop.merchantName ? ` · ${drop.merchantName}` : ""
           }`,
-          href: drop.unread ? "/alerts" : drop.href,
+          href: drop.unread ? "/saved" : drop.href,
           cta: "See drop →",
           amountCents: drop.dropCents,
         });
@@ -409,7 +409,12 @@ export function HomeDecision() {
           <Link href="/basket?staples=1" className="home-chip">
             Cheapest grocery cart
           </Link>
-          {POPULAR_ASKS.filter((c) => c.q !== "how much is unga today" && c.q !== "safaricom data bundles").map(
+          {POPULAR_ASKS.filter(
+            (c) =>
+              c.q !== "how much is unga today" &&
+              c.q !== "safaricom data bundles" &&
+              c.q !== "weekly groceries",
+          ).map(
             (chip) => (
             <button
               key={chip.q}
@@ -516,26 +521,6 @@ export function HomeDecision() {
               </div>
               <span className="text-sm font-semibold text-savr-forest">→</span>
             </div>
-          </Link>
-
-          <Link href="/scan" className="home-card-sm alive-card block">
-            <p className="home-eyebrow home-eyebrow-mute">Capture</p>
-            <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
-              Scan to tip
-            </p>
-            <p className="mt-1 text-[13px] text-savr-mute">
-              Barcode or Savr QR → confirm KES → same tip as Prices
-            </p>
-          </Link>
-
-          <Link href="/check" className="home-card-sm alive-card block">
-            <p className="home-eyebrow home-eyebrow-mute">After shop</p>
-            <p className="mt-2 font-display text-[1.15rem] font-bold tracking-tightish text-savr-ink">
-              Check this trip
-            </p>
-            <p className="mt-1 text-[13px] text-savr-mute">
-              Log what you paid — see if another branch was cheaper
-            </p>
           </Link>
 
           {/* Recent — small */}

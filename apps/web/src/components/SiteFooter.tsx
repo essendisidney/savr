@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { supportEmail, supportMailto, supportWhatsAppUrl } from "@/lib/support";
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname === "/") return null;
   const wa = supportWhatsAppUrl();
   return (
     <footer className="relative mt-4 border-t border-white/50 bg-white/55 px-4 py-12 backdrop-blur-xl md:px-6">
@@ -9,9 +14,7 @@ export function SiteFooter() {
         <div>
           <p className="font-display text-2xl font-extrabold tracking-brand text-savr-ink">Savr</p>
           <p className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-savr-mute">
-            Before you spend, Savr it. Kenya’s cheapest-price search — live online listings, plus
-            Nairobi grocery, rides, and fuel before money leaves your wallet. We rank listed prices;
-            the shop wins if it differs. No paid “cheapest” slot. No fake price-match payout.
+            Before you spend, Savr it. We rank listed Kenya prices. Confirm at the shop.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 text-[13px]">
@@ -21,14 +24,14 @@ export function SiteFooter() {
           <Link href="/privacy" className="font-semibold text-savr-mute transition hover:text-savr-forest">
             Privacy
           </Link>
-          <Link href="/market" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Cheapest online
+          <Link href="/ask" className="font-semibold text-savr-mute transition hover:text-savr-forest">
+            Compare
           </Link>
-          <Link href="/basket" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Basket
+          <Link href="/map" className="font-semibold text-savr-mute transition hover:text-savr-forest">
+            Nearby
           </Link>
-          <Link href="/scan" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Scan
+          <Link href="/saved" className="font-semibold text-savr-mute transition hover:text-savr-forest">
+            Saved
           </Link>
           <a href={supportMailto()} className="font-semibold text-savr-mute transition hover:text-savr-forest">
             {supportEmail()}

@@ -512,6 +512,7 @@ function BasketInner() {
     <PageFrame>
       <PageHero
         theme="basket"
+        jobs="buy"
         title={askText ? "Here’s where to shop" : "Where should you shop?"}
         subtitle={
           askText

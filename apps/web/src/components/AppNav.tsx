@@ -8,12 +8,9 @@ import { COUNTRY_BADGE } from "@/lib/geo-country";
 import { isMarketCountry, type MarketCountry } from "@/lib/crawlers/types";
 
 const DESKTOP = [
-  { href: "/ask", label: "Ask Savr" },
-  { href: "/market", label: "Cheapest" },
-  { href: "/wallet", label: "Wallet" },
+  { href: "/ask", label: "Compare" },
+  { href: "/map", label: "Nearby" },
   { href: "/saved", label: "Saved" },
-  { href: "/map", label: "Map" },
-  { href: "/merchant", label: "Merchants" },
 ];
 
 export function AppNav() {

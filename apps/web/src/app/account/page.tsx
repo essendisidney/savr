@@ -116,7 +116,33 @@ export default function AccountPage() {
       <div className="page-band">
         <PageShell narrow>
           <div className="space-y-8">
-            <section className="space-y-3">
+          <div className="space-y-3">
+            <h2 className="font-display text-lg font-bold tracking-tightish">Your tools</h2>
+            <ul className="space-y-2">
+              {[
+                { href: "/wallet", label: "Wallet", hint: "Cashback and streak" },
+                { href: "/saved", label: "Saved", hint: "Lists, watches, drops" },
+                { href: "/check", label: "After shop", hint: "See if you missed a save" },
+                { href: "/scan", label: "Scan a shelf", hint: "Tip the pack in front of you" },
+                { href: "/merchant", label: "I’m a store", hint: "Upload Nairobi shelf prices" },
+              ].map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="card flex items-center justify-between gap-3 px-4 py-3.5 hover:border-savr-forest/30"
+                  >
+                    <span>
+                      <span className="block font-semibold text-savr-ink">{item.label}</span>
+                      <span className="text-xs text-savr-mute">{item.hint}</span>
+                    </span>
+                    <span className="text-sm font-semibold text-savr-forest">→</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <section className="space-y-3">
               <h2 className="font-display text-lg font-bold tracking-tightish">Recent activity</h2>
               <p className="text-sm text-savr-mute">
                 Your decisions on Savr — locks, tips, shops, watches. Private to you.
@@ -226,18 +252,13 @@ export default function AccountPage() {
                 {busy ? "Saving…" : "Save profile"}
               </button>
               {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
-              <div className="flex items-center justify-between gap-3 pt-2">
-                <Link href="/wallet" className="text-sm font-semibold text-savr-forest hover:underline">
-                  Saved with Savr →
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => signOut()}
-                  className="text-sm font-semibold text-savr-mute hover:text-savr-ink"
-                >
-                  Sign out
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="text-sm font-semibold text-savr-mute hover:text-savr-ink"
+              >
+                Sign out
+              </button>
             </div>
           </div>
         </PageShell>
