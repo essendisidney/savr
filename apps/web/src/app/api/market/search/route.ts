@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { isMarketCountry, searchLiveMarket } from "@/lib/market-search";
 
-export const revalidate = 900;
+export const maxDuration = 60;
+export const revalidate = 0;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

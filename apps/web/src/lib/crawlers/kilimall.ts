@@ -33,6 +33,7 @@ export async function searchKilimall(query: string): Promise<CrawlerResult> {
       priceCents,
       currency: "KES",
       url: listingUrl,
+      observedAt: new Date().toISOString(),
     });
   }
 

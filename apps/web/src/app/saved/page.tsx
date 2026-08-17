@@ -8,6 +8,7 @@ import {
   loadRecentReceipts,
   loadWallet,
   loadWatchlist,
+  unwatchMarketListing,
   unwatchProduct,
   type SavedListSummary,
   type ShopReceiptSummary,
@@ -295,7 +296,11 @@ function SavedInner() {
                     type="button"
                     className="shrink-0 text-xs font-semibold text-savr-mute hover:text-savr-forest"
                     onClick={async () => {
-                      await unwatchProduct(w.productId);
+                      if (w.kind === "market" && w.listingUrl) {
+                        await unwatchMarketListing(w.listingUrl);
+                      } else {
+                        await unwatchProduct(w.productId);
+                      }
                       setWatches((prev) => prev.filter((x) => x.id !== w.id));
                     }}
                   >

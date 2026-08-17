@@ -14,6 +14,7 @@ export type MarketListing = {
   priceCents: number;
   currency: MarketCurrency;
   url: string;
+  observedAt: string;
 };
 
 export type CrawlerResult = {
@@ -41,6 +42,20 @@ export function formatMarketMoney(cents: number, currency: MarketCurrency): stri
   return `${currency} ${n.toLocaleString("en-KE")}`;
 }
 
+/** Honest crawl clock in Nairobi — never invent freshness. */
+export function formatObservedKenya(iso: string | null | undefined): string {
+  if (!iso) return "time unknown";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "time unknown";
+  return d.toLocaleString("en-KE", {
+    timeZone: "Africa/Nairobi",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export type MarketSourceNote = {
   shopId: string;
   shop: string;
@@ -53,6 +68,13 @@ export type MarketSearchResult = {
   country: MarketCountry;
   listings: MarketListing[];
   sources: MarketSourceNote[];
+  /** Spread inside this result set only — not a guaranteed checkout save. */
+  spread: {
+    saveCents: number;
+    cheapestShop: string;
+    priciestShop: string;
+  } | null;
+  board: "live" | "stored" | "mixed";
 };
 
 export const SAVR_BOT_UA =

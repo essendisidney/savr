@@ -11,6 +11,7 @@ import { askQuote } from "@/lib/intents";
 import {
   MARKET_COUNTRIES,
   formatMarketMoney,
+  formatObservedKenya,
   isMarketCountry,
   type MarketCountry,
   type MarketListing,
@@ -18,6 +19,8 @@ import {
   type MarketSourceNote,
 } from "@/lib/crawlers/types";
 import { track } from "@/lib/track";
+import { useAuth } from "@/lib/auth";
+import { watchMarketListing } from "@/lib/actions";
 
 export default function MarketPage() {
   return (
@@ -47,6 +50,8 @@ function MarketInner() {
   const [data, setData] = useState<MarketSearchResult | null>(null);
   const [loading, setLoading] = useState(Boolean(qParam));
   const [error, setError] = useState<string | null>(null);
+  const [watched, setWatched] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
 
   useEffect(() => {
     setQuery(qParam);
@@ -170,6 +175,20 @@ function MarketInner() {
               ))}
             </div>
 
+            {data?.spread && data.spread.saveCents > 0 && (
+              <p className="rounded-2xl border border-savr-ink/10 bg-white px-4 py-3 text-sm text-savr-ink">
+                Cheapest listed at{" "}
+                <span className="font-semibold">{data.spread.cheapestShop}</span>
+                {" · "}
+                {formatMarketMoney(data.listings[0]?.priceCents ?? 0, data.listings[0]?.currency ?? "KES")}
+                . Spread vs {data.spread.priciestShop} in this crawl is{" "}
+                <span className="font-semibold text-savr-forest">
+                  {formatMarketMoney(data.spread.saveCents, data.listings[0]?.currency ?? "KES")}
+                </span>
+                . Confirm at checkout — not a guaranteed save.
+              </p>
+            )}
+
             {data && (
               <p className="text-xs text-savr-mute">
                 {okSources.length
@@ -178,6 +197,8 @@ function MarketInner() {
                 {blocked.length
                   ? `Skipped: ${blocked.map((s) => `${s.shop} (${sourceHint(s)})`).join(" · ")}.`
                   : null}
+                {data.board === "stored" ? " Showing this morning’s stored board." : null}
+                {data.board === "mixed" ? " Mixed with this morning’s stored board." : null}
               </p>
             )}
 
@@ -206,7 +227,27 @@ function MarketInner() {
               <ol className="divide-y divide-savr-ink/[0.06] overflow-hidden rounded-2xl border border-savr-ink/[0.08] bg-white">
                 {data.listings.map((row, i) => (
                   <li key={row.id}>
-                    <ListingRow row={row} rank={i + 1} cheapest={i === 0} />
+                    <ListingRow
+                      row={row}
+                      rank={i + 1}
+                      cheapest={i === 0}
+                      signedIn={Boolean(user)}
+                      watching={watched.has(row.url)}
+                      onWatch={async () => {
+                        const res = await watchMarketListing({
+                          url: row.url,
+                          name: row.name,
+                          shop: row.shop,
+                          baselineCents: row.priceCents,
+                        });
+                        if ("error" in res) {
+                          setError(res.error);
+                          return;
+                        }
+                        setWatched((prev) => new Set(prev).add(row.url));
+                        track("market_watch", { shop: row.shop });
+                      }}
+                    />
                   </li>
                 ))}
               </ol>
@@ -235,32 +276,57 @@ function ListingRow({
   row,
   rank,
   cheapest,
+  signedIn,
+  watching,
+  onWatch,
 }: {
   row: MarketListing;
   rank: number;
   cheapest: boolean;
+  signedIn: boolean;
+  watching: boolean;
+  onWatch: () => void;
 }) {
   return (
-    <a
-      href={row.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-start justify-between gap-3 px-4 py-3.5 transition hover:bg-savr-mist"
-    >
+    <div className="flex items-start justify-between gap-3 px-4 py-3.5">
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
           #{rank} · {row.shop}
           {cheapest ? " · cheapest listed" : ""}
         </p>
         <p className="mt-0.5 font-semibold text-savr-ink">{row.name}</p>
-        {row.brand ? <p className="text-xs text-savr-mute">{row.brand}</p> : null}
+        <p className="text-xs text-savr-mute">
+          Listed price from {row.shop} at {formatObservedKenya(row.observedAt)} · confirm at
+          checkout
+        </p>
       </div>
       <div className="shrink-0 text-right">
         <p className="font-display text-lg font-bold tabular-nums text-savr-forest">
           {formatMarketMoney(row.priceCents, row.currency)}
         </p>
-        <p className="text-xs font-semibold text-savr-ink">Open listing →</p>
+        <a
+          href={row.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-savr-ink hover:text-savr-forest"
+        >
+          Open listing →
+        </a>
+        {signedIn ? (
+          <button
+            type="button"
+            onClick={() => void onWatch()}
+            disabled={watching}
+            className="mt-2 block w-full text-[11px] font-semibold text-savr-forest disabled:text-savr-mute"
+          >
+            {watching ? "Watching" : "Watch for drop"}
+          </button>
+        ) : (
+          <Link href="/login?next=/market" className="mt-2 block text-[11px] font-semibold text-savr-mute">
+            Sign in to watch
+          </Link>
+        )}
       </div>
-    </a>
+    </div>
   );
 }

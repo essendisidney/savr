@@ -38,6 +38,7 @@ export async function searchJiji(query: string): Promise<CrawlerResult> {
       priceCents,
       currency: "KES",
       url: listingUrl,
+      observedAt: new Date().toISOString(),
     });
   }
 

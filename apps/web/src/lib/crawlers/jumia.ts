@@ -59,6 +59,7 @@ export async function searchJumia(query: string, country: MarketCountry): Promis
       priceCents,
       currency: meta.currency,
       url: listingUrl,
+      observedAt: new Date().toISOString(),
     });
     if (listings.length >= 12) break;
   }

@@ -1,8 +1,11 @@
+import { searchCarrefour } from "./crawlers/carrefour";
 import { searchJiji } from "./crawlers/jiji";
 import { searchJumia } from "./crawlers/jumia";
 import { searchKilimall } from "./crawlers/kilimall";
+import { searchNaivas } from "./crawlers/naivas";
 import type { CrawlerResult, MarketCountry, MarketSearchResult, MarketSourceNote } from "./crawlers/types";
 import { isMarketCountry } from "./crawlers/types";
+import { loadStoredMarketListings, persistMarketListings } from "./market-persist";
 
 export type { MarketCountry, MarketSearchResult } from "./crawlers/types";
 export { isMarketCountry };
@@ -11,24 +14,59 @@ export function sanitizeMarketQuery(raw: string): string {
   return raw.trim().slice(0, 80);
 }
 
+function mergeListings(
+  live: MarketSearchResult["listings"],
+  stored: MarketSearchResult["listings"],
+): MarketSearchResult["listings"] {
+  const byUrl = new Map<string, (typeof live)[0]>();
+  for (const row of [...stored, ...live]) {
+    const key = row.url.replace(/\/+$/, "").toLowerCase();
+    const prev = byUrl.get(key);
+    if (!prev) {
+      byUrl.set(key, row);
+      continue;
+    }
+    const newer = new Date(row.observedAt).getTime() >= new Date(prev.observedAt).getTime();
+    byUrl.set(key, newer ? row : prev);
+  }
+  return [...byUrl.values()].sort((a, b) => a.priceCents - b.priceCents).slice(0, 40);
+}
+
+function spreadFor(listings: MarketSearchResult["listings"]) {
+  if (listings.length < 2) return null;
+  const cheapest = listings[0];
+  const priciest = listings[listings.length - 1];
+  const saveCents = priciest.priceCents - cheapest.priceCents;
+  if (saveCents <= 0) return null;
+  return {
+    saveCents,
+    cheapestShop: cheapest.shop,
+    priciestShop: priciest.shop,
+  };
+}
+
 export async function searchLiveMarket(
   query: string,
   country: MarketCountry = "ke",
 ): Promise<MarketSearchResult> {
   const queried = sanitizeMarketQuery(query);
   if (!queried) {
-    return { queried: "", country, listings: [], sources: [] };
+    return { queried: "", country, listings: [], sources: [], spread: null, board: "live" };
   }
 
   const jobs: Promise<CrawlerResult>[] = [searchJumia(queried, country)];
   if (country === "ke") {
-    jobs.push(searchKilimall(queried), searchJiji(queried));
+    jobs.push(searchKilimall(queried), searchCarrefour(queried), searchNaivas(queried), searchJiji(queried));
   }
 
-  const settled = await Promise.allSettled(jobs);
+  const [settled, stored] = await Promise.all([
+    Promise.allSettled(jobs),
+    country === "ke" ? loadStoredMarketListings(queried, country) : Promise.resolve([]),
+  ]);
+
   const sources: MarketSourceNote[] = [];
-  const listings: MarketSearchResult["listings"] = [];
-  const seen = new Set<string>();
+  const live: MarketSearchResult["listings"] = [];
+  const seenLive = new Set<string>();
 
   for (const item of settled) {
     if (item.status === "rejected") {
@@ -49,12 +87,64 @@ export async function searchLiveMarket(
     });
     for (const row of r.listings) {
       const key = row.url.replace(/\/+$/, "").toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      listings.push(row);
+      if (seenLive.has(key)) continue;
+      seenLive.add(key);
+      live.push(row);
     }
   }
 
-  listings.sort((a, b) => a.priceCents - b.priceCents);
-  return { queried, country, listings: listings.slice(0, 40), sources };
+  if (live.length) {
+    void persistMarketListings(live, queried);
+  }
+
+  const listings = mergeListings(live, stored);
+  const board = live.length && stored.length ? "mixed" : live.length ? "live" : stored.length ? "stored" : "live";
+  if (stored.length) {
+    sources.push({
+      shopId: "stored",
+      shop: "Morning board",
+      status: stored.length ? "ok" : "empty",
+    });
+  }
+
+  return {
+    queried,
+    country,
+    listings,
+    sources,
+    spread: spreadFor(listings),
+    board,
+  };
+}
+
+export const DAILY_SEEDS = [
+  "iphone 13",
+  "samsung a15",
+  "laptop",
+  "cooking oil",
+  "fresh milk",
+];
+
+export async function runDailyMarketBoard(): Promise<{
+  seeds: string[];
+  listings: number;
+  written: number;
+  sources: Record<string, string>;
+}> {
+  const results = await Promise.all(DAILY_SEEDS.map((seed) => searchLiveMarket(seed, "ke")));
+  const sources: Record<string, string> = {};
+  const all = [];
+  for (const result of results) {
+    for (const s of result.sources) {
+      sources[s.shop] = s.status + (s.error ? `:${s.error}` : "");
+    }
+    all.push(...result.listings);
+  }
+  const persist = await persistMarketListings(all, "daily-board");
+  return {
+    seeds: DAILY_SEEDS,
+    listings: all.length,
+    written: persist.written,
+    sources,
+  };
 }

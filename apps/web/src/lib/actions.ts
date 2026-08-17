@@ -1,6 +1,7 @@
 import { loadCatalog } from "./catalog";
 import { getSupabase } from "./supabase";
 import type { BasketResult, ListItem } from "./types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type EventProp = string | number | boolean | null | undefined;
 
@@ -812,7 +813,9 @@ export async function submitCrowdsourceFuelPrice(params: {
 
 export type WatchItem = {
   id: string;
+  kind: "catalog" | "market";
   productId: string;
+  listingUrl?: string;
   productName: string;
   brand: string | null;
   baselineCents: number | null;
@@ -854,13 +857,12 @@ export async function loadWatchlist(): Promise<{
     .order("created_at", { ascending: false });
 
   if (error) return { ...empty, error: error.message };
-  if (!rows?.length) return empty;
 
   const catalog = await loadCatalog();
   const { compareProduct } = await import("./compare");
   const { formatPriceTrend } = await import("./freshness");
 
-  const items: WatchItem[] = rows.map((row) => {
+  const catalogItems: WatchItem[] = (rows ?? []).map((row) => {
     const product = catalog.products.find((p) => p.id === row.product_id);
     const ranks = compareProduct(catalog, row.product_id);
     const best = ranks[0];
@@ -879,6 +881,7 @@ export async function loadWatchlist(): Promise<{
 
     return {
       id: row.id as string,
+      kind: "catalog" as const,
       productId: row.product_id as string,
       productName: product?.name ?? "Product",
       brand: product?.brand ?? null,
@@ -896,6 +899,9 @@ export async function loadWatchlist(): Promise<{
       }),
     };
   });
+
+  const marketItems = await loadMarketWatchItems(supabase, user.id);
+  const items = [...marketItems, ...catalogItems];
 
   const drops = items
     .filter((i) => i.dropCents >= ALERT_MIN_DROP_CENTS)
@@ -1014,6 +1020,97 @@ export async function isWatchingProduct(productId: string): Promise<boolean> {
     .maybeSingle();
 
   return Boolean(data?.id);
+}
+
+async function loadMarketWatchItems(
+  supabase: SupabaseClient,
+  profileId: string,
+): Promise<WatchItem[]> {
+  const { data: rows, error } = await supabase
+    .from("market_watches")
+    .select("id, listing_url, listing_name, shop, baseline_cents, created_at")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false });
+  if (error || !rows?.length) return [];
+
+  const urls = rows.map((r) => String(r.listing_url));
+  const { data: listings } = await supabase
+    .from("market_listings")
+    .select("url, price_cents, shop, name")
+    .in("url", urls);
+
+  const byUrl = new Map((listings ?? []).map((l) => [String(l.url), l]));
+
+  return rows.map((row) => {
+    const live = byUrl.get(String(row.listing_url));
+    const baseline = Number(row.baseline_cents);
+    const current = live?.price_cents != null ? Number(live.price_cents) : baseline;
+    const dropCents = current < baseline ? baseline - current : 0;
+    const name = String(row.listing_name);
+    return {
+      id: row.id as string,
+      kind: "market" as const,
+      productId: "",
+      listingUrl: String(row.listing_url),
+      productName: name,
+      brand: null,
+      baselineCents: baseline,
+      currentCents: current,
+      merchantName: live?.shop ? String(live.shop) : row.shop ? String(row.shop) : null,
+      dropCents,
+      seenDropCents: 0,
+      unread: dropCents >= ALERT_MIN_DROP_CENTS,
+      weekTrendLabel: null,
+      href: `/market?q=${encodeURIComponent(name)}`,
+      createdAt: new Date(row.created_at as string).toLocaleDateString("en-KE", {
+        month: "short",
+        day: "numeric",
+      }),
+    };
+  });
+}
+
+export async function watchMarketListing(params: {
+  url: string;
+  name: string;
+  shop: string;
+  baselineCents: number;
+}): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to watch a price." };
+
+  const { error } = await supabase.from("market_watches").upsert(
+    {
+      profile_id: user.id,
+      listing_url: params.url,
+      listing_name: params.name.slice(0, 240),
+      shop: params.shop,
+      baseline_cents: params.baselineCents,
+    },
+    { onConflict: "profile_id,listing_url" },
+  );
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+export async function unwatchMarketListing(url: string): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase is not configured." };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to update watches." };
+  const { error } = await supabase
+    .from("market_watches")
+    .delete()
+    .eq("profile_id", user.id)
+    .eq("listing_url", url);
+  if (error) return { error: error.message };
+  return { ok: true };
 }
 
 export type ShopReceiptSummary = {

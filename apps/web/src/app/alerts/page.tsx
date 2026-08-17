@@ -41,7 +41,7 @@ export default function AlertsPage() {
   }, [user, authLoading]);
 
   async function onOpen(item: WatchItem) {
-    if (item.unread) {
+    if (item.unread && item.kind !== "market") {
       await markWatchDropSeen(item.productId, item.dropCents);
       setDrops((prev) =>
         prev.map((d) =>
@@ -60,7 +60,9 @@ export default function AlertsPage() {
     setBusy(true);
     setStatus(null);
     const res = await markAllWatchDropsSeen(
-      unread.map((d) => ({ productId: d.productId, dropCents: d.dropCents })),
+      unread
+        .filter((d) => d.kind !== "market")
+        .map((d) => ({ productId: d.productId, dropCents: d.dropCents })),
     );
     setBusy(false);
     if ("error" in res) {
