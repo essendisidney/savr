@@ -1,0 +1,266 @@
+"use client";
+
+import Link from "next/link";
+import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { PageFrame, PageShell } from "@/components/PageShell";
+import { PageHero } from "@/components/PageHero";
+import { LoadingBlock } from "@/components/LoadingBlock";
+import { EmptyState } from "@/components/EmptyState";
+import { askQuote } from "@/lib/intents";
+import {
+  MARKET_COUNTRIES,
+  formatMarketMoney,
+  isMarketCountry,
+  type MarketCountry,
+  type MarketListing,
+  type MarketSearchResult,
+  type MarketSourceNote,
+} from "@/lib/crawlers/types";
+import { track } from "@/lib/track";
+
+export default function MarketPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <div className="h-28 animate-pulse bg-savr-fog/80" />
+          <PageShell>
+            <LoadingBlock rows={4} />
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <MarketInner />
+    </Suspense>
+  );
+}
+
+function MarketInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const askText = (searchParams.get("ask") ?? "").trim();
+  const qParam = (searchParams.get("q") ?? askText).trim();
+  const countryParam = searchParams.get("country");
+  const country: MarketCountry = isMarketCountry(countryParam) ? countryParam : "ke";
+  const [query, setQuery] = useState(qParam);
+  const [data, setData] = useState<MarketSearchResult | null>(null);
+  const [loading, setLoading] = useState(Boolean(qParam));
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setQuery(qParam);
+  }, [qParam]);
+
+  const fetchListings = useCallback(async (q: string, c: MarketCountry) => {
+    if (!q.trim()) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/market/search?q=${encodeURIComponent(q.trim())}&country=${c}`,
+        { cache: "no-store" },
+      );
+      const body = (await res.json()) as MarketSearchResult & { error?: string };
+      if (!res.ok) {
+        setError(body.error ?? "Search failed");
+        setData(null);
+        return;
+      }
+      setData(body);
+      track("market_search", { q: q.trim().slice(0, 80), country: c, n: body.listings.length });
+    } catch {
+      setError("Network error — try again");
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchListings(qParam, country);
+  }, [qParam, country, fetchListings]);
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const next = query.trim();
+    if (!next) return;
+    const params = new URLSearchParams();
+    params.set("q", next);
+    params.set("country", country);
+    if (askText) params.set("ask", askText);
+    router.push(`/market?${params.toString()}`);
+  }
+
+  function setCountry(id: MarketCountry) {
+    const q = (query.trim() || qParam).trim();
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    params.set("country", id);
+    if (askText) params.set("ask", askText);
+    router.push(`/market?${params.toString()}`);
+  }
+
+  const cheapest = data?.listings[0] ?? null;
+  const okSources = data?.sources.filter((s) => s.status === "ok") ?? [];
+  const blocked = data?.sources.filter((s) => s.status === "blocked") ?? [];
+
+  return (
+    <PageFrame>
+      <PageHero
+        theme="market"
+        title={
+          qParam
+            ? cheapest
+              ? `Cheapest live: ${formatMarketMoney(cheapest.priceCents, cheapest.currency)}`
+              : "Live cheapest listings"
+            : "Cheapest live listings"
+        }
+        subtitle={
+          askText
+            ? `For “${askQuote(askText)}” — public shop pages, ranked by listed price. Confirm at checkout.`
+            : "Ask Savr anything to buy. We crawl public Jumia (and Kilimall in Kenya) pages — Savr is not the seller."
+        }
+      />
+
+      <div className="page-band">
+        <PageShell>
+          <div className="space-y-6">
+            <p className="rounded-2xl border border-savr-forest/20 bg-savr-forest/[0.06] px-4 py-3 text-sm text-savr-ink">
+              Live public crawl · confirm price and stock on the shop site. Delivery and tax are
+              not included.
+            </p>
+
+            <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <label className="sr-only" htmlFor="market-q">
+                What to buy
+              </label>
+              <input
+                id="market-q"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="iPhone 13, Samsung A15, rice cooker…"
+                className="field flex-1"
+                autoComplete="off"
+              />
+              <button type="submit" className="btn-primary shrink-0" disabled={loading}>
+                {loading ? "Searching…" : "Find cheapest"}
+              </button>
+            </form>
+
+            <div className="flex flex-wrap gap-2">
+              {MARKET_COUNTRIES.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCountry(c.id)}
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
+                    country === c.id
+                      ? "bg-savr-forest text-white"
+                      : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+            {data && (
+              <p className="text-xs text-savr-mute">
+                {okSources.length
+                  ? `Live from ${okSources.map((s) => s.shop).join(", ")}.`
+                  : "No shop returned listings this round."}{" "}
+                {blocked.length
+                  ? `Skipped: ${blocked.map((s) => `${s.shop} (${sourceHint(s)})`).join(" · ")}.`
+                  : null}
+              </p>
+            )}
+
+            {error && <p className="text-sm font-semibold text-amber-800">{error}</p>}
+
+            {loading && <LoadingBlock rows={4} />}
+
+            {!loading && qParam && data && data.listings.length === 0 && (
+              <EmptyState
+                title="No live listings yet"
+                body="Shops may have blocked this request, or the query is too specific. Try a shorter name, or compare Nairobi groceries if this is a staple."
+                action={
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/prices?q=${encodeURIComponent(qParam)}`} className="btn-ghost">
+                      Nairobi shelves
+                    </Link>
+                    <Link href="/basket?staples=1" className="btn-primary">
+                      Weekly groceries
+                    </Link>
+                  </div>
+                }
+              />
+            )}
+
+            {!loading && data && data.listings.length > 0 && (
+              <ol className="divide-y divide-savr-ink/[0.06] overflow-hidden rounded-2xl border border-savr-ink/[0.08] bg-white">
+                {data.listings.map((row, i) => (
+                  <li key={row.id}>
+                    <ListingRow row={row} rank={i + 1} cheapest={i === 0} />
+                  </li>
+                ))}
+              </ol>
+            )}
+
+            {!qParam && !loading && (
+              <EmptyState
+                title="Ask what you want to buy"
+                body="Phones, appliances, fashion — Savr ranks live public listings. Weekly food still lives on Nairobi shelves."
+              />
+            )}
+          </div>
+        </PageShell>
+      </div>
+    </PageFrame>
+  );
+}
+
+function sourceHint(s: MarketSourceNote): string {
+  if (s.status === "blocked") return "blocked";
+  if (s.status === "empty") return "no match";
+  return "ok";
+}
+
+function ListingRow({
+  row,
+  rank,
+  cheapest,
+}: {
+  row: MarketListing;
+  rank: number;
+  cheapest: boolean;
+}) {
+  return (
+    <a
+      href={row.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-start justify-between gap-3 px-4 py-3.5 transition hover:bg-savr-mist"
+    >
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-savr-mute">
+          #{rank} · {row.shop}
+          {cheapest ? " · cheapest listed" : ""}
+        </p>
+        <p className="mt-0.5 font-semibold text-savr-ink">{row.name}</p>
+        {row.brand ? <p className="text-xs text-savr-mute">{row.brand}</p> : null}
+      </div>
+      <div className="shrink-0 text-right">
+        <p className="font-display text-lg font-bold tabular-nums text-savr-forest">
+          {formatMarketMoney(row.priceCents, row.currency)}
+        </p>
+        <p className="text-xs font-semibold text-savr-ink">Open listing →</p>
+      </div>
+    </a>
+  );
+}

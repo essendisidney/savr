@@ -301,7 +301,14 @@ function PricesInner() {
                 best shelf is about{" "}
                 <span className="font-semibold text-savr-forest">{formatKes(cheapest.priceCents)}</span>
                 {saved > 0 ? ` · keep ~${formatKes(saved)} vs the priciest` : ""}.
-                {" "}Next: pick a store below, or watch this price.
+                {" "}Next: pick a store below, watch this price, or{" "}
+                <Link
+                  href={`/market?q=${encodeURIComponent(selected.name)}&ask=${encodeURIComponent(askText || selected.name)}`}
+                  className="font-semibold text-savr-forest underline"
+                >
+                  check live online prices
+                </Link>
+                .
               </p>
             )}
 
@@ -315,8 +322,8 @@ function PricesInner() {
                     We don’t track “{askQuote(askText || query || "that")}” as one item yet
                   </h2>
                   <p className="mt-1.5 text-sm text-savr-mute">
-                    Savr ranks real shelf staples — pick one below, or compare a full weekly basket.
-                    Tip what you see later so we grow the catalog honestly.
+                    Savr ranks real shelf staples — pick one below, search live online shops, or
+                    compare a full weekly basket.
                   </p>
                 </div>
                 <ul className="divide-y divide-savr-ink/[0.06] overflow-hidden rounded-2xl border border-savr-ink/[0.08]">
@@ -358,7 +365,13 @@ function PricesInner() {
                       {chip.label}
                     </Link>
                   ))}
-                  <Link href="/basket?staples=1" className="btn-primary">
+                  <Link
+                    href={`/market?q=${encodeURIComponent((askText || query).trim())}&ask=${encodeURIComponent(askText || query)}`}
+                    className="btn-primary"
+                  >
+                    Search live online
+                  </Link>
+                  <Link href="/basket?staples=1" className="btn-ghost">
                     Weekly staples basket
                   </Link>
                   <button

@@ -33,6 +33,12 @@ export const SPEND_INTENTS: SpendIntent[] = [
     hint: "Compare personal care across stores",
   },
   {
+    id: "online",
+    label: "Find it cheaper online",
+    href: "/market",
+    hint: "Live Jumia / Kilimall listings",
+  },
+  {
     id: "watch",
     label: "Watch a price",
     href: "/saved",
@@ -65,23 +71,23 @@ export const SPEND_INTENTS: SpendIntent[] = [
 ];
 
 export const ASK_PLACEHOLDERS = [
+  "Cheapest iPhone 13…",
+  "Samsung A15…",
   "Weekly groceries under KES 5,000…",
   "Find the cheapest cooking oil…",
   "Best taxi to the airport…",
   "Where is fuel cheapest near me…",
-  "Cheapest bread near Westlands…",
-  "Could I have saved on my last shop…",
-  "Compare rice across Naivas…",
+  "Rice cooker under 5,000…",
   "Milk prices…",
 ];
 
 /** One-tap Asks — same chips on Home and /ask. */
 export const POPULAR_ASKS = [
-  { label: "Bread", q: "bread" },
+  { label: "Cheapest iPhone", q: "cheapest iPhone 13" },
+  { label: "Samsung A15", q: "Samsung A15" },
   { label: "Milk", q: "milk" },
   { label: "Cooking oil", q: "cooking oil" },
   { label: "Weekly groceries", q: "weekly groceries" },
-  { label: "Fuel nearby", q: "fuel near me" },
 ] as const;
 
 /** Everyday staples people type — prefer Prices over map/rides when present. */
@@ -136,7 +142,7 @@ const PRODUCTISH = new Set([
  * “food” alone should open a staples basket, not “No match”.
  */
 const BASKETISH_RE =
-  /\b(food|foods|meal|meals|lunch|dinner|breakfast|kitchen|shopping|supermarket|market|provisions|vikapu|family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/;
+  /\b(food|foods|meal|meals|lunch|dinner|breakfast|kitchen|supermarket|provisions|vikapu|family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/;
 
 /**
  * Nairobi vernacular / synonyms → catalog search probe.
@@ -227,7 +233,7 @@ export function askSearchTokens(raw: string): string[] {
     .toLowerCase()
     .split(/[^a-z0-9+]+/)
     .map((t) => t.trim())
-    .filter((t) => t.length > 2 && !ASK_STOP.has(t));
+    .filter((t) => (t.length > 2 || /\d/.test(t)) && !ASK_STOP.has(t));
 }
 
 /** Expand aliases so “ugali” finds maize flour, etc. */
@@ -269,6 +275,11 @@ function pricesPath(raw: string): string {
   return withAskParam(`/prices?q=${encodeURIComponent(q)}`, raw);
 }
 
+function marketPath(raw: string): string {
+  const q = askPriceQuery(raw);
+  return withAskParam(`/market?q=${encodeURIComponent(q)}`, raw);
+}
+
 /** Route free-text Ask Savr queries to the right surface (rules, not LLM). */
 export function routeAskQuery(raw: string): string {
   const trimmed = raw.trim();
@@ -298,6 +309,10 @@ export function routeAskQuery(raw: string): string {
       return withAskParam("/check", trimmed);
     }
     return pricesPath(trimmed);
+  }
+
+  if (/\b(jumia|kilimall|jiji|konga|online)\b/.test(q)) {
+    return marketPath(trimmed);
   }
 
   if (
@@ -333,8 +348,8 @@ export function routeAskQuery(raw: string): string {
     return pricesPath(trimmed);
   }
 
-  // Unknown free text → Prices with recovery UI (never a hard dead end).
-  return pricesPath(trimmed);
+  // Unknown free text to buy → live cheapest listings (phones, appliances, etc.).
+  return marketPath(trimmed);
 }
 
 /** Rough “what that save buys” — emotional framing, not a receipt. */

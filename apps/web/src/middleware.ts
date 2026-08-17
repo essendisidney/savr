@@ -9,6 +9,7 @@ const PUBLIC_PREFIXES = [
   "/api/auth",
   "/api/invite",
   "/api/mpesa/b2c",
+  "/api/market",
   "/manifest.webmanifest",
 ];
 

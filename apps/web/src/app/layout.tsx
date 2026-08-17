@@ -30,12 +30,12 @@ export const metadata: Metadata = {
     template: "%s · Savr",
   },
   description:
-    "Nairobi’s spending OS. Compare grocery baskets across branches, tip shelf prices, then earn savings cashback.",
+    "Ask Savr before you buy. Live cheapest listings from Kenya shops, plus Nairobi grocery, rides, and fuel.",
   applicationName: "Savr",
   openGraph: {
     title: "Savr — Before you spend",
     description:
-      "Nairobi is open. Compare baskets before you shop — tip shelves to keep prices honest.",
+      "Ask Savr. Live cheapest online listings for Kenya — confirm at checkout. Grocery baskets in Nairobi.",
     url: "https://savr-teal.vercel.app",
     siteName: "Savr",
     locale: "en_KE",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "Savr — Before you spend",
-    description: "Nairobi’s spending OS. Compare before you shop.",
+    description: "Ask Savr — cheapest live listing before you buy.",
     images: ["/icons/icon-512.png"],
   },
   appleWebApp: {

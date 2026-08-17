@@ -306,7 +306,7 @@ export function HomeDecision() {
         <p className="animate-rise-delay mt-5 max-w-md text-[1.2rem] font-medium leading-[1.35] tracking-tightish text-savr-ink/80 md:text-[1.35rem]">
           {ready && primary
             ? "Before you spend anything today — Savr already sees where you can save."
-            : "Before you spend anything today, Ask Savr."}
+            : "Before you spend, Ask Savr — cheapest live listing, or a Nairobi grocery basket."}
         </p>
         {!primary && (
           <p className="animate-rise-delay mt-2 text-[13px] leading-relaxed text-savr-mute/90">

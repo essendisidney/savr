@@ -9,8 +9,8 @@ export function SiteFooter() {
         <div>
           <p className="font-display text-2xl font-extrabold tracking-brand text-savr-ink">Savr</p>
           <p className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-savr-mute">
-            Before you spend, Savr it. Nairobi’s spending OS — compare groceries, rides, and fuel
-            before money leaves your wallet.
+            Before you spend, Savr it. Kenya’s cheapest-price search — live online listings, plus
+            Nairobi grocery, rides, and fuel before money leaves your wallet.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 text-[13px]">
@@ -20,8 +20,8 @@ export function SiteFooter() {
           <Link href="/privacy" className="font-semibold text-savr-mute transition hover:text-savr-forest">
             Privacy
           </Link>
-          <Link href="/ask" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Ask Savr
+          <Link href="/market" className="font-semibold text-savr-mute transition hover:text-savr-forest">
+            Cheapest online
           </Link>
           <Link href="/basket" className="font-semibold text-savr-mute transition hover:text-savr-forest">
             Basket

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 
 const DESKTOP = [
   { href: "/ask", label: "Ask Savr" },
+  { href: "/market", label: "Cheapest" },
   { href: "/wallet", label: "Wallet" },
   { href: "/saved", label: "Saved" },
   { href: "/map", label: "Map" },

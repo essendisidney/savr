@@ -54,8 +54,8 @@ export default function AskPage() {
             Ask — then see the answer
           </h1>
           <p className="mt-3.5 text-[15px] leading-relaxed text-savr-mute">
-            Speak like a human. Savr opens the right compare with your question still on screen —
-            basket ranks, a matched price, rides, or fuel.
+            Speak like a human. Savr opens the cheapest live listings, a grocery basket, rides, or
+            fuel — with your question still on screen.
           </p>
         </div>
       </div>

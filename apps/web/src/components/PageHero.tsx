@@ -9,6 +9,7 @@ const themes = {
   login: { label: "Account" },
   account: { label: "Your profile" },
   check: { label: "After the shop" },
+  market: { label: "Live cheapest · online" },
 } as const;
 
 export type PageTheme = keyof typeof themes;
