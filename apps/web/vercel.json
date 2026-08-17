@@ -4,9 +4,12 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build",
   "crons": [
-    {
-      "path": "/api/cron/market-scrape",
-      "schedule": "0 3 * * *"
-    }
+    { "path": "/api/cron/market-scrape", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/market-scrape", "schedule": "15 3 * * *" },
+    { "path": "/api/cron/market-scrape", "schedule": "30 3 * * *" },
+    { "path": "/api/cron/market-scrape", "schedule": "45 3 * * *" },
+    { "path": "/api/cron/market-scrape", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/market-scrape", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/market-scrape", "schedule": "0 16 * * *" }
   ]
 }

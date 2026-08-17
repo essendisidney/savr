@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runDailyMarketBoard } from "@/lib/market-search";
+import { runKenyaPriceCrawl } from "@/lib/market-crawl";
 
 export const maxDuration = 60;
 
@@ -16,13 +16,13 @@ function authorized(req: Request): boolean {
   return auth === `Bearer ${secret}` || key === secret;
 }
 
-/** 6:00 AM Nairobi (03:00 UTC) daily Jumia/Kilimall board. Carrefour/Naivas fail soft. */
+/** Stale-first crawl of all catalog SKUs + stored listing URLs. Multiple morning slices. */
 export async function GET(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const result = await runDailyMarketBoard();
+    const result = await runKenyaPriceCrawl();
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Scrape failed";

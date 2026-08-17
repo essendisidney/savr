@@ -71,8 +71,8 @@ const STEPS: {
   },
   {
     id: "scrape",
-    title: "Optional: online scrape (Jumia)",
-    body: "CLI densifies online prices as source=scrape — never overwrites tips/merchant. Shelf truth still needs walks.",
+    title: "Optional: online scrape (Jumia / catalog)",
+    body: "Morning cron now crawls every catalog SKU and re-checks stored listing URLs as source=scrape — never overwrites tips/merchant. Shelf truth still needs walks.",
     href: "https://github.com/essendisidney/savr/blob/main/scripts/scrapers/README.md",
     hrefLabel: "Scraper docs →",
   },

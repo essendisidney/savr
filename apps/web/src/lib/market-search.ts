@@ -94,7 +94,7 @@ export async function searchLiveMarket(
   }
 
   if (live.length) {
-    void persistMarketListings(live, queried);
+    await persistMarketListings(live, queried);
   }
 
   const listings = mergeListings(live, stored);
@@ -125,27 +125,3 @@ export const DAILY_SEEDS = [
   "fresh milk",
   "iphone 13",
 ];
-
-export async function runDailyMarketBoard(): Promise<{
-  seeds: string[];
-  listings: number;
-  written: number;
-  sources: Record<string, string>;
-}> {
-  const results = await Promise.all(DAILY_SEEDS.map((seed) => searchLiveMarket(seed, "ke")));
-  const sources: Record<string, string> = {};
-  const all = [];
-  for (const result of results) {
-    for (const s of result.sources) {
-      sources[s.shop] = s.status + (s.error ? `:${s.error}` : "");
-    }
-    all.push(...result.listings);
-  }
-  const persist = await persistMarketListings(all, "daily-board");
-  return {
-    seeds: DAILY_SEEDS,
-    listings: all.length,
-    written: persist.written,
-    sources,
-  };
-}

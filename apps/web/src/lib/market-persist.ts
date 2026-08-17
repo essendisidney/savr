@@ -8,25 +8,28 @@ export async function persistMarketListings(
   if (!listings.length) return { written: 0 };
   try {
     const admin = createAdminClient();
-    const rows = listings.map((l) => ({
-      shop_id: l.shopId,
-      shop: l.shop,
-      country: l.country,
-      name: l.name.slice(0, 240),
-      brand: l.brand,
-      url: l.url,
-      price_cents: l.priceCents,
-      currency: l.currency,
-      observed_at: l.observedAt,
-      query_seed: querySeed?.slice(0, 80) ?? null,
-    }));
+    const rows = listings.map((l) => {
+      const row: Record<string, unknown> = {
+        shop_id: l.shopId,
+        shop: l.shop,
+        country: l.country,
+        name: l.name.slice(0, 240),
+        brand: l.brand,
+        url: l.url,
+        price_cents: l.priceCents,
+        currency: l.currency,
+        observed_at: l.observedAt,
+      };
+      if (querySeed) row.query_seed = querySeed.slice(0, 80);
+      return row;
+    });
 
     let written = 0;
     for (const row of rows) {
       const { data: existing } = await admin
         .from("market_listings")
         .select("price_cents")
-        .eq("url", row.url)
+        .eq("url", String(row.url))
         .maybeSingle();
 
       const payload: Record<string, unknown> = { ...row };
@@ -84,5 +87,88 @@ export async function loadStoredMarketListings(
       }));
   } catch {
     return [];
+  }
+}
+
+export async function listStoredQuerySeeds(): Promise<{ seed: string; lastObservedAt: string }[]> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("market_listings")
+      .select("query_seed, observed_at")
+      .not("query_seed", "is", null)
+      .limit(2000);
+    if (error || !data?.length) return [];
+    const latest = new Map<string, string>();
+    for (const row of data) {
+      const seed = String(row.query_seed ?? "").trim();
+      if (!seed) continue;
+      const at = String(row.observed_at ?? "");
+      const prev = latest.get(seed);
+      if (!prev || at > prev) latest.set(seed, at);
+    }
+    return [...latest.entries()].map(([seed, lastObservedAt]) => ({ seed, lastObservedAt }));
+  } catch {
+    return [];
+  }
+}
+
+export async function listCatalogProductsForCrawl(): Promise<
+  { id: string; name: string; brand: string }[]
+> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("products")
+      .select("id, name, brand")
+      .order("name")
+      .limit(500);
+    if (error || !data?.length) return [];
+    return data.map((row) => ({
+      id: String(row.id),
+      name: String(row.name ?? "").trim(),
+      brand: String(row.brand ?? "").trim(),
+    })).filter((p) => p.id && p.name);
+  } catch {
+    return [];
+  }
+}
+
+export async function loadStaleStoredListings(limit = 20): Promise<MarketListing[]> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("market_listings")
+      .select("id, shop_id, shop, country, name, brand, url, price_cents, currency, observed_at")
+      .order("observed_at", { ascending: true })
+      .limit(Math.max(1, Math.min(limit, 80)));
+    if (error || !data?.length) return [];
+    return data.map((row) => ({
+      id: String(row.id),
+      shop: String(row.shop),
+      shopId: String(row.shop_id),
+      country: (row.country as MarketCountry) || "ke",
+      name: String(row.name),
+      brand: row.brand ? String(row.brand) : null,
+      priceCents: Number(row.price_cents),
+      currency: (row.currency as MarketListing["currency"]) ?? "KES",
+      url: String(row.url),
+      observedAt: String(row.observed_at),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function countStoredListings(): Promise<number> {
+  try {
+    const admin = createAdminClient();
+    const { count, error } = await admin
+      .from("market_listings")
+      .select("id", { count: "exact", head: true });
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
   }
 }

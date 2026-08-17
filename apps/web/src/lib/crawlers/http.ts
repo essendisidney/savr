@@ -30,7 +30,7 @@ export function parseAmountCents(text: string): number | null {
 
 export async function fetchHtml(
   url: string,
-  opts?: { acceptLang?: string; timeoutMs?: number },
+  opts?: { acceptLang?: string; timeoutMs?: number; noStore?: boolean },
 ): Promise<{ ok: true; html: string } | { ok: false; status: number; blocked: boolean; error: string }> {
   const timeoutMs = opts?.timeoutMs ?? CRAWL_TIMEOUT_MS;
   try {
@@ -42,7 +42,8 @@ export async function fetchHtml(
       },
       redirect: "follow",
       signal: AbortSignal.timeout(timeoutMs),
-      next: { revalidate: 900 },
+      cache: opts?.noStore ? "no-store" : undefined,
+      next: { revalidate: opts?.noStore ? 0 : 900 },
     } as RequestInit & { next?: { revalidate: number } });
     const html = await res.text();
     const challenge =
