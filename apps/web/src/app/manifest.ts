@@ -4,8 +4,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Savr — Before you spend",
     short_name: "Savr",
-    description:
-      "Nairobi’s spending OS. Compare baskets, rides, and fuel — then earn savings cashback.",
+  description:
+    "Nairobi spending OS. Compare Kenya shop listings, grocery baskets, rides, and fuel before you spend.",
     start_url: "/",
     scope: "/",
     display: "standalone",

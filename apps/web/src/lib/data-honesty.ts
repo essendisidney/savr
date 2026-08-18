@@ -64,8 +64,9 @@ export function catalogHonesty(catalog: Catalog | null | undefined): DataHonesty
   }
   return {
     mode: "seed",
-    label: "shelf prices",
-    banner: null,
+    label: "starter shelves",
+    banner:
+      "Starter supermarket board — not a live till. Tip a shelf or upload a Weekly 30 walk to replace seed prices.",
   };
 }
 

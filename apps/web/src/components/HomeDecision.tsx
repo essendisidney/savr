@@ -15,12 +15,8 @@ import { loadCatalog, loadFuelStations } from "@/lib/catalog";
 import { compareBasket, formatKes, kenyaUngaDeal } from "@/lib/compare";
 import { cityProofFromCatalog } from "@/lib/city-proof";
 import { fuelSavingsCredible } from "@/lib/data-honesty";
-import {
-  ASK_PLACEHOLDERS,
-  routeAskQuery,
-  savingsBuys,
-  weekdayPulse,
-} from "@/lib/intents";
+import { ASK_PLACEHOLDERS, routeAskQuery, savingsBuys, weekdayPulse } from "@/lib/intents";
+import { KenyaStoreStrip } from "@/components/KenyaStoreStrip";
 import { loadRecentAsks, pushRecentAsk } from "@/lib/recent-asks";
 import { buildMarketInviteShare, whatsAppShareUrl } from "@/lib/share";
 
@@ -377,17 +373,30 @@ export function HomeDecision() {
 
         <div className="mt-3.5 flex flex-wrap gap-2">
           <Link href={ungaHref} className="home-chip">
-            Unga today
+            Unga
+          </Link>
+          <Link href="/prices?q=fresh%20milk" className="home-chip">
+            Milk
+          </Link>
+          <Link href="/prices?q=sukuma" className="home-chip">
+            Sukuma
           </Link>
           <Link href="/bundles" className="home-chip">
             Data
           </Link>
-          <Link href="/basket?staples=1" className="home-chip">
-            Grocery cart
+          <Link href="/fuel" className="home-chip">
+            Fuel
           </Link>
           <Link href="/market" className="home-chip">
-            Shop online
+            Kenya shops
           </Link>
+        </div>
+
+        <div className="mt-5">
+          <p className="home-eyebrow">Kenya shops</p>
+          <div className="mt-2.5">
+            <KenyaStoreStrip />
+          </div>
         </div>
 
         <div className="home-stack mt-7">
@@ -449,7 +458,7 @@ export function HomeDecision() {
               <p className="home-eyebrow home-eyebrow-mute">Nearby</p>
               <p className="mt-1.5 font-display text-[15px] font-bold tracking-tightish text-savr-ink">
                 {nearbyOffers > 0
-                  ? `${nearby.grocery} shops · ${nearby.fuel} fuel`
+                  ? `${nearby.grocery} supermarket stops · ${nearby.fuel} fuel`
                   : "Value map"}
               </p>
               <p className="mt-1 text-[12px] text-savr-mute">Open the map</p>

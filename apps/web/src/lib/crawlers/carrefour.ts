@@ -30,7 +30,7 @@ export async function searchCarrefour(query: string): Promise<CrawlerResult> {
   const shop = "Carrefour";
   const url =
     `https://www.carrefour.ke/api/v8/search?keyword=${encodeURIComponent(query)}` +
-    `&currentPage=0&pageSize=12&lang=en&latitude=-1.286389&longitude=36.817223` +
+    `&currentPage=0&pageSize=24&lang=en&latitude=-1.286389&longitude=36.817223` +
     `&requireSponsProducts=false&displayOffers=false&vertical=grocery&storeId=mafken`;
 
   try {
@@ -42,7 +42,7 @@ export async function searchCarrefour(query: string): Promise<CrawlerResult> {
         "Accept-Language": "en-KE,en;q=0.9",
       },
       redirect: "follow",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
     });
     const text = await res.text();
     if (!res.ok) {
@@ -66,7 +66,7 @@ export async function searchCarrefour(query: string): Promise<CrawlerResult> {
     const seen = new Set<string>();
     const now = new Date().toISOString();
     for (const raw of list) {
-      if (listings.length >= 12) break;
+      if (listings.length >= 24) break;
       const p = raw as Record<string, unknown>;
       const brandObj = p.brand as { name?: string } | string | undefined;
       const name = String(p.name || p.title || p.productNameEn || "").trim();
@@ -79,7 +79,7 @@ export async function searchCarrefour(query: string): Promise<CrawlerResult> {
         : path
           ? `https://www.carrefour.ke${path}`
           : `https://www.carrefour.ke/mafken/en/search?keyword=${encodeURIComponent(query)}`;
-      if (!name || !priceCents || seen.has(listingUrl)) continue;
+      if (!name || !priceCents || seen.has(listingUrl) || listingUrl.includes("search?")) continue;
       seen.add(listingUrl);
       listings.push({
         id: `${shopId}:${String(p.id || p.sku || listingUrl)}`,

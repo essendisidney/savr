@@ -14,7 +14,7 @@ export function SiteFooter() {
         <div>
           <p className="font-display text-lg font-extrabold tracking-brand text-savr-ink">Savr</p>
           <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-savr-mute">
-            We rank listed Kenya prices. Confirm at the shop.
+            We rank listed Kenya prices. Confirm at the shop. Nairobi first.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 text-[13px]">

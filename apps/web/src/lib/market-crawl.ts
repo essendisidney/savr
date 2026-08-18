@@ -12,18 +12,33 @@ import { applyOnlineScrapesToCatalog } from "./catalog-scrape";
 import type { MarketListing } from "./crawlers/types";
 
 const BUDGET_MS = 50_000;
-const SEED_BATCH = 6;
-const STORED_BATCH = 12;
+const SEED_BATCH = 8;
+const STORED_BATCH = 16;
 const STORED_CONCURRENCY = 4;
 
 /** Extra Kenya buy queries that are not grocery SKUs. */
 const EXTRA_SEEDS = [
   "unga",
+  "jogoo 2kg",
+  "kabras sugar",
+  "rina cooking oil",
+  "brookside milk",
+  "exe flour",
+  "blue band",
+  "omo 1kg",
+  "geisha soap",
+  "always pads",
+  "sukuma wiki",
+  "ndengu",
+  "pampers",
+  "chapati flour",
+  "kericho gold",
+  "royco",
+  "kimbo",
   "iphone 13",
   "samsung a15",
   "tecno spark",
   "infinix hot",
-  "rice cooker",
 ];
 
 function uniqueSeeds(raw: string[]): string[] {

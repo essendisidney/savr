@@ -1,11 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { COUNTRY_BADGE } from "@/lib/geo-country";
-import { isMarketCountry, type MarketCountry } from "@/lib/crawlers/types";
 
 const DESKTOP = [
   {
@@ -31,18 +28,6 @@ const DESKTOP = [
 export function AppNav() {
   const { user, signOut, loading } = useAuth();
   const pathname = usePathname();
-  const [board, setBoard] = useState<MarketCountry>("ke");
-
-  useEffect(() => {
-    void fetch("/api/geo")
-      .then((r) => r.json())
-      .then((d: { country?: string }) => {
-        if (isMarketCountry(d.country)) setBoard(d.country);
-      })
-      .catch(() => {
-        /* stay Kenya */
-      });
-  }, []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-savr-ink/[0.07] bg-white/95 text-savr-ink backdrop-blur-xl">
@@ -52,7 +37,7 @@ export function AppNav() {
             Savr
           </span>
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-forest">
-            {COUNTRY_BADGE[board]}
+            Kenya
           </span>
         </Link>
 

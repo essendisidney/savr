@@ -9,7 +9,7 @@ const themes = {
   login: { label: "Account" },
   account: { label: "You" },
   check: { label: "After the shop" },
-  market: { label: "Compare · Online" },
+  market: { label: "Compare · Kenya shops" },
   bundles: { label: "Airtime · Kenya" },
 } as const;
 

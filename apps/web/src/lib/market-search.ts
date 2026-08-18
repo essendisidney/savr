@@ -20,7 +20,7 @@ function mergeListings(
 ): MarketSearchResult["listings"] {
   const byUrl = new Map<string, (typeof live)[0]>();
   for (const row of [...stored, ...live]) {
-    const key = row.url.replace(/\/+$/, "").toLowerCase();
+    const key = row.url.replace(/\/+$/, "").toLowerCase().split("?")[0];
     const prev = byUrl.get(key);
     if (!prev) {
       byUrl.set(key, row);
@@ -29,7 +29,7 @@ function mergeListings(
     const newer = new Date(row.observedAt).getTime() >= new Date(prev.observedAt).getTime();
     byUrl.set(key, newer ? row : prev);
   }
-  return [...byUrl.values()].sort((a, b) => a.priceCents - b.priceCents).slice(0, 40);
+  return [...byUrl.values()].sort((a, b) => a.priceCents - b.priceCents).slice(0, 48);
 }
 
 function spreadFor(listings: MarketSearchResult["listings"]) {
@@ -45,23 +45,28 @@ function spreadFor(listings: MarketSearchResult["listings"]) {
   };
 }
 
+/** Kenya shops only. Country argument kept for stored boards; always crawled as KE. */
 export async function searchLiveMarket(
   query: string,
-  country: MarketCountry = "ke",
+  _country: MarketCountry = "ke",
 ): Promise<MarketSearchResult> {
   const queried = sanitizeMarketQuery(query);
+  const country: MarketCountry = "ke";
   if (!queried) {
     return { queried: "", country, listings: [], sources: [], spread: null, board: "live" };
   }
 
-  const jobs: Promise<CrawlerResult>[] = [searchJumia(queried, country)];
-  if (country === "ke") {
-    jobs.push(searchKilimall(queried), searchCarrefour(queried), searchNaivas(queried), searchJiji(queried));
-  }
+  const jobs: Promise<CrawlerResult>[] = [
+    searchJumia(queried, "ke"),
+    searchKilimall(queried),
+    searchCarrefour(queried),
+    searchNaivas(queried),
+    searchJiji(queried),
+  ];
 
   const [settled, stored] = await Promise.all([
     Promise.allSettled(jobs),
-    country === "ke" ? loadStoredMarketListings(queried, country) : Promise.resolve([]),
+    loadStoredMarketListings(queried, "ke"),
   ]);
 
   const sources: MarketSourceNote[] = [];
@@ -86,7 +91,7 @@ export async function searchLiveMarket(
       error: r.error,
     });
     for (const row of r.listings) {
-      const key = row.url.replace(/\/+$/, "").toLowerCase();
+      const key = row.url.replace(/\/+$/, "").toLowerCase().split("?")[0];
       if (seenLive.has(key)) continue;
       seenLive.add(key);
       live.push(row);
@@ -120,8 +125,16 @@ export async function searchLiveMarket(
 export const DAILY_SEEDS = [
   "unga",
   "maize flour",
+  "jogoo",
   "sugar",
+  "kabras sugar",
   "cooking oil",
   "fresh milk",
-  "iphone 13",
+  "brookside milk",
+  "sukuma wiki",
+  "ndengu",
+  "blue band",
+  "omo",
+  "geisha soap",
+  "always pads",
 ];

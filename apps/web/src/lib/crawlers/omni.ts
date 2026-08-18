@@ -277,8 +277,22 @@ function listingsFromJsonLd(nodes: JsonRec[], ctx: OmniContext): MarketListing[]
 export function extractListingsFromHtml(html: string, ctx: OmniContext): MarketListing[] {
   if (!html || html.length < 80) return [];
   const fromLd = listingsFromJsonLd(parseJsonLdBlocks(html), ctx);
-  if (fromLd.length) return fromLd.slice(0, ctx.limit ?? 12);
-  return fromOpenGraph(html, ctx).slice(0, ctx.limit ?? 12);
+  if (fromLd.length) return fromLd.slice(0, ctx.limit ?? 24);
+  return fromOpenGraph(html, ctx).slice(0, ctx.limit ?? 24);
+}
+
+export function mergeListedOffers(groups: MarketListing[][], limit = 24): MarketListing[] {
+  const byUrl = new Map<string, MarketListing>();
+  for (const group of groups) {
+    for (const row of group) {
+      if (!row.name || !row.priceCents) continue;
+      if (/\/(cart|checkout|login|customer|wishlist|account)\b/i.test(row.url)) continue;
+      const key = row.url.replace(/\/+$/, "").toLowerCase().split("?")[0];
+      if (!key || byUrl.has(key)) continue;
+      byUrl.set(key, row);
+    }
+  }
+  return [...byUrl.values()].slice(0, limit);
 }
 
 export function withHtmlOmniFallback(
@@ -286,5 +300,5 @@ export function withHtmlOmniFallback(
   html: string,
   ctx: OmniContext,
 ): MarketListing[] {
-  return dedicated.length ? dedicated : extractListingsFromHtml(html, ctx);
+  return dedicated.length ? dedicated : extractListingsFromHtml(html, { ...ctx, limit: ctx.limit ?? 24 });
 }

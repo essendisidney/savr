@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
@@ -9,11 +9,8 @@ import { LoadingBlock } from "@/components/LoadingBlock";
 import { EmptyState } from "@/components/EmptyState";
 import { askQuote } from "@/lib/intents";
 import {
-  MARKET_COUNTRIES,
   formatMarketMoney,
   formatObservedAge,
-  isMarketCountry,
-  type MarketCountry,
   type MarketListing,
   type MarketSearchResult,
   type MarketSourceNote,
@@ -23,6 +20,8 @@ import { useAuth } from "@/lib/auth";
 import { watchMarketListing } from "@/lib/actions";
 import { HaggleFacts } from "@/components/HaggleFacts";
 import { buildMarketBoardShare, buildMarketDealShare, whatsAppShareUrl } from "@/lib/share";
+import { KenyaStoreStrip } from "@/components/KenyaStoreStrip";
+import { KENYA_MARKET_STARTERS } from "@/lib/kenya-life";
 
 export default function MarketPage() {
   return (
@@ -46,37 +45,20 @@ function MarketInner() {
   const searchParams = useSearchParams();
   const askText = (searchParams.get("ask") ?? "").trim();
   const qParam = (searchParams.get("q") ?? askText).trim();
-  const countryParam = searchParams.get("country");
-  const [country, setCountryState] = useState<MarketCountry>(
-    isMarketCountry(countryParam) ? countryParam : "ke",
-  );
   const [query, setQuery] = useState(qParam);
   const [data, setData] = useState<MarketSearchResult | null>(null);
   const [loading, setLoading] = useState(Boolean(qParam));
   const [error, setError] = useState<string | null>(null);
   const [watched, setWatched] = useState<Set<string>>(new Set());
+  const [shopFilter, setShopFilter] = useState("all");
   const { user } = useAuth();
 
   useEffect(() => {
     setQuery(qParam);
+    setShopFilter("all");
   }, [qParam]);
 
-  useEffect(() => {
-    if (isMarketCountry(countryParam)) {
-      setCountryState(countryParam);
-      return;
-    }
-    void fetch("/api/geo")
-      .then((r) => r.json())
-      .then((d: { country?: string }) => {
-        if (isMarketCountry(d.country)) setCountryState(d.country);
-      })
-      .catch(() => {
-        /* stay Kenya */
-      });
-  }, [countryParam]);
-
-  const fetchListings = useCallback(async (q: string, c: MarketCountry) => {
+  const fetchListings = useCallback(async (q: string) => {
     if (!q.trim()) {
       setData(null);
       setLoading(false);
@@ -87,7 +69,7 @@ function MarketInner() {
     setError(null);
     try {
       const res = await fetch(
-        `/api/market/search?q=${encodeURIComponent(q.trim())}&country=${c}`,
+        `/api/market/search?q=${encodeURIComponent(q.trim())}`,
         { cache: "no-store" },
       );
       const body = (await res.json()) as MarketSearchResult & { error?: string };
@@ -97,7 +79,7 @@ function MarketInner() {
         return;
       }
       setData(body);
-      track("market_search", { q: q.trim().slice(0, 80), country: c, n: body.listings.length });
+      track("market_search", { q: q.trim().slice(0, 80), country: "ke", n: body.listings.length });
     } catch {
       setError("Network error — try again");
       setData(null);
@@ -107,8 +89,8 @@ function MarketInner() {
   }, []);
 
   useEffect(() => {
-    void fetchListings(qParam, country);
-  }, [qParam, country, fetchListings]);
+    void fetchListings(qParam);
+  }, [qParam, fetchListings]);
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -116,16 +98,6 @@ function MarketInner() {
     if (!next) return;
     const params = new URLSearchParams();
     params.set("q", next);
-    params.set("country", country);
-    if (askText) params.set("ask", askText);
-    router.push(`/market?${params.toString()}`);
-  }
-
-  function pickCountry(id: MarketCountry) {
-    const q = (query.trim() || qParam).trim();
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    params.set("country", id);
     if (askText) params.set("ask", askText);
     router.push(`/market?${params.toString()}`);
   }
@@ -135,6 +107,18 @@ function MarketInner() {
     data && data.listings.length > 1 ? data.listings[data.listings.length - 1] : null;
   const okSources = data?.sources.filter((s) => s.status === "ok") ?? [];
   const blocked = data?.sources.filter((s) => s.status === "blocked") ?? [];
+  const shopsInBoard = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const row of data?.listings ?? []) {
+      if (!seen.has(row.shopId)) seen.set(row.shopId, row.shop);
+    }
+    return [...seen.entries()].map(([id, name]) => ({ id, name }));
+  }, [data]);
+  const displayListings = useMemo(() => {
+    if (!data) return [];
+    if (shopFilter === "all") return data.listings;
+    return data.listings.filter((row) => row.shopId === shopFilter);
+  }, [data, shopFilter]);
 
   return (
     <PageFrame>
@@ -150,7 +134,7 @@ function MarketInner() {
         subtitle={
           askText
             ? `For “${askQuote(askText)}” — public shop pages, ranked by listed price. Confirm at checkout.`
-            : "Ask Savr anything to buy. We crawl public Jumia (and Kilimall in Kenya) pages — Savr is not the seller."
+            : "Kenya shops — Jumia, Kilimall, Carrefour.ke, Naivas.online, Jiji. Listed prices only. Confirm at checkout. Savr is not the seller."
         }
       />
 
@@ -158,7 +142,7 @@ function MarketInner() {
         <PageShell>
           <div className="space-y-6">
             <p className="rounded-2xl border border-savr-forest/20 bg-savr-forest/[0.06] px-4 py-3 text-sm text-savr-ink">
-              Live public crawl · last listed time on each row. Confirm price and stock on the shop
+              Kenya live crawl · last listed time on each row. Confirm price and stock on the shop
               site. Savr is not the seller and does not pay a price-match bonus.
             </p>
 
@@ -170,7 +154,7 @@ function MarketInner() {
                 id="market-q"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="iPhone 13, Samsung A15, rice cooker…"
+                placeholder="Unga, Kabras, iPhone 13…"
                 className="field flex-1"
                 autoComplete="off"
               />
@@ -178,23 +162,6 @@ function MarketInner() {
                 {loading ? "Searching…" : "Find cheapest"}
               </button>
             </form>
-
-            <div className="flex flex-wrap gap-2">
-              {MARKET_COUNTRIES.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => pickCountry(c.id)}
-                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                    country === c.id
-                      ? "bg-savr-forest text-white"
-                      : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
-                  }`}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
 
             {data?.spread && data.spread.saveCents > 0 && cheapest && (
               <div className="flex flex-col gap-3 rounded-2xl border border-savr-ink/10 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -216,7 +183,7 @@ function MarketInner() {
                       shop: cheapest.shop,
                       priceLabel: formatMarketMoney(cheapest.priceCents, cheapest.currency),
                       spreadLabel: formatMarketMoney(data.spread.saveCents, cheapest.currency),
-                      path: `/market?q=${encodeURIComponent(qParam)}&country=${country}`,
+                      path: `/market?q=${encodeURIComponent(qParam)}`,
                     }),
                   )}
                   target="_blank"
@@ -238,7 +205,7 @@ function MarketInner() {
                     ? `${formatMarketMoney(priciest.priceCents, priciest.currency)} at ${priciest.shop}`
                     : null
                 }
-                path={`/market?q=${encodeURIComponent(qParam)}&country=${country}`}
+                path={`/market?q=${encodeURIComponent(qParam)}`}
               />
             )}
 
@@ -262,7 +229,7 @@ function MarketInner() {
             {!loading && qParam && data && data.listings.length === 0 && (
               <EmptyState
                 title="No live listings yet"
-                body="Shops may have blocked this request, or the query is too specific. Try a shorter name, or compare Nairobi groceries if this is a staple."
+                body="Kenya shops may have blocked this request, or the query is too specific. Try a shorter name, or compare Nairobi groceries if this is a staple."
                 action={
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/prices?q=${encodeURIComponent(qParam)}`} className="btn-ghost">
@@ -276,7 +243,41 @@ function MarketInner() {
               />
             )}
 
-            {!loading && data && data.listings.length > 0 && (
+            {!loading && data && data.listings.length > 0 && shopsInBoard.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={shopFilter === "all" ? "chip-active" : "chip"}
+                  onClick={() => setShopFilter("all")}
+                >
+                  All shops
+                </button>
+                {shopsInBoard.map((shop) => (
+                  <button
+                    key={shop.id}
+                    type="button"
+                    className={shopFilter === shop.id ? "chip-active" : "chip"}
+                    onClick={() => setShopFilter(shop.id)}
+                  >
+                    {shop.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!loading && data && data.listings.length > 0 && displayListings.length === 0 && (
+              <EmptyState
+                title="This shop had no row in this crawl"
+                body="Clear the shop filter to see every Kenya listing we got this round."
+                action={
+                  <button type="button" className="btn-ghost" onClick={() => setShopFilter("all")}>
+                    Show all shops
+                  </button>
+                }
+              />
+            )}
+
+            {!loading && data && displayListings.length > 0 && (
               <div className="space-y-3">
                 {cheapest && !(data.spread && data.spread.saveCents > 0) ? (
                   <a
@@ -286,7 +287,7 @@ function MarketInner() {
                         shop: cheapest.shop,
                         priceLabel: formatMarketMoney(cheapest.priceCents, cheapest.currency),
                         spreadLabel: null,
-                        path: `/market?q=${encodeURIComponent(qParam)}&country=${country}`,
+                        path: `/market?q=${encodeURIComponent(qParam)}`,
                       }),
                     )}
                     target="_blank"
@@ -300,13 +301,13 @@ function MarketInner() {
                   </a>
                 ) : null}
                 <ol className="divide-y divide-savr-ink/[0.06] overflow-hidden rounded-2xl border border-savr-ink/[0.08] bg-white">
-                  {data.listings.map((row, i) => (
+                  {displayListings.map((row, i) => (
                     <li key={row.id}>
                       <ListingRow
                         row={row}
                         rank={i + 1}
                         cheapest={i === 0}
-                        boardPath={`/market?q=${encodeURIComponent(qParam)}&country=${country}`}
+                        boardPath={`/market?q=${encodeURIComponent(qParam)}`}
                         signedIn={Boolean(user)}
                         watching={watched.has(row.url)}
                         onWatch={async () => {
@@ -331,10 +332,26 @@ function MarketInner() {
             )}
 
             {!qParam && !loading && (
-              <EmptyState
-                title="Ask what you want to buy"
-                body="Phones, appliances, fashion — Savr ranks live public listings. Weekly food still lives on Nairobi shelves."
-              />
+              <div className="space-y-5">
+                <KenyaStoreStrip note />
+                <EmptyState
+                  title="Ask what you want to buy"
+                  body="Phones, appliances, unga — Savr ranks live Kenya listings. Weekly food still lives on supermarket shelves."
+                  action={
+                    <div className="flex flex-wrap gap-2">
+                      {KENYA_MARKET_STARTERS.map((ask) => (
+                        <Link
+                          key={ask.q}
+                          href={`/market?q=${encodeURIComponent(ask.q)}`}
+                          className="home-chip"
+                        >
+                          {ask.label}
+                        </Link>
+                      ))}
+                    </div>
+                  }
+                />
+              </div>
             )}
           </div>
         </PageShell>

@@ -27,16 +27,16 @@ const sans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://savr-teal.vercel.app"),
   title: {
-    default: "Savr — Before you spend",
+    default: "Savr Kenya — Before you spend",
     template: "%s · Savr",
   },
   description:
-    "Ask Savr before you buy. Live cheapest listings from Kenya shops, plus Nairobi grocery, rides, and fuel.",
+    "Ask Savr before you buy in Kenya. Compare supermarket shelves, Jumia, data, fuel, and rides — listed prices only.",
   applicationName: "Savr",
   openGraph: {
-    title: "Savr — Before you spend",
+    title: "Savr Kenya — Before you spend",
     description:
-      "Ask Savr. Live cheapest online listings for Kenya — confirm at checkout. Grocery baskets in Nairobi.",
+      "Ask Savr. Kenya supermarket shelves plus live Jumia listings — confirm at the shop. Savr is not the seller.",
     url: "https://savr-teal.vercel.app",
     siteName: "Savr",
     locale: "en_KE",
@@ -45,8 +45,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Savr — Before you spend",
-    description: "Ask Savr — cheapest live listing before you buy.",
+    title: "Savr Kenya — Before you spend",
+    description: "Ask Savr — cheapest live Kenya listing before you buy.",
     images: ["/icons/icon-512.png"],
   },
   appleWebApp: {

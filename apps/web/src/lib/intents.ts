@@ -12,13 +12,13 @@ export const SPEND_INTENTS: SpendIntent[] = [
     id: "family",
     label: "Feed my family",
     href: "/basket?staples=1",
-    hint: "Weekly groceries across Nairobi branches",
+    hint: "Weekly groceries across Kenya supermarket branches",
   },
   {
     id: "online",
     label: "Buy something online",
     href: "/market",
-    hint: "Live Jumia / Kilimall listed prices",
+    hint: "Live Jumia, Kilimall, Carrefour.ke, Naivas, Jiji listed prices",
   },
   {
     id: "bundles",
@@ -47,19 +47,24 @@ export const SPEND_INTENTS: SpendIntent[] = [
 ];
 
 export const ASK_PLACEHOLDERS = [
+  "Bei ya unga leo…",
   "How much is Unga today…",
   "Cheapest cooking oil…",
+  "Sukuma wiki near me…",
   "1GB data bundle…",
   "Cheapest iPhone 13…",
   "Weekly groceries under KES 5,000…",
   "Where is fuel cheapest near me…",
-  "Samsung A15…",
-  "Milk prices…",
+  "Kabras sugar…",
+  "Maziwa Brookside…",
+  "Safaricom data…",
 ];
 
 /** One-tap Asks — same chips on Home and /ask. */
 export const POPULAR_ASKS = [
   { label: "Unga today", q: "how much is unga today" },
+  { label: "Milk", q: "brookside milk" },
+  { label: "Sukuma", q: "sukuma wiki" },
   { label: "Data bundles", q: "safaricom data bundles" },
   { label: "Cooking oil", q: "cooking oil" },
   { label: "Weekly groceries", q: "weekly groceries" },
@@ -111,6 +116,30 @@ const PRODUCTISH = new Set([
   "paracetamol",
   "medicine",
   "chai",
+  "kales",
+  "chapati",
+  "pampers",
+  "geisha",
+  "kabras",
+  "jogoo",
+  "soko",
+  "tuzo",
+  "daima",
+  "royco",
+  "kimbo",
+  "cowboy",
+  "ariel",
+  "always",
+  "mango",
+  "avocado",
+  "mandazi",
+  "wheat",
+  "kericho",
+  "maziwa",
+  "mkate",
+  "sukari",
+  "mafuta",
+  "ngano",
 ]);
 
 /**
@@ -137,6 +166,24 @@ export const ASK_PRODUCT_ALIASES: Record<string, string> = {
   vegetables: "sukuma",
   greens: "sukuma",
   ndengu: "green grams",
+  kales: "sukuma",
+  managu: "sukuma",
+  maziwa: "milk",
+  mkate: "bread",
+  sukari: "sugar",
+  mafuta: "cooking oil",
+  ngano: "wheat flour",
+  chapati: "chapati flour",
+  pampers: "pampers",
+  geisha: "soap",
+  kabras: "sugar",
+  jogoo: "maize flour",
+  soko: "maize flour",
+  tuzo: "milk",
+  daima: "milk",
+  royco: "royco",
+  kimbo: "cooking fat",
+  cowboy: "cooking fat",
   detergent: "laundry detergent",
   omo: "laundry detergent",
   tissue: "tissue paper",
@@ -170,6 +217,11 @@ const ASK_STOP = new Set([
   "kes",
   "about",
   "please",
+  "bei",
+  "gani",
+  "ya",
+  "leo",
+  "nafuu",
   "want",
   "buy",
   "get",
@@ -184,6 +236,16 @@ const ASK_STOP = new Set([
   "naivas",
   "carrefour",
   "quickmart",
+  "chandarana",
+  "eastmatt",
+  "cleanshelf",
+  "magunas",
+  "gilanis",
+  "tumaini",
+  "kassmart",
+  "jumia",
+  "kilimall",
+  "jiji",
   "cbd",
   "airport",
 ]);
@@ -287,7 +349,7 @@ export function routeAskQuery(raw: string): string {
     return pricesPath(trimmed);
   }
 
-  if (/\b(airtime|safaricom|data\s*bundle|gb\s*bundle)\b/.test(q)) {
+  if (/\b(airtime|safaricom|data\s*bundle|gb\s*bundle|bamba|\d+\s*gb)\b/.test(q)) {
     return withAskParam("/bundles", trimmed);
   }
 
@@ -358,18 +420,18 @@ export function savingsBuys(amountCents: number): string | null {
 export function weekdayPulse(day = new Date().getDay()): string {
   switch (day) {
     case 0:
-      return "Quiet Sunday — plan next week’s basket before the rush.";
+      return "Quiet Sunday — plan unga, milk, and next week’s cart.";
     case 1:
-      return "Monday — get ahead of the weekly shop.";
+      return "Monday — compare Naivas, Quickmart, and Carrefour before the shop.";
     case 2:
       return "A good day to check a price you watch.";
     case 3:
-      return "Midweek — compare before anyone hits the supermarket.";
+      return "Midweek — sukuma, oil, and data before anyone spends.";
     case 4:
-      return "Thursday — lock this week’s list before the weekend.";
+      return "Thursday — lock this week’s list before the weekend rush.";
     case 5:
       return "Friday traffic — check a ride before you request.";
     default:
-      return "Weekend shop? Compare the basket first.";
+      return "Weekend shop? Compare the Kenya basket first.";
   }
 }

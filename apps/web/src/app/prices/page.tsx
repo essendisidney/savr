@@ -29,11 +29,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingBlock } from "@/components/LoadingBlock";
 
 const RECOVERY_CHIPS = [
-  { label: "Bread", q: "bread" },
+  { label: "Unga", q: "unga" },
   { label: "Milk", q: "milk" },
+  { label: "Sukuma", q: "sukuma" },
   { label: "Cooking oil", q: "cooking oil" },
-  { label: "Rice", q: "rice" },
   { label: "Sugar", q: "sugar" },
+  { label: "Ndengu", q: "ndengu" },
 ];
 
 function PricesInner() {

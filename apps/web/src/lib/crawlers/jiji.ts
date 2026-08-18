@@ -7,7 +7,7 @@ export async function searchJiji(query: string): Promise<CrawlerResult> {
   const shopId = "jiji-ke";
   const shop = "Jiji";
   const url = `https://jiji.co.ke/search?query=${encodeURIComponent(query)}`;
-  const fetched = await fetchHtml(url, { acceptLang: "en-KE,en;q=0.9" });
+  const fetched = await fetchHtml(url, { acceptLang: "en-KE,en;q=0.9", timeoutMs: 10_000 });
   if (!fetched.ok) {
     return { shopId, shop, status: "blocked", listings: [], error: fetched.error };
   }
@@ -20,7 +20,7 @@ export async function searchJiji(query: string): Promise<CrawlerResult> {
     ),
   ];
   for (const m of cards) {
-    if (listings.length >= 12) break;
+    if (listings.length >= 24) break;
     const listingUrl = (m[1] || "").split("?")[0];
     if (!listingUrl || /\/search/.test(listingUrl) || seen.has(listingUrl)) continue;
     const priceCents = parseAmountCents(m[2] || "");
@@ -49,7 +49,7 @@ export async function searchJiji(query: string): Promise<CrawlerResult> {
     country: "ke",
     currency: "KES",
     pageUrl: url,
-    limit: 12,
+    limit: 24,
   });
 
   return {

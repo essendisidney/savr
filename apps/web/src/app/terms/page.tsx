@@ -20,8 +20,9 @@ export default function TermsPage() {
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Service</h2>
             <p>
-              Savr ranks options using available catalog and quote data. Always confirm final prices
-              and fares with the store or partner app before you pay.
+              Savr ranks options using listed Kenya shop prices, Nairobi shelf catalogs, and ride
+              or fuel quotes. Always confirm final prices and fares with the store or partner app
+              before you pay. Savr is not the seller.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Accounts & SMS</h2>
             <p>
