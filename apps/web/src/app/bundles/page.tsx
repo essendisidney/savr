@@ -9,6 +9,7 @@ import { LoadingBlock } from "@/components/LoadingBlock";
 import { askQuote } from "@/lib/intents";
 import { formatKes } from "@/lib/types";
 import type { BundleBoard } from "@/lib/safaricom-bundles";
+import { KENYA_TELCO_LINKS } from "@/lib/kenya-life";
 
 export default function BundlesPage() {
   return (
@@ -46,7 +47,7 @@ function BundlesInner() {
         subtitle={
           askText
             ? `For “${askQuote(askText)}” — Savr will not invent a bundle price.`
-            : "Kenya’s second-biggest monthly spend after food. Official Safaricom rates only."
+            : "Kenya’s second-biggest monthly spend after food. Official operator pages only — Savr will not invent a bundle price."
         }
         action={{ href: "/basket?staples=1", label: "Grocery basket" }}
       />
@@ -90,6 +91,27 @@ function BundlesInner() {
               </Link>
               .
             </p>
+            <section>
+              <p className="page-eyebrow">Other Kenya networks</p>
+              <ul className="mt-3 space-y-2">
+                {KENYA_TELCO_LINKS.map((telco) => (
+                  <li key={telco.id}>
+                    <a
+                      href={telco.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="card flex items-center justify-between gap-3 px-4 py-3.5"
+                    >
+                      <span>
+                        <span className="block font-semibold text-savr-ink">{telco.name}</span>
+                        <span className="text-[13px] text-savr-mute">{telco.hint} — no invented price</span>
+                      </span>
+                      <span className="text-sm font-semibold text-savr-forest">Open →</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
         </PageShell>
       </div>

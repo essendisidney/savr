@@ -3,7 +3,6 @@ import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppNav } from "@/components/AppNav";
-import { StickyJobs } from "@/components/StickyJobs";
 import { BottomNav } from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { PwaRegister } from "@/components/PwaRegister";
@@ -27,16 +26,16 @@ const sans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://savr-teal.vercel.app"),
   title: {
-    default: "Savr Kenya — Before you spend",
+    default: "Savr — Sell. Buy. Trust.",
     template: "%s · Savr",
   },
   description:
-    "Ask Savr before you buy in Kenya. Compare supermarket shelves, Jumia, data, fuel, and rides — listed prices only.",
+    "Kenya’s trusted second-hand marketplace. Post in 60 seconds. Money held until you confirm.",
   applicationName: "Savr",
   openGraph: {
-    title: "Savr Kenya — Before you spend",
+    title: "Savr — Sell. Buy. Trust.",
     description:
-      "Ask Savr. Kenya supermarket shelves plus live Jumia listings — confirm at the shop. Savr is not the seller.",
+      "Second-hand deals with escrow. Sell fast. Buy with confidence. Kenya.",
     url: "https://savr-teal.vercel.app",
     siteName: "Savr",
     locale: "en_KE",
@@ -45,8 +44,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Savr Kenya — Before you spend",
-    description: "Ask Savr — cheapest live Kenya listing before you buy.",
+    title: "Savr — Sell. Buy. Trust.",
+    description: "Kenya second-hand deals with escrow — money held until you confirm.",
     images: ["/icons/icon-512.png"],
   },
   appleWebApp: {
@@ -82,7 +81,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="grain-bg relative min-h-screen">
             <AppNav />
-            <StickyJobs />
             <main>{children}</main>
             <SiteFooter />
             <BottomNav />

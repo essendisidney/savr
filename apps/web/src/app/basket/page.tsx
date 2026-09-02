@@ -20,10 +20,13 @@ import {
   compareBasket,
   defaultListFromCatalog,
   formatKes,
+  kenyaPackFromCatalog,
+  kenyaPackName,
   lineItemsForMerchant,
   quickAddChips,
   searchProducts,
 } from "@/lib/compare";
+import { KENYA_BASKET_PACKS } from "@/lib/kenya-life";
 import { catalogHonesty } from "@/lib/data-honesty";
 import { useShopperOrigin } from "@/lib/geo";
 import {
@@ -177,15 +180,16 @@ function BasketInner() {
         }
       }
       if (!appliedShared) {
-        const forceStaples = searchParams.get("staples") === "1";
+        const pack = (searchParams.get("pack") ?? "").trim().toLowerCase();
+        const forceStaples = searchParams.get("staples") === "1" || Boolean(pack);
         if (forceStaples) {
-          const staples = defaultListFromCatalog(c);
+          const staples = kenyaPackFromCatalog(c, pack || "weekly");
           setItems(staples);
-          setListName("Weekly shop");
+          setListName(kenyaPackName(pack || "weekly") ?? "Weekly shop");
           setStatus(
-            `Starter basket ready — ${staples.length} staples. Scroll to see where to shop.`,
+            `Starter basket ready — ${staples.length} items. Scroll to see where to shop.`,
           );
-          track("starter_basket", { items: staples.length });
+          track("starter_basket", { items: staples.length, pack: pack || "weekly" });
           appliedShared = true;
         }
       }
@@ -715,6 +719,25 @@ function BasketInner() {
                       {items.length}
                     </span>
                   </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {KENYA_BASKET_PACKS.map((pack) => (
+                    <button
+                      key={pack.id}
+                      type="button"
+                      onClick={() => {
+                        const next = kenyaPackFromCatalog(catalog, pack.id);
+                        setItems(next);
+                        setListName(kenyaPackName(pack.id) ?? pack.label);
+                        setStatus(`Loaded ${pack.label.toLowerCase()} — ${next.length} items.`);
+                        track("starter_basket", { items: next.length, pack: pack.id, via: "pack" });
+                      }}
+                      className="home-chip"
+                    >
+                      {pack.label}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="relative">

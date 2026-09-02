@@ -2,75 +2,74 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { loadProfile, loadRecentActivity, saveProfile, type ActivityItem, type UserProfile } from "@/lib/actions";
-import { useAuth } from "@/lib/auth";
-import { loadCatalog } from "@/lib/catalog";
-import type { Merchant } from "@/lib/types";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
+import { ListingCard } from "@/components/ListingCard";
+import { LoadingBlock } from "@/components/LoadingBlock";
+import { useAuth } from "@/lib/auth";
+import {
+  dealStatusLabel,
+  formatKes,
+  type MarketplaceDeal,
+  type MarketplaceListing,
+} from "@/lib/marketplace";
+import {
+  loadMyDeals,
+  loadMyListings,
+  loadVerificationStatus,
+  requestVerification,
+} from "@/lib/marketplace-actions";
+import { loadProfile, saveProfile, type UserProfile } from "@/lib/actions";
 
 export default function AccountPage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [merchants, setMerchants] = useState<Merchant[]>([]);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [deals, setDeals] = useState<MarketplaceDeal[]>([]);
+  const [verify, setVerify] = useState<"none" | "pending" | "verified" | "rejected">("none");
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
       setLoading(false);
-      setError("signed_out");
       return;
     }
-
-    Promise.all([loadProfile(), loadCatalog(), loadRecentActivity()]).then(
-      ([p, catalog, act]) => {
-        if ("error" in p) {
-          setError(p.error);
-        } else {
-          setProfile(p);
-        }
-        const seen = new Set<string>();
-        setMerchants(
-          catalog.merchants.filter((m) => {
-            if (m.category !== "grocery") return false;
-            if (seen.has(m.id)) return false;
-            seen.add(m.id);
-            return true;
-          }),
-        );
-        setActivity(act.items ?? []);
-        setLoading(false);
-      },
-    );
+    void (async () => {
+      const [p, mine, myDeals, v] = await Promise.all([
+        loadProfile(),
+        loadMyListings(),
+        loadMyDeals(),
+        loadVerificationStatus(),
+      ]);
+      if (!("error" in p)) setProfile(p);
+      setListings(mine);
+      setDeals(myDeals);
+      setVerify(v);
+      setLoading(false);
+    })();
   }, [user, authLoading]);
 
-  function toggleMerchant(id: string) {
-    if (!profile) return;
-    const has = profile.preferredMerchantIds.includes(id);
-    setProfile({
-      ...profile,
-      preferredMerchantIds: has
-        ? profile.preferredMerchantIds.filter((x) => x !== id)
-        : [...profile.preferredMerchantIds, id],
-    });
-  }
-
-  async function onSave() {
+  async function onSaveProfile() {
     if (!profile) return;
     setBusy(true);
-    setStatus(null);
     const res = await saveProfile(profile);
     setBusy(false);
-    if (res.error) {
+    setStatus(res.error ?? "Profile saved");
+  }
+
+  async function onVerify() {
+    setBusy(true);
+    const res = await requestVerification();
+    setBusy(false);
+    if ("error" in res) {
       setStatus(res.error);
       return;
     }
-    setStatus("Profile saved — preferred stores show on basket ranks.");
+    setVerify("pending");
+    setStatus("Verification requested — we’ll review your ID.");
   }
 
   if (loading || authLoading) {
@@ -78,191 +77,123 @@ export default function AccountPage() {
       <PageFrame>
         <div className="h-28 animate-pulse bg-savr-fog/80" />
         <PageShell>
-          <div className="h-40 animate-pulse bg-savr-fog" />
+          <LoadingBlock rows={4} />
         </PageShell>
       </PageFrame>
     );
   }
 
-  if (error === "signed_out" || !user) {
+  if (!user) {
     return (
       <PageFrame>
-        <PageHero
-          theme="account"
-          title="Your Savr profile"
-          subtitle="Sign in to set your name, city, and preferred stores."
-          action={{ href: "/login", label: "Sign in" }}
-        />
-      </PageFrame>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <PageFrame>
-        <PageHero theme="account" title="Your Savr profile" subtitle={error ?? "Could not load profile."} />
+        <PageHero theme="account" title="You" subtitle="Sign in to sell, buy, and manage deals." />
+        <PageShell narrow>
+          <Link href="/login?next=/account" className="btn-primary inline-flex">
+            Sign in
+          </Link>
+        </PageShell>
       </PageFrame>
     );
   }
 
   return (
     <PageFrame>
-      <PageHero
-        theme="account"
-        title={profile.fullName.trim() || "Your profile"}
-        subtitle={`${profile.city} · tune preferred stores so basket ranks feel personal.`}
-      />
+      <PageHero theme="account" title="You" subtitle="Listings, deals, and seller trust." />
+      <PageShell>
+        <div className="space-y-8">
+          <section className="card space-y-3 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+              Profile
+            </p>
+            <input
+              className="field"
+              value={profile?.fullName ?? ""}
+              onChange={(e) =>
+                profile && setProfile({ ...profile, fullName: e.target.value })
+              }
+              placeholder="Display name"
+            />
+            <input
+              className="field"
+              value={profile?.phone ?? ""}
+              onChange={(e) => profile && setProfile({ ...profile, phone: e.target.value })}
+              placeholder="M-Pesa phone 07…"
+            />
+            <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onSaveProfile()}>
+              Save profile
+            </button>
+          </section>
 
-      <div className="page-band">
-        <PageShell narrow>
-          <div className="space-y-8">
-          <div className="space-y-3">
-            <h2 className="font-display text-lg font-bold tracking-tightish">Your tools</h2>
-            <ul className="space-y-2">
-              {[
-                { href: "/wallet", label: "Wallet", hint: "Cashback and streak" },
-                { href: "/saved", label: "Saved", hint: "Lists, watches, drops" },
-                { href: "/check", label: "After shop", hint: "See if you missed a save" },
-                { href: "/scan", label: "Scan a shelf", hint: "Tip the pack in front of you" },
-                { href: "/merchant", label: "I’m a store", hint: "Upload Nairobi shelf prices" },
-              ].map((item) => (
-                <li key={item.href}>
+          <section className="card space-y-3 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
+              Seller verification
+            </p>
+            <p className="text-sm text-savr-ink">
+              Status:{" "}
+              <span className="font-semibold">
+                {verify === "none" ? "Not verified" : verify}
+              </span>
+            </p>
+            {verify === "none" || verify === "rejected" ? (
+              <button type="button" className="btn-primary" disabled={busy} onClick={() => void onVerify()}>
+                Request ✅ badge
+              </button>
+            ) : null}
+            <p className="text-xs text-savr-mute">Optional. Builds buyer confidence. Fee later.</p>
+          </section>
+
+          {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
+
+          <section>
+            <div className="flex items-baseline justify-between">
+              <p className="page-eyebrow">My listings</p>
+              <Link href="/sell" className="text-xs font-semibold text-savr-forest">
+                Post →
+              </Link>
+            </div>
+            {listings.length ? (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {listings.map((l) => (
+                  <ListingCard key={l.id} listing={l} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-savr-mute">No listings yet.</p>
+            )}
+          </section>
+
+          <section>
+            <p className="page-eyebrow">My deals</p>
+            <ul className="mt-3 space-y-2">
+              {deals.map((d) => (
+                <li key={d.id}>
                   <Link
-                    href={item.href}
-                    className="card flex items-center justify-between gap-3 px-4 py-3.5 hover:border-savr-forest/30"
+                    href={`/deals/${d.id}`}
+                    className="card flex items-center justify-between gap-3 px-4 py-3.5"
                   >
                     <span>
-                      <span className="block font-semibold text-savr-ink">{item.label}</span>
-                      <span className="text-xs text-savr-mute">{item.hint}</span>
+                      <span className="block font-semibold text-savr-ink">{d.listingTitle}</span>
+                      <span className="text-[13px] text-savr-mute">
+                        {dealStatusLabel(d.status)} · {formatKes(d.priceCents)}
+                      </span>
                     </span>
                     <span className="text-sm font-semibold text-savr-forest">→</span>
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+            {!deals.length && <p className="mt-3 text-sm text-savr-mute">No deals yet.</p>}
+          </section>
 
-          <section className="space-y-3">
-              <h2 className="font-display text-lg font-bold tracking-tightish">Recent activity</h2>
-              <p className="text-sm text-savr-mute">
-                Your decisions on Savr — locks, tips, shops, watches. Private to you.
-              </p>
-              {activity.length === 0 ? (
-                <p className="card px-4 py-5 text-sm text-savr-mute">
-                  Compare a basket, tip a price, or log a shop — activity shows up here.
-                </p>
-              ) : (
-                <ul className="divide-y divide-savr-ink/[0.06] card">
-                  {activity.map((a) => (
-                    <li key={a.id} className="flex items-start justify-between gap-3 px-4 py-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-savr-ink">{a.label}</p>
-                        {a.detail && (
-                          <p className="mt-0.5 truncate text-xs text-savr-mute">{a.detail}</p>
-                        )}
-                      </div>
-                      <span className="shrink-0 text-[11px] font-medium text-savr-mute">{a.when}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="space-y-3">
-              <h2 className="font-display text-lg font-bold tracking-tightish">Details</h2>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                  Full name
-                </span>
-                <input
-                  value={profile.fullName}
-                  onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                  className="field mt-1.5"
-                  placeholder="Your name"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                  City
-                </span>
-                <input
-                  value={profile.city}
-                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                  className="field mt-1.5"
-                  placeholder="Nairobi"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-savr-mute">
-                  Phone
-                </span>
-                <input
-                  value={profile.phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  className="field mt-1.5"
-                  placeholder="07…"
-                  inputMode="tel"
-                />
-              </label>
-              <p className="text-xs text-savr-mute">{user.email}</p>
-            </section>
-
-            <section className="space-y-3">
-              <div>
-                <h2 className="font-display text-lg font-bold tracking-tightish">Preferred stores</h2>
-                <p className="mt-1 text-sm text-savr-mute">
-                  Marked on basket ranks. Use “Preferred only” there to narrow compare — Savr still
-                  picks best total value, never silent reorder.
-                </p>
-              </div>
-              <ul className="divide-y divide-savr-ink/[0.06] card">
-                {merchants.map((m) => {
-                  const on = profile.preferredMerchantIds.includes(m.id);
-                  return (
-                    <li key={m.id}>
-                      <button
-                        type="button"
-                        onClick={() => toggleMerchant(m.id)}
-                        className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition ${
-                          on ? "chip-active" : "hover:bg-savr-mist"
-                        }`}
-                      >
-                        <span className="font-semibold">{m.name}</span>
-                        <span
-                          className={`text-[11px] font-bold uppercase tracking-wider ${
-                            on ? "text-savr-signal" : "text-savr-mute"
-                          }`}
-                        >
-                          {on ? "Preferred" : "Add"}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onSave}
-                className="btn-primary w-full disabled:opacity-50"
-              >
-                {busy ? "Saving…" : "Save profile"}
-              </button>
-              {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="text-sm font-semibold text-savr-mute hover:text-savr-ink"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </PageShell>
-      </div>
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="text-sm font-semibold text-savr-mute hover:text-savr-ink"
+          >
+            Sign out
+          </button>
+        </div>
+      </PageShell>
     </PageFrame>
   );
 }

@@ -1,8 +1,10 @@
 # Savr Wedge Decision
 
-**Decision: Groceries basket compare is the Phase 1 habit-former.**
+**Decision: Kenya C2C second-hand marketplace with escrow is the Phase 1 habit-former.**
 
-Ride-hailing and fuel ship in MVP as retention hooks, not as the primary growth loop.
+Brand line: **Sell. Buy. Trust.**
+
+Grocery compare, rides, and fuel are **out of wedge** — retired product surface, not retention hooks.
 
 ---
 
@@ -11,78 +13,67 @@ Ride-hailing and fuel ship in MVP as retention hooks, not as the primary growth 
 | Criterion | Why it matters |
 |-----------|----------------|
 | Weekly frequency | Habit formation needs repeated opens |
-| Clear savings delta | User must feel “Savr was worth it” |
-| Data acquireability | Can we seed prices without perfect APIs? |
-| Supply-side path | Merchants can join and compete |
-| Viral / share moment | Household lists, “look what we saved” |
-| Monetization path | Affiliates, cashback, merchant subs |
+| Clear trust delta | User must feel “Savr made this deal safer” |
+| Supply-side path | Anyone can list in ~60 seconds |
+| Viral / share moment | “Sold / bought safely on Savr” screenshot |
+| Monetization path | 3% fee on escrow release; later boosts / verify |
 
 ---
 
 ## Scorecard (1–5)
 
-| Option | Frequency | Savings clarity | Data | Supply | Share | Monetize | **Total** |
-|--------|-----------|-----------------|------|--------|-------|----------|-----------|
-| **Groceries basket** | 5 | 5 | 4 | 5 | 5 | 4 | **28** |
-| Ride-hailing | 4 | 4 | 2 | 2 | 3 | 3 | **18** |
-| Fuel | 3 | 3 | 4 | 3 | 2 | 3 | **18** |
+| Option | Frequency | Trust clarity | Supply | Share | Monetize | **Total** |
+|--------|-----------|---------------|--------|-------|----------|-----------|
+| **Second-hand + escrow** | 4 | 5 | 5 | 5 | 5 | **24** |
+| Grocery basket compare | 5 | 3 | 2 | 4 | 3 | **17** |
+| Ride / fuel utility | 4 | 2 | 1 | 2 | 2 | **11** |
 
 ---
 
-## Why groceries wins
+## Why marketplace + escrow wins
 
-1. **Highest intentional spend.** Households plan lists; Savr sits *before* the trip, not after impulse.
-2. **Basket compare is the OS moment.** Single-SKU compare is a feature. Whole-list compare is the product.
-3. **Merchant portal has a job.** Supermarkets and dukas upload catalogs/promos → competition on value.
-4. **Family Mode is natural.** Shared lists deepen retention without Phase 2 complexity.
-5. **Receipt flywheel.** Upload after shopping → “You could have saved KES X” → trust + price data.
+1. **Pain is trust, not price tables.** Urban Kenyans already buy/sell used goods; fraud and no-shows are the blocker.
+2. **Escrow is the OS moment.** Pay → hold → confirm → release is a product, not a feature bolted onto search.
+3. **Supply is democratized.** Phone + photo + title + price — no merchant portal required for Day 1.
+4. **Fee aligns with completion.** 3% on release rewards closed deals, not vanity listings.
+5. **Share moment is the dry-run (then live) deal screenshot.** WhatsApp proof of a completed trusted sale.
 
-## Why rides are not the wedge
+## Why groceries / rides / fuel are not the wedge
 
-- Quote APIs are partner-gated; deep-links alone feel thin.
-- Comparison is often small (KES 50–150) and time-sensitive; harder to build lasting trust.
-- Supply side is 2–3 oligopolists, not a marketplace Savr can shape.
-
-**Keep rides in MVP** as a fast “wow” screen and daily utility — not the acquisition engine.
-
-## Why fuel is not the wedge
-
-- Price deltas per litre are small; savings feel real only at tank scale.
-- Station coverage is local and operationally messy (crowdsourced + partner feeds).
-- Strong complement to groceries (“fill up on the way to Carrefour”) — ship as nearby utility.
+- Compare OS competed with shelves and partner apps without owning the money moment.
+- Ride/fuel quotes felt thin without partner APIs.
+- Constitution previously said “not a marketplace / M-Pesa off” — **this wedge replaces that spine.**
 
 ---
 
 ## Phase 1 north star
 
-> **Nairobi household opens Savr before the weekly shop, compares a list across Naivas / Quickmart / Carrefour (and peers), picks the best total + cashback, and comes back next week.**
+> **Nairobi professional opens Savr, posts something in 60 seconds or finds a deal, pays with M-Pesa into escrow, confirms, seller is paid minus 3%, both rate.**
 
 ### Success metrics (first 90 days)
 
 | Metric | Target |
 |--------|--------|
-| Weekly active users who run ≥1 basket compare | 40% of MAU |
-| Median basket savings shown | ≥ KES 200 |
-| Lists with ≥5 items | ≥ 50% of compares |
-| Merchant catalog SKUs (seeded + partner) | ≥ 5,000 staples |
-| Cashback earned on recommended merchant | ≥ 30% of completed compares (when redemption path exists) |
+| Live listings from real sellers | Growing week over week |
+| Deals reaching `in_escrow` (dry-run or live) | ≥ 30% of “Buy” starts |
+| Deals released after confirm | ≥ 50% of escrow deals |
+| Mutual ratings after release | ≥ 40% of released deals |
+| Time to first listing (signed-in) | ≤ 60 seconds median |
 
 ### Explicit non-goals for wedge period
 
-- Becoming a ride super-app
-- Full electronics / fashion catalogs
-- AI chat shopping agent
-- Cross-border expansion
+- AI pricing / chat shopping agent
+- Deep categories, bidding, subscriptions
+- Delivery network as Day-1 product
+- Jumia/Jiji scrapers as inventory
+- Grocery tips, fuel, rides as product tabs
 
 ---
 
 ## Sequencing
 
-```
-Week 1–4   Seed staple catalog + 3–5 grocery merchants (Nairobi)
-Week 4–8   Basket compare + savings cashback ledger
-Week 8–12  Ride quotes (deep-link or partner) + fuel nearby
-Week 12+   Receipt “could have saved” + family lists
-```
-
-Rides and fuel launch when grocery compare retention is proven — or earlier as thin utilities if they don’t distract engineering from catalog quality.
+1. Strip old compare OS chrome; ship Home / Sell / Search / Listing / Deal / Profile.  
+2. Schema + RLS + listing photos; demo listings so Home is never empty.  
+3. STK pay-in + escrow ledger + B2C release (**dry-run default**).  
+4. Seed + WhatsApp walkthrough; **live M-Pesa only after explicit go.**  
+5. Week-2 stubs only: boost (KES 50), verify badge (KES 100) — after core loop works.

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { KenyaStoreStrip } from "@/components/KenyaStoreStrip";
-import { KENYA_JOBS, KENYA_QUICK_ASKS } from "@/lib/kenya-life";
+import { KENYA_JOBS, KENYA_QUICK_ASKS, KENYA_BASKET_PACKS } from "@/lib/kenya-life";
 import { SPEND_INTENTS, withAskParam } from "@/lib/intents";
 
 export default function ComparePage() {
@@ -43,6 +43,17 @@ export default function ComparePage() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section>
+            <p className="page-eyebrow">Kenya carts</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {KENYA_BASKET_PACKS.map((pack) => (
+                <Link key={pack.id} href={pack.href} className="home-chip">
+                  {pack.label}
+                </Link>
+              ))}
+            </div>
           </section>
 
           <section>

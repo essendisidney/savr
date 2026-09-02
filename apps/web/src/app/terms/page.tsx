@@ -8,21 +8,22 @@ export default function TermsPage() {
       <PageHero
         theme="account"
         title="Terms of use"
-        subtitle="Plain-language terms for shoppers and merchants on Savr."
+        subtitle="Plain-language terms for buyers and sellers on Savr."
       />
       <div className="page-band">
         <PageShell narrow>
           <article className="prose-savr space-y-5 text-sm leading-relaxed text-savr-ink/90">
             <p>
-              Savr (“we”) helps you compare grocery baskets, ride fares, and fuel prices in Nairobi
-              before you spend. By using https://savr-teal.vercel.app or related apps, you agree to
+              Savr (“we”) is a Kenya second-hand marketplace: list items, buy with M-Pesa escrow, and
+              build reputation. By using https://savr-teal.vercel.app or related apps, you agree to
               these terms.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Service</h2>
             <p>
-              Savr ranks options using listed Kenya shop prices, Nairobi shelf catalogs, and ride
-              or fuel quotes. Always confirm final prices and fares with the store or partner app
-              before you pay. Savr is not the seller.
+              Sellers post listings (photo, title, price). Buyers pay into escrow via M-Pesa. Funds
+              are released to the seller after the buyer confirms — minus Savr’s platform fee (3% on
+              Day 1). Always inspect items when you meet. Savr is the trust rail, not the owner of
+              goods listed by users.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Accounts & SMS</h2>
             <p>
@@ -30,27 +31,29 @@ export default function TermsPage() {
               responsible for the phone/email you use. OTP messages come from our SMS provider;
               message and data rates may apply.
             </p>
-            <h2 className="font-display text-lg font-bold tracking-tightish">Cashback</h2>
+            <h2 className="font-display text-lg font-bold tracking-tightish">Escrow & fees</h2>
             <p>
-              Wallet cashback is earned when you lock a smarter basket choice per our rules. Redeem
-              requests are paid to your M-Pesa number after processing. Balances are not a bank
-              deposit and may be adjusted for abuse or errors.
+              Escrow status is shown in the deal screen. Until live M-Pesa is explicitly enabled,
+              payment flows may run in dry-run mode (no real money moved). When live, a fee is
+              deducted on release. Disputes: report a problem while funds are held; we may hold,
+              refund, or release per our review.
             </p>
-            <h2 className="font-display text-lg font-bold tracking-tightish">Price tips</h2>
+            <h2 className="font-display text-lg font-bold tracking-tightish">Listings & conduct</h2>
             <p>
-              Shoppers may tip shelf or pump prices. Tips must be honest observations. We may remove
-              tips that look abusive or wrong.
+              You warrant you have the right to sell what you list, that photos and titles are not
+              misleading, and that you will not use Savr for illegal goods, fraud, or harassment.
+              We may remove listings or suspend accounts for abuse.
             </p>
-            <h2 className="font-display text-lg font-bold tracking-tightish">Merchants</h2>
+            <h2 className="font-display text-lg font-bold tracking-tightish">Ratings</h2>
             <p>
-              Merchant admins may upload prices and promotions. You warrant you have rights to the
-              data you publish and that it is not misleading.
+              After a deal is released, parties may leave stars and a short note. Ratings must be
+              honest; fake or abusive reviews may be removed.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Liability</h2>
             <p>
               To the fullest extent allowed by Kenyan law, Savr is provided “as is” without warranties
-              of accuracy or uninterrupted service. We are not liable for shopping, transport, or fuel
-              decisions you make after using Savr.
+              of uninterrupted service. We are not liable for item condition disputes beyond the
+              escrow tools we provide, or for decisions you make after using Savr.
             </p>
             <h2 className="font-display text-lg font-bold tracking-tightish">Contact</h2>
             <p>
@@ -60,7 +63,7 @@ export default function TermsPage() {
               </Link>
               .
             </p>
-            <p className="text-xs text-savr-mute">Last updated: August 2026 · Nairobi, Kenya</p>
+            <p className="text-xs text-savr-mute">Last updated: September 2026 · Nairobi, Kenya</p>
           </article>
         </PageShell>
       </div>

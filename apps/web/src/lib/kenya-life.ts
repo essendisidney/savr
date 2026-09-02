@@ -58,8 +58,15 @@ export const KENYA_JOBS: KenyaJob[] = [
     id: "basket",
     label: "Weekly grocery cart",
     hint: "One list ranked across supermarket branches",
-    href: "/basket?staples=1",
+    href: "/basket?pack=weekly",
     mark: "B",
+  },
+  {
+    id: "breakfast",
+    label: "Breakfast table",
+    hint: "Milk, bread, chai, eggs — ranked before anyone shops",
+    href: "/basket?pack=breakfast",
+    mark: "M",
   },
   {
     id: "online",
@@ -89,6 +96,27 @@ export const KENYA_JOBS: KenyaJob[] = [
     href: "/rides",
     mark: "T",
   },
+  {
+    id: "pharmacy",
+    label: "Dawa & Panadol",
+    hint: "Shelf ranks for everyday pharmacy — confirm at the till",
+    href: "/prices?q=panadol",
+    mark: "P",
+  },
+  {
+    id: "baby",
+    label: "Baby week",
+    hint: "Pampers, wipes, milk — ranked across branches",
+    href: "/basket?pack=baby",
+    mark: "A",
+  },
+  {
+    id: "check",
+    label: "After the shop",
+    hint: "Could you have kept more? Tip what you paid",
+    href: "/check",
+    mark: "C",
+  },
 ];
 
 export const KENYA_QUICK_ASKS = [
@@ -98,6 +126,8 @@ export const KENYA_QUICK_ASKS = [
   { label: "Sukuma", href: "/prices?q=sukuma" },
   { label: "Sugar", href: "/prices?q=sugar" },
   { label: "Ndengu", href: "/prices?q=ndengu" },
+  { label: "Chai", href: "/prices?q=tea" },
+  { label: "Panadol", href: "/prices?q=panadol" },
   { label: "Data", href: "/bundles" },
   { label: "Fuel", href: "/fuel" },
   { label: "iPhone", href: "/market?q=iphone%2013" },
@@ -108,6 +138,60 @@ export const KENYA_MARKET_STARTERS = [
   { label: "Kabras", q: "kabras sugar" },
   { label: "iPhone 13", q: "iphone 13" },
   { label: "Tecno", q: "tecno spark" },
+  { label: "Infinix", q: "infinix hot" },
+  { label: "Samsung A15", q: "samsung a15" },
   { label: "Always", q: "always pads" },
+  { label: "Pampers", q: "pampers" },
   { label: "Omo", q: "omo 1kg" },
+  { label: "Royco", q: "royco" },
 ] as const;
+
+export type KenyaPackId = "weekly" | "breakfast" | "unga" | "baby" | "clean";
+
+export const KENYA_BASKET_PACKS: { id: KenyaPackId; label: string; href: string }[] = [
+  { id: "weekly", label: "Weekly", href: "/basket?pack=weekly" },
+  { id: "breakfast", label: "Breakfast", href: "/basket?pack=breakfast" },
+  { id: "unga", label: "Unga week", href: "/basket?pack=unga" },
+  { id: "baby", label: "Baby", href: "/basket?pack=baby" },
+  { id: "clean", label: "Clean house", href: "/basket?pack=clean" },
+];
+
+/** Official telco pages — never invent a bundle price. */
+export const KENYA_TELCO_LINKS = [
+  {
+    id: "safaricom",
+    name: "Safaricom",
+    hint: "MySafaricom or *544#",
+    href: "https://www.safaricom.co.ke/personal/offers-and-products",
+  },
+  {
+    id: "airtel",
+    name: "Airtel",
+    hint: "Confirm in the Airtel app",
+    href: "https://www.airtelkenya.com/",
+  },
+  {
+    id: "telkom",
+    name: "Telkom",
+    hint: "Confirm on Telkom’s site",
+    href: "https://telkom.co.ke/",
+  },
+] as const;
+
+export const KENYA_AISLE_LABELS: Record<string, string> = {
+  dairy: "Milk",
+  staples: "Unga & dry",
+  produce: "Sukuma & veg",
+  bakery: "Bread",
+  household: "Soap",
+  baby: "Baby",
+  personal_care: "Care",
+  beverages: "Chai",
+  protein: "Eggs & meat",
+  snacks: "Snacks",
+  pharmacy: "Dawa",
+};
+
+export function aisleLabel(category: string): string {
+  return KENYA_AISLE_LABELS[category] ?? category.replace(/_/g, " ");
+}

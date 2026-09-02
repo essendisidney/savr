@@ -14,7 +14,7 @@ export function SiteFooter() {
         <div>
           <p className="font-display text-lg font-extrabold tracking-brand text-savr-ink">Savr</p>
           <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-savr-mute">
-            We rank listed Kenya prices. Confirm at the shop. Nairobi first.
+            Sell. Buy. Trust. Money held until you confirm.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 text-[13px]">
@@ -24,14 +24,11 @@ export function SiteFooter() {
           <Link href="/privacy" className="font-semibold text-savr-mute transition hover:text-savr-forest">
             Privacy
           </Link>
-          <Link href="/ask" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Compare
+          <Link href="/sell" className="font-semibold text-savr-mute transition hover:text-savr-forest">
+            Sell
           </Link>
-          <Link href="/map" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Nearby
-          </Link>
-          <Link href="/saved" className="font-semibold text-savr-mute transition hover:text-savr-forest">
-            Saved
+          <Link href="/search" className="font-semibold text-savr-mute transition hover:text-savr-forest">
+            Find a deal
           </Link>
           <a href={supportMailto()} className="font-semibold text-savr-mute transition hover:text-savr-forest">
             {supportEmail()}

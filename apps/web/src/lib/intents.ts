@@ -44,6 +44,12 @@ export const SPEND_INTENTS: SpendIntent[] = [
     href: "/check",
     hint: "After a shop — missed savings",
   },
+  {
+    id: "pharmacy",
+    label: "Dawa & Panadol",
+    href: "/prices?q=panadol",
+    hint: "Everyday pharmacy shelves — confirm at the till",
+  },
 ];
 
 export const ASK_PLACEHOLDERS = [
@@ -123,6 +129,8 @@ const PRODUCTISH = new Set([
   "kabras",
   "jogoo",
   "soko",
+  "tosha",
+  "dola",
   "tuzo",
   "daima",
   "royco",
@@ -139,7 +147,11 @@ const PRODUCTISH = new Set([
   "mkate",
   "sukari",
   "mafuta",
-  "ngano",
+  "maji",
+  "dawa",
+  "viazi",
+  "nyama",
+  "simu",
 ]);
 
 /**
@@ -147,7 +159,7 @@ const PRODUCTISH = new Set([
  * “food” alone should open a staples basket, not “No match”.
  */
 const BASKETISH_RE =
-  /\b(food|foods|meal|meals|lunch|dinner|breakfast|kitchen|supermarket|provisions|vikapu|family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/;
+  /\b(food|foods|meal|meals|lunch|dinner|breakfast|kitchen|supermarket|provisions|vikapu|chakula|kula|family|basket|grocer\w*|weekly\s+shop|feed|staples)\b/;
 
 /**
  * Nairobi vernacular / synonyms → catalog search probe.
@@ -173,12 +185,19 @@ export const ASK_PRODUCT_ALIASES: Record<string, string> = {
   sukari: "sugar",
   mafuta: "cooking oil",
   ngano: "wheat flour",
+  dawa: "panadol",
+  viazi: "potatoes",
+  nyama: "chicken",
+  maji: "water",
   chapati: "chapati flour",
   pampers: "pampers",
   geisha: "soap",
   kabras: "sugar",
   jogoo: "maize flour",
   soko: "maize flour",
+  tosha: "maize flour",
+  dola: "maize flour",
+  ketepa: "tea",
   tuzo: "milk",
   daima: "milk",
   royco: "royco",
@@ -349,11 +368,11 @@ export function routeAskQuery(raw: string): string {
     return pricesPath(trimmed);
   }
 
-  if (/\b(airtime|safaricom|data\s*bundle|gb\s*bundle|bamba|\d+\s*gb)\b/.test(q)) {
+  if (/\b(airtime|safaricom|airtel|telkom|data\s*bundle|gb\s*bundle|bamba|\d+\s*gb)\b/.test(q)) {
     return withAskParam("/bundles", trimmed);
   }
 
-  if (/\b(jumia|kilimall|jiji|konga|online)\b/.test(q)) {
+  if (/\b(jumia|kilimall|jiji|konga|online|simu|iphone|tecno|infinix)\b/.test(q)) {
     return marketPath(trimmed);
   }
 
@@ -371,7 +390,7 @@ export function routeAskQuery(raw: string): string {
   ) {
     return withAskParam("/rides", trimmed);
   }
-  if (/\b(fuel|petrol|diesel|fill\s*up)\b/.test(q) || (/\bstation\b/.test(q) && /\b(fuel|petrol|diesel|gas)\b/.test(q))) {
+  if (/\b(fuel|petrol|diesel|petro|fill\s*up)\b/.test(q) || (/\bstation\b/.test(q) && /\b(fuel|petrol|diesel|gas|petro)\b/.test(q))) {
     return withAskParam("/fuel", trimmed);
   }
   if (/\b(watch|wishlist|alert|notify)\b/.test(q) || /\bprice\s+drop\b/.test(q)) {
@@ -386,7 +405,7 @@ export function routeAskQuery(raw: string): string {
   if (/\b(missed|could i|receipt|after\s+(a\s+)?shop|last\s+shop)\b/.test(q)) {
     return withAskParam("/check", trimmed);
   }
-  if (/\b(medicine|panadol|paracetamol|pharmacy)\b/.test(q)) {
+  if (/\b(medicine|panadol|paracetamol|pharmacy|dawa)\b/.test(q)) {
     return pricesPath(trimmed);
   }
 

@@ -1,5 +1,5 @@
 /**
- * Safaricom Daraja B2C — production-shaped, dry-run by default.
+ * Safaricom Daraja B2C + STK — production-shaped, dry-run by default.
  * Set MPESA_DRY_RUN=false and paste sandbox/prod keys to hit Daraja.
  */
 
@@ -20,6 +20,22 @@ export type B2CResult = {
   raw?: unknown;
 };
 
+export type StkPushRequest = {
+  amountKes: number;
+  phone: string;
+  accountReference: string;
+  transactionDesc: string;
+};
+
+export type StkPushResult = {
+  dryRun: boolean;
+  checkoutRequestId: string;
+  merchantRequestId: string;
+  responseCode?: string;
+  customerMessage?: string;
+  raw?: unknown;
+};
+
 function isDryRun(): boolean {
   return process.env.MPESA_DRY_RUN !== "false";
 }
@@ -37,6 +53,16 @@ function normalizeMsisdn(phone: string): string {
   if (digits.startsWith("0") && digits.length === 10) return `254${digits.slice(1)}`;
   if (digits.length === 9) return `254${digits}`;
   return digits;
+}
+
+function stkPassword(shortcode: string, passkey: string, timestamp: string): string {
+  return Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64");
+}
+
+function stkTimestamp(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -67,6 +93,81 @@ export async function getMpesaAccessToken(): Promise<string> {
     expiresAt: Date.now() + Number(data.expires_in || 3599) * 1000,
   };
   return data.access_token;
+}
+
+export async function initiateStkPush(req: StkPushRequest): Promise<StkPushResult> {
+  const phone = normalizeMsisdn(req.phone);
+  const amount = Math.max(1, Math.round(req.amountKes));
+
+  if (isDryRun()) {
+    const checkoutRequestId = `DRY-STK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    console.info("[mpesa:dry-run] STK", {
+      amount,
+      phone,
+      accountReference: req.accountReference,
+      checkoutRequestId,
+    });
+    return {
+      dryRun: true,
+      checkoutRequestId,
+      merchantRequestId: `DRY-MR-${Date.now()}`,
+      responseCode: "0",
+      customerMessage: "Dry-run STK — no money moved; treated as paid into escrow",
+    };
+  }
+
+  const shortcode = process.env.MPESA_SHORTCODE;
+  const passkey = process.env.MPESA_PASSKEY;
+  const callbackUrl = process.env.MPESA_STK_CALLBACK_URL;
+  if (!shortcode || !passkey || !callbackUrl) {
+    throw new Error("Missing M-Pesa STK env (MPESA_SHORTCODE, MPESA_PASSKEY, MPESA_STK_CALLBACK_URL)");
+  }
+
+  const timestamp = stkTimestamp();
+  const token = await getMpesaAccessToken();
+  const payload = {
+    BusinessShortCode: shortcode,
+    Password: stkPassword(shortcode, passkey, timestamp),
+    Timestamp: timestamp,
+    TransactionType: "CustomerPayBillOnline",
+    Amount: amount,
+    PartyA: phone,
+    PartyB: shortcode,
+    PhoneNumber: phone,
+    CallBackURL: callbackUrl,
+    AccountReference: req.accountReference.slice(0, 12),
+    TransactionDesc: req.transactionDesc.slice(0, 13),
+  };
+
+  const res = await fetch(`${baseUrl()}/mpesa/stkpush/v1/processrequest`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const raw = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`STK request failed: ${res.status} ${JSON.stringify(raw)}`);
+  }
+
+  const data = raw as {
+    CheckoutRequestID?: string;
+    MerchantRequestID?: string;
+    ResponseCode?: string;
+    CustomerMessage?: string;
+  };
+
+  return {
+    dryRun: false,
+    checkoutRequestId: data.CheckoutRequestID ?? "",
+    merchantRequestId: data.MerchantRequestID ?? "",
+    responseCode: data.ResponseCode,
+    customerMessage: data.CustomerMessage,
+    raw,
+  };
 }
 
 export async function initiateB2C(req: B2CRequest): Promise<B2CResult> {

@@ -5,24 +5,8 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
 const DESKTOP = [
-  {
-    href: "/ask",
-    label: "Compare",
-    match: (p: string) =>
-      p === "/ask" ||
-      p.startsWith("/prices") ||
-      p.startsWith("/basket") ||
-      p.startsWith("/market") ||
-      p.startsWith("/bundles") ||
-      p.startsWith("/check"),
-  },
-  {
-    href: "/map",
-    label: "Nearby",
-    match: (p: string) =>
-      p.startsWith("/map") || p.startsWith("/fuel") || p.startsWith("/rides"),
-  },
-  { href: "/saved", label: "Saved", match: (p: string) => p.startsWith("/saved") },
+  { href: "/sell", label: "Sell", match: (p: string) => p.startsWith("/sell") },
+  { href: "/search", label: "Find a deal", match: (p: string) => p.startsWith("/search") },
 ];
 
 export function AppNav() {
@@ -67,9 +51,7 @@ export function AppNav() {
                 <Link
                   href="/account"
                   className={`rounded-xl px-3 py-1.5 text-[13px] font-semibold transition ${
-                    pathname.startsWith("/account") ||
-                    pathname.startsWith("/wallet") ||
-                    pathname.startsWith("/scan")
+                    pathname.startsWith("/account") || pathname.startsWith("/deals")
                       ? "bg-savr-forest/10 text-savr-forest"
                       : "text-savr-forest hover:text-savr-ink"
                   }`}

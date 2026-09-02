@@ -20,41 +20,20 @@ const tabs = [
     ),
   },
   {
-    href: "/ask",
-    label: "Compare",
-    match: (p: string) =>
-      p === "/ask" ||
-      p.startsWith("/prices") ||
-      p.startsWith("/basket") ||
-      p.startsWith("/market") ||
-      p.startsWith("/bundles") ||
-      p.startsWith("/check"),
+    href: "/sell",
+    label: "Post",
+    match: (p: string) => p.startsWith("/sell"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M7 7h4v4H7V7Zm6 0h4v4h-4V7ZM7 13h4v4H7v-4Zm6 6 4-6h-4v6Z"
+        <circle
+          cx="12"
+          cy="12"
+          r="8"
           stroke="currentColor"
           strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "/map",
-    label: "Nearby",
-    match: (p: string) =>
-      p.startsWith("/map") || p.startsWith("/fuel") || p.startsWith("/rides"),
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M9 4.5 3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5 9 4.5Z"
-          stroke="currentColor"
-          strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
         />
         <path
-          d="M9 4.5v13M15 6.5v13"
+          d="M12 8v8M8 12h8"
           stroke="currentColor"
           strokeWidth={active ? 2.2 : 1.7}
           strokeLinecap="round"
@@ -63,16 +42,23 @@ const tabs = [
     ),
   },
   {
-    href: "/saved",
-    label: "Saved",
-    match: (p: string) => p.startsWith("/saved") || p.startsWith("/alerts"),
+    href: "/search",
+    label: "Search",
+    match: (p: string) => p.startsWith("/search"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M6.5 4.5h11A1.5 1.5 0 0 1 19 6v14l-7-3.5L5 20V6A1.5 1.5 0 0 1 6.5 4.5Z"
+        <circle
+          cx="11"
+          cy="11"
+          r="6.5"
           stroke="currentColor"
           strokeWidth={active ? 2.2 : 1.7}
-          strokeLinejoin="round"
+        />
+        <path
+          d="M16 16l4 4"
+          stroke="currentColor"
+          strokeWidth={active ? 2.2 : 1.7}
+          strokeLinecap="round"
         />
       </svg>
     ),
@@ -81,10 +67,7 @@ const tabs = [
     href: "/account",
     label: "You",
     match: (p: string) =>
-      p.startsWith("/account") ||
-      p.startsWith("/login") ||
-      p.startsWith("/wallet") ||
-      p.startsWith("/scan"),
+      p.startsWith("/account") || p.startsWith("/login") || p.startsWith("/deals"),
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
         <circle
@@ -107,9 +90,7 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  if (pathname === "/merchant" || pathname === "/invite" || pathname.startsWith("/l/")) {
-    return null;
-  }
+  if (pathname === "/invite") return null;
 
   return (
     <nav

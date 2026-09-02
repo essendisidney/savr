@@ -137,4 +137,10 @@ export const DAILY_SEEDS = [
   "omo",
   "geisha soap",
   "always pads",
+  "pampers",
+  "royco",
+  "kimbo",
+  "panadol",
+  "tecno spark",
+  "infinix hot",
 ];

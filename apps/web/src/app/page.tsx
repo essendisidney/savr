@@ -1,5 +1,5 @@
-import { HomeDecision } from "@/components/HomeDecision";
+import { MarketplaceHome } from "@/components/MarketplaceHome";
 
 export default function HomePage() {
-  return <HomeDecision />;
+  return <MarketplaceHome />;
 }

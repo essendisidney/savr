@@ -38,13 +38,13 @@ export function cityProofFromCatalog(catalog: Catalog | null | undefined): CityP
   const trusted = tipShelves + merchantShelves;
   const chip =
     trusted > 0
-      ? `${trusted} tip/merchant shelves · ${branches} branches`
-      : `${productCount} staples · ${branches} branches`;
+      ? `${trusted} tip/merchant shelves · ${chains.size} shops · ${branches} branches`
+      : `${productCount} staples · ${chains.size} shops · ${branches} branches`;
 
   const line =
     trusted > 0
-      ? `Nairobi open · ${productCount} staples · ${branches} grocery branches · ${trusted} tip/merchant shelves (confirm on aisle).`
-      : `Nairobi open · ${productCount} staples across ${branches} grocery branches.`;
+      ? `Kenya open · ${productCount} staples · ${chains.size} supermarket names · ${branches} branches · ${trusted} tip/merchant shelves (confirm on aisle).`
+      : `Kenya open · ${productCount} staples across ${chains.size} supermarket names · ${branches} branches.`;
 
   return {
     productCount,

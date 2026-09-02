@@ -65,6 +65,11 @@ const QUICK_ADD_MATCHERS: { chip: string; match: RegExp }[] = [
   { chip: "Detergent", match: /laundry detergent/i },
   { chip: "Tissue", match: /tissue (paper|rolls)/i },
   { chip: "Noodles", match: /instant noodles|spaghetti 500g/i },
+  { chip: "Kabras", match: /kabras/i },
+  { chip: "Royco", match: /royco/i },
+  { chip: "Kimbo", match: /kimbo/i },
+  { chip: "Panadol", match: /panadol/i },
+  { chip: "Pampers", match: /pampers|diapers/i },
 ];
 
 /** Soft-launch staples basket — prefer Weekly 30 IDs when present in catalog. */
@@ -99,6 +104,59 @@ export function defaultListFromCatalog(catalog: Catalog): ListItem[] {
     freeText: p.name,
     quantity: 1,
   }));
+}
+
+const KENYA_PACK_MATCHERS: Record<string, { name: string; matchers: RegExp[] }> = {
+  breakfast: {
+    name: "Breakfast table",
+    matchers: [
+      /fresh milk 500ml/i,
+      /white bread 400g/i,
+      /tea leaves/i,
+      /eggs tray/i,
+      /margarine|blue band/i,
+    ],
+  },
+  unga: {
+    name: "Unga week",
+    matchers: [
+      /maize flour 2kg/i,
+      /cooking oil 2l/i,
+      /sukuma wiki/i,
+      /tomatoes 1kg/i,
+      /onions 1kg/i,
+      /sugar 1kg/i,
+    ],
+  },
+  baby: {
+    name: "Baby week",
+    matchers: [/pampers|diapers/i, /baby wipes/i, /infant formula|nan/i, /fresh milk 500ml/i],
+  },
+  clean: {
+    name: "Clean house",
+    matchers: [/laundry detergent/i, /bar soap/i, /tissue (paper|rolls)/i, /bleach|jik/i],
+  },
+};
+
+export function kenyaPackName(packId: string | null | undefined): string | null {
+  if (!packId || packId === "weekly") return "Weekly shop";
+  return KENYA_PACK_MATCHERS[packId]?.name ?? null;
+}
+
+/** Named Kenya carts — only SKUs that exist in the catalog. */
+export function kenyaPackFromCatalog(catalog: Catalog, packId: string | null | undefined): ListItem[] {
+  if (!packId || packId === "weekly") return defaultListFromCatalog(catalog);
+  const pack = KENYA_PACK_MATCHERS[packId];
+  if (!pack) return defaultListFromCatalog(catalog);
+  const used = new Set<string>();
+  const items: ListItem[] = [];
+  for (const match of pack.matchers) {
+    const product = catalog.products.find((p) => !used.has(p.id) && match.test(p.name));
+    if (!product) continue;
+    used.add(product.id);
+    items.push({ productId: product.id, freeText: product.name, quantity: 1 });
+  }
+  return items.length >= 2 ? items : defaultListFromCatalog(catalog);
 }
 
 export function quickAddChips(

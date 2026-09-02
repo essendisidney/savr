@@ -14,6 +14,7 @@ import { loadCatalog } from "@/lib/catalog";
 import { bestAskProductMatch, askRecoveryProducts, compareProduct, formatKes } from "@/lib/compare";
 import { catalogHonesty } from "@/lib/data-honesty";
 import { askQuote } from "@/lib/intents";
+import { aisleLabel, KENYA_BASKET_PACKS } from "@/lib/kenya-life";
 import { buildPriceTipShare, buildShelfDealShare, whatsAppShareUrl, type SharePayload } from "@/lib/share";
 import { track } from "@/lib/track";
 import { markAskRequested, pushUnmatchedAsk } from "@/lib/unmatched-asks";
@@ -44,6 +45,7 @@ function PricesInner() {
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("id"));
   const [category, setCategory] = useState<string>("all");
+  const [chain, setChain] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [askMatched, setAskMatched] = useState(false);
   const [tipBranchKey, setTipBranchKey] = useState("");
@@ -173,9 +175,21 @@ function PricesInner() {
     [catalog],
   );
 
+  const chains = useMemo(() => {
+    if (!catalog) return [] as string[];
+    return Array.from(
+      new Set(catalog.merchants.filter((m) => m.category === "grocery").map((m) => m.name)),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [catalog]);
+
   const results = useMemo(
     () => (catalog && selectedId ? compareProduct(catalog, selectedId, origin) : []),
     [catalog, selectedId, origin],
+  );
+
+  const displayResults = useMemo(
+    () => (chain === "all" ? results : results.filter((r) => r.merchantName === chain)),
+    [results, chain],
   );
 
   const cheapest = results[0];
@@ -436,8 +450,15 @@ function PricesInner() {
                         : "bg-white text-savr-mute ring-1 ring-savr-ink/10 hover:text-savr-ink"
                     }`}
                   >
-                    {c.replace("_", " ")}
+                    {aisleLabel(c)}
                   </button>
+                ))}
+              </div>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {KENYA_BASKET_PACKS.map((pack) => (
+                  <Link key={pack.id} href={pack.href} className="home-chip">
+                    {pack.label}
+                  </Link>
                 ))}
               </div>
               <label htmlFor="price-search" className="sr-only">
@@ -451,7 +472,7 @@ function PricesInner() {
                   setQuery(e.target.value);
                   setAskMatched(false);
                 }}
-                placeholder="Milk, bread, rice, oil…"
+                placeholder="Unga, maziwa, sukuma, mafuta…"
                 className="w-full border border-savr-ink/[0.12] bg-white px-4 py-3.5 text-[15px] text-savr-ink outline-none transition placeholder:text-savr-mute focus:border-savr-forest"
                 autoComplete="off"
               />
@@ -638,8 +659,43 @@ function PricesInner() {
                   setEstate={setEstate}
                 />
 
+                {chains.length > 1 && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={chain === "all" ? "chip-active" : "chip"}
+                      onClick={() => setChain("all")}
+                    >
+                      All shops
+                    </button>
+                    {chains.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        className={chain === name ? "chip-active" : "chip"}
+                        onClick={() => setChain(name)}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <ol className="space-y-4">
-                  {results.map((r, i) => {
+                  {displayResults.length === 0 ? (
+                    <li className="list-none">
+                      <EmptyState
+                        title="No listed price at this shop"
+                        body="Clear the shop filter to see every supermarket that has this item."
+                        action={
+                          <button type="button" className="btn-ghost" onClick={() => setChain("all")}>
+                            All shops
+                          </button>
+                        }
+                      />
+                    </li>
+                  ) : null}
+                  {displayResults.map((r, i) => {
                     const width = Math.max(14, (r.priceCents / maxPrice) * 100);
                     const dist = formatDistanceKm(r.distanceKm);
                     const rowKey = `${r.merchantId}:${r.locationId ?? "none"}`;

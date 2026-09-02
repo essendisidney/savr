@@ -17,6 +17,7 @@ import { cityProofFromCatalog } from "@/lib/city-proof";
 import { fuelSavingsCredible } from "@/lib/data-honesty";
 import { ASK_PLACEHOLDERS, routeAskQuery, savingsBuys, weekdayPulse } from "@/lib/intents";
 import { KenyaStoreStrip } from "@/components/KenyaStoreStrip";
+import { KENYA_BASKET_PACKS, KENYA_JOBS } from "@/lib/kenya-life";
 import { loadRecentAsks, pushRecentAsk } from "@/lib/recent-asks";
 import { buildMarketInviteShare, whatsAppShareUrl } from "@/lib/share";
 
@@ -396,6 +397,31 @@ export function HomeDecision() {
           <p className="home-eyebrow">Kenya shops</p>
           <div className="mt-2.5">
             <KenyaStoreStrip />
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="home-eyebrow">Kenya life</p>
+          <ul className="mt-2.5 grid grid-cols-2 gap-2">
+            {KENYA_JOBS.slice(0, 6).map((job) => (
+              <li key={job.id}>
+                <Link href={job.href} className="kenya-job !gap-2 !px-3 !py-3">
+                  <span className="kenya-job-mark !h-8 !w-8 !text-[11px]" aria-hidden>
+                    {job.mark}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold text-savr-ink">{job.label}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {KENYA_BASKET_PACKS.map((pack) => (
+              <Link key={pack.id} href={pack.href} className="home-chip">
+                {pack.label}
+              </Link>
+            ))}
           </div>
         </div>
 

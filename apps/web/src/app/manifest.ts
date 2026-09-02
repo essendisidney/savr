@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Savr — Before you spend",
+    name: "Savr — Sell. Buy. Trust.",
     short_name: "Savr",
   description:
-    "Nairobi spending OS. Compare Kenya shop listings, grocery baskets, rides, and fuel before you spend.",
+    "Kenya’s trusted second-hand marketplace. Post in 60 seconds. Money held until you confirm.",
     start_url: "/",
     scope: "/",
     display: "standalone",
