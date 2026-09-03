@@ -3,6 +3,7 @@
 import { getSupabase } from "./supabase";
 import { createAdminClient } from "./supabase-admin";
 import {
+  BOOST_DAYS,
   DEMO_LISTINGS,
   feeCentsFor,
   searchDemoListings,
@@ -11,6 +12,7 @@ import {
   type MarketplaceListing,
 } from "./marketplace";
 import { initiateB2C, initiateStkPush, mpesaIsDryRun } from "./mpesa";
+import { isValidKeMobile } from "./phone";
 
 /** Privileged writes for escrow + listing status (buyer cannot update seller’s listing via RLS). */
 function adminDb() {
@@ -29,6 +31,7 @@ type ListingRow = {
   status: string;
   city: string;
   created_at: string;
+  boosted_until?: string | null;
   listing_images?: { public_url: string; sort_order: number }[] | null;
 };
 
@@ -39,23 +42,32 @@ async function enrichListings(
   const sellerIds = [...new Set(rows.map((r) => r.seller_id))];
   const nameById = new Map<string, string | null>();
   const verified = new Set<string>();
+  const ratingSum = new Map<string, { sum: number; count: number }>();
 
   if (supabase && sellerIds.length) {
-    const [{ data: profiles }, { data: verifs }] = await Promise.all([
+    const [{ data: profiles }, { data: verifs }, { data: ratingRows }] = await Promise.all([
       supabase.from("profiles").select("id, full_name").in("id", sellerIds),
       supabase
         .from("seller_verifications")
         .select("profile_id, id_status")
         .in("profile_id", sellerIds),
+      supabase.from("ratings").select("to_id, stars").in("to_id", sellerIds),
     ]);
     for (const p of profiles ?? []) nameById.set(p.id, p.full_name);
     for (const v of verifs ?? []) {
       if (v.id_status === "verified") verified.add(v.profile_id);
     }
+    for (const r of ratingRows ?? []) {
+      const cur = ratingSum.get(r.to_id) ?? { sum: 0, count: 0 };
+      cur.sum += r.stars;
+      cur.count += 1;
+      ratingSum.set(r.to_id, cur);
+    }
   }
 
   return rows.map((row) => {
     const images = [...(row.listing_images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+    const stats = ratingSum.get(row.seller_id);
     return {
       id: row.id,
       sellerId: row.seller_id,
@@ -66,33 +78,46 @@ async function enrichListings(
       city: row.city,
       imageUrl: images[0]?.public_url ?? null,
       verified: verified.has(row.seller_id),
+      boostedUntil: row.boosted_until ?? null,
+      avgStars: stats && stats.count > 0 ? Math.round((stats.sum / stats.count) * 10) / 10 : null,
+      ratingCount: stats?.count ?? 0,
       createdAt: row.created_at,
     };
   });
 }
 
+function sortBoostedFirst(rows: MarketplaceListing[]): MarketplaceListing[] {
+  const now = Date.now();
+  return [...rows].sort((a, b) => {
+    const aBoost = a.boostedUntil && new Date(a.boostedUntil).getTime() > now ? 1 : 0;
+    const bBoost = b.boostedUntil && new Date(b.boostedUntil).getTime() > now ? 1 : 0;
+    if (aBoost !== bBoost) return bBoost - aBoost;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
+
 const LISTING_SELECT =
-  "id, seller_id, title, price_cents, status, city, created_at, listing_images(public_url, sort_order)";
+  "id, seller_id, title, price_cents, status, city, created_at, boosted_until, listing_images(public_url, sort_order)";
 
 export async function loadLiveListings(limit = 40): Promise<MarketplaceListing[]> {
   const supabase = getSupabase();
-  if (!supabase) return DEMO_LISTINGS.slice(0, limit);
+  if (!supabase) return sortBoostedFirst(DEMO_LISTINGS).slice(0, limit);
 
   const { data, error } = await supabase
     .from("listings")
     .select(LISTING_SELECT)
     .eq("status", "live")
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(Math.max(limit, 48));
 
-  if (error || !data?.length) return DEMO_LISTINGS.slice(0, limit);
-  return enrichListings(data as ListingRow[]);
+  if (error || !data?.length) return sortBoostedFirst(DEMO_LISTINGS).slice(0, limit);
+  return sortBoostedFirst(await enrichListings(data as ListingRow[])).slice(0, limit);
 }
 
 export async function searchListings(q: string): Promise<MarketplaceListing[]> {
   const supabase = getSupabase();
   const needle = q.trim();
-  if (!supabase) return searchDemoListings(needle);
+  if (!supabase) return sortBoostedFirst(searchDemoListings(needle));
 
   let query = supabase
     .from("listings")
@@ -104,8 +129,8 @@ export async function searchListings(q: string): Promise<MarketplaceListing[]> {
   if (needle) query = query.ilike("title", `%${needle}%`);
 
   const { data, error } = await query;
-  if (error || !data?.length) return searchDemoListings(needle);
-  return enrichListings(data as ListingRow[]);
+  if (error || !data?.length) return sortBoostedFirst(searchDemoListings(needle));
+  return sortBoostedFirst(await enrichListings(data as ListingRow[]));
 }
 
 export async function loadListing(id: string): Promise<MarketplaceListing | null> {
@@ -146,6 +171,18 @@ export async function createListing(params: {
   if (title.length < 2) return { error: "Add a short title" };
   if (!Number.isFinite(priceCents) || priceCents < 100) return { error: "Enter a price in KES" };
   if (!params.imageUrl) return { error: "Add one photo" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("phone")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile?.phone || !isValidKeMobile(profile.phone)) {
+    return {
+      error: "Add a valid M-Pesa phone on your profile before posting (You → Profile).",
+    };
+  }
 
   const { data: listing, error } = await supabase
     .from("listings")
@@ -238,6 +275,85 @@ export async function startDeal(listingId: string): Promise<{ dealId: string } |
   });
 
   return { dealId: deal.id };
+}
+
+export async function cancelDeal(
+  dealId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase required" };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in" };
+
+  const { data: deal } = await supabase.from("deals").select("*").eq("id", dealId).maybeSingle();
+  if (!deal) return { error: "Deal not found" };
+  if (deal.buyer_id !== user.id && deal.seller_id !== user.id) {
+    return { error: "Deal not found" };
+  }
+  if (deal.status !== "pending_pay") {
+    return { error: "Only unpaid deals can be cancelled" };
+  }
+
+  const admin = adminDb() ?? supabase;
+  await admin
+    .from("deals")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id", dealId);
+
+  const { data: open } = await admin
+    .from("deals")
+    .select("id")
+    .eq("listing_id", deal.listing_id)
+    .in("status", ["pending_pay", "in_escrow"])
+    .limit(1);
+
+  if (!open?.length) {
+    await admin.from("listings").update({ status: "live" }).eq("id", deal.listing_id);
+  }
+
+  await admin.from("escrow_events").insert({
+    deal_id: dealId,
+    status: "cancelled",
+    note: "Deal cancelled — listing restored if no other open deal",
+    dry_run: mpesaIsDryRun(),
+  });
+
+  return { ok: true };
+}
+
+export async function boostListing(
+  listingId: string,
+): Promise<{ ok: true; dryRun: boolean; boostedUntil: string } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase required" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in" };
+
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("id, seller_id, status")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (!listing || listing.seller_id !== user.id) return { error: "Listing not found" };
+  if (listing.status !== "live" && listing.status !== "reserved") {
+    return { error: "Only active listings can be boosted" };
+  }
+
+  const until = new Date(Date.now() + BOOST_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const dryRun = mpesaIsDryRun();
+  const { error } = await supabase
+    .from("listings")
+    .update({ boosted_until: until, updated_at: new Date().toISOString() })
+    .eq("id", listingId);
+
+  if (error) return { error: error.message };
+  return { ok: true, dryRun, boostedUntil: until };
 }
 
 export async function loadDeal(dealId: string): Promise<MarketplaceDeal | null> {
@@ -387,7 +503,12 @@ export async function confirmDealReceived(
     .maybeSingle();
 
   const payoutPhone = deal.seller_phone || seller?.phone;
-  if (!payoutPhone) return { error: "Seller needs a phone number for M-Pesa payout" };
+  if (!payoutPhone) {
+    return {
+      error:
+        "Seller needs a valid M-Pesa phone on their profile before payout. Ask them to update You → Profile, or report a problem.",
+    };
+  }
 
   const payoutKes = Math.round((deal.price_cents - deal.fee_cents) / 100);
   try {
@@ -441,13 +562,159 @@ export async function reportDealProblem(dealId: string): Promise<{ ok: true } | 
   }
   if (deal.status !== "in_escrow") return { error: "Only escrow deals can be reported" };
 
+  const who = deal.buyer_id === user.id ? "buyer" : "seller";
   await (adminDb() ?? supabase).from("escrow_events").insert({
     deal_id: dealId,
     status: "dispute",
-    note: "Problem reported — support will review. Funds still held.",
+    note: `Problem reported by ${who} — funds still held. Either party can refund to restore the listing.`,
     dry_run: mpesaIsDryRun(),
   });
   return { ok: true };
+}
+
+export async function refundDeal(
+  dealId: string,
+): Promise<{ ok: true; dryRun: boolean } | { error: string }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase required" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in" };
+
+  const { data: deal } = await supabase.from("deals").select("*").eq("id", dealId).maybeSingle();
+  if (!deal || (deal.buyer_id !== user.id && deal.seller_id !== user.id)) {
+    return { error: "Deal not found" };
+  }
+  if (deal.status !== "in_escrow") return { error: "Only escrow deals can be refunded" };
+
+  const admin = adminDb() ?? supabase;
+  const dryRun = mpesaIsDryRun();
+  await admin
+    .from("deals")
+    .update({ status: "refunded", updated_at: new Date().toISOString() })
+    .eq("id", dealId);
+
+  const { data: open } = await admin
+    .from("deals")
+    .select("id")
+    .eq("listing_id", deal.listing_id)
+    .in("status", ["pending_pay", "in_escrow"])
+    .limit(1);
+
+  if (!open?.length) {
+    await admin.from("listings").update({ status: "live" }).eq("id", deal.listing_id);
+  }
+
+  await admin.from("escrow_events").insert({
+    deal_id: dealId,
+    status: "refunded",
+    note: dryRun
+      ? "Dry-run refund — escrow marked refunded, listing restored"
+      : "Escrow refunded to buyer path — listing restored",
+    dry_run: dryRun,
+  });
+
+  return { ok: true, dryRun };
+}
+
+/** Cancel unpaid deals older than maxAgeMinutes; restore listings. */
+export async function expireStalePendingDeals(
+  maxAgeMinutes = 60,
+): Promise<{ expired: number }> {
+  const admin = adminDb();
+  if (!admin) return { expired: 0 };
+
+  const cutoff = new Date(Date.now() - maxAgeMinutes * 60_000).toISOString();
+  const { data: stale } = await admin
+    .from("deals")
+    .select("id, listing_id")
+    .eq("status", "pending_pay")
+    .lt("created_at", cutoff)
+    .limit(100);
+
+  if (!stale?.length) return { expired: 0 };
+
+  let expired = 0;
+  for (const deal of stale) {
+    await admin
+      .from("deals")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", deal.id);
+
+    const { data: open } = await admin
+      .from("deals")
+      .select("id")
+      .eq("listing_id", deal.listing_id)
+      .in("status", ["pending_pay", "in_escrow"])
+      .limit(1);
+
+    if (!open?.length) {
+      await admin.from("listings").update({ status: "live" }).eq("id", deal.listing_id);
+    }
+
+    await admin.from("escrow_events").insert({
+      deal_id: deal.id,
+      status: "cancelled",
+      note: `Auto-expired after ${maxAgeMinutes}m unpaid`,
+      dry_run: mpesaIsDryRun(),
+    });
+    expired += 1;
+  }
+
+  return { expired };
+}
+
+export async function loadMyRatingForDeal(
+  dealId: string,
+): Promise<{ stars: number } | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("ratings")
+    .select("stars")
+    .eq("deal_id", dealId)
+    .eq("from_id", user.id)
+    .maybeSingle();
+
+  return data ? { stars: data.stars } : null;
+}
+
+export async function loadEscrowEvents(dealId: string): Promise<
+  { id: string; status: string; note: string | null; dryRun: boolean; createdAt: string }[]
+> {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("escrow_events")
+    .select("id, status, note, dry_run, created_at")
+    .eq("deal_id", dealId)
+    .order("created_at", { ascending: true });
+
+  return (data ?? []).map((e) => ({
+    id: e.id,
+    status: e.status,
+    note: e.note,
+    dryRun: e.dry_run,
+    createdAt: e.created_at,
+  }));
+}
+
+export async function dealHasDispute(dealId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("escrow_events")
+    .select("id")
+    .eq("deal_id", dealId)
+    .eq("status", "dispute")
+    .limit(1);
+  return Boolean(data?.length);
 }
 
 export async function rateDeal(params: {
@@ -471,11 +738,18 @@ export async function rateDeal(params: {
     stars,
     note: params.note?.trim().slice(0, 280) || null,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.code === "23505" || /duplicate|unique/i.test(error.message)) {
+      return { error: "You already rated this deal" };
+    }
+    return { error: error.message };
+  }
   return { ok: true };
 }
 
-export async function requestVerification(): Promise<{ ok: true } | { error: string }> {
+export async function requestVerification(params?: {
+  idNote?: string;
+}): Promise<{ ok: true; dryRun: boolean } | { error: string }> {
   const supabase = getSupabase();
   if (!supabase) return { error: "Supabase required" };
   const {
@@ -483,13 +757,19 @@ export async function requestVerification(): Promise<{ ok: true } | { error: str
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in" };
 
+  const note = [
+    `Week-2 stub: KES ${100} verify fee (dry-run — no charge yet)`,
+    params?.idNote?.trim() ? `ID note: ${params.idNote.trim().slice(0, 200)}` : "ID upload placeholder — pending ops review",
+  ].join(" · ");
+
   const { error } = await supabase.from("seller_verifications").upsert({
     profile_id: user.id,
     id_status: "pending",
+    note,
     updated_at: new Date().toISOString(),
   });
   if (error) return { error: error.message };
-  return { ok: true };
+  return { ok: true, dryRun: mpesaIsDryRun() };
 }
 
 export async function loadVerificationStatus(): Promise<"none" | "pending" | "verified" | "rejected"> {

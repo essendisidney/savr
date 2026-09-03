@@ -7,14 +7,14 @@ export default function NotFound() {
       <PageShell narrow>
         <h1 className="page-title text-2xl">That page isn’t here</h1>
         <p className="mt-3 text-sm leading-relaxed text-savr-mute">
-          Ask Savr what you want to buy in Kenya, or open today’s grocery basket.
+          Sell something in 60 seconds, or find a second-hand deal with escrow.
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link href="/" className="btn-primary">
-            Ask Savr
+          <Link href="/sell" className="btn-primary">
+            Sell something
           </Link>
-          <Link href="/basket?staples=1" className="btn-ghost">
-            Weekly groceries
+          <Link href="/search" className="btn-ghost">
+            Find a deal
           </Link>
         </div>
       </PageShell>

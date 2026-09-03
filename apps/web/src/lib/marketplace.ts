@@ -19,8 +19,23 @@ export type MarketplaceListing = {
   city: string;
   imageUrl: string | null;
   verified: boolean;
+  boostedUntil: string | null;
+  avgStars: number | null;
+  ratingCount: number;
   createdAt: string;
 };
+
+export type EscrowEvent = {
+  id: string;
+  status: string;
+  note: string | null;
+  dryRun: boolean;
+  createdAt: string;
+};
+
+export const BOOST_KES = 50;
+export const VERIFY_KES = 100;
+export const BOOST_DAYS = 7;
 
 export type MarketplaceDeal = {
   id: string;
@@ -49,6 +64,13 @@ export function formatKes(cents: number): string {
   return `KES ${Math.round(cents / 100).toLocaleString("en-KE")}`;
 }
 
+export function formatSellerRating(
+  listing: Pick<MarketplaceListing, "avgStars" | "ratingCount">,
+): string | null {
+  if (!listing.avgStars || listing.ratingCount < 1) return null;
+  return `${listing.avgStars.toFixed(1)} · ${listing.ratingCount}`;
+}
+
 const DEMO_IMAGES = [
   "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80",
   "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&q=80",
@@ -59,28 +81,95 @@ const DEMO_IMAGES = [
 ];
 
 /** Offline demo board so Home is never empty. */
+function demo(
+  id: string,
+  sellerName: string,
+  title: string,
+  priceCents: number,
+  imageUrl: string,
+  verified: boolean,
+  boostedUntil: string | null = null,
+): MarketplaceListing {
+  return {
+    id,
+    sellerId: "demo",
+    sellerName,
+    title,
+    priceCents,
+    status: "live",
+    city: "Nairobi",
+    imageUrl,
+    verified,
+    boostedUntil,
+    avgStars: verified ? 4.8 : null,
+    ratingCount: verified ? 3 : 0,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 export const DEMO_LISTINGS: MarketplaceListing[] = [
-  { id: "demo-iphone", sellerId: "demo", sellerName: "Amina", title: "iPhone 13 128GB", priceCents: 4_500_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[0], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-table", sellerId: "demo", sellerName: "Brian", title: "Oak dining table", priceCents: 850_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[1], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-dress", sellerId: "demo", sellerName: "Wanjiku", title: "Think Twice dress", priceCents: 80_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[2], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-tv", sellerId: "demo", sellerName: "Otieno", title: "Samsung 43\" Smart TV", priceCents: 2_200_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[3], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-laptop", sellerId: "demo", sellerName: "Faith", title: "Dell Latitude laptop", priceCents: 3_500_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[4], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-car", sellerId: "demo", sellerName: "Kevin", title: "Toyota Fielder 2014", priceCents: 15_000_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[5], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-shoes", sellerId: "demo", sellerName: "Njeri", title: "Nike Air Force 1", priceCents: 450_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[0], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-sofa", sellerId: "demo", sellerName: "Daniel", title: "3-seater sofa", priceCents: 1_200_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[1], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-bike", sellerId: "demo", sellerName: "Grace", title: "Mountain bike", priceCents: 950_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[5], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-fridge", sellerId: "demo", sellerName: "Sam", title: "Double-door fridge", priceCents: 2_800_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[3], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-watch", sellerId: "demo", sellerName: "Lucy", title: "Casio watch", priceCents: 250_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[0], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-speaker", sellerId: "demo", sellerName: "Ian", title: "JBL Bluetooth speaker", priceCents: 380_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[4], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-jacket", sellerId: "demo", sellerName: "Mary", title: "Leather jacket M", priceCents: 320_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[2], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-monitor", sellerId: "demo", sellerName: "Peter", title: "24\" Dell monitor", priceCents: 750_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[4], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-ps5", sellerId: "demo", sellerName: "Chris", title: "PlayStation 5 Disc", priceCents: 5_500_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[0], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-microwave", sellerId: "demo", sellerName: "Ann", title: "Microwave oven", priceCents: 420_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[3], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-bed", sellerId: "demo", sellerName: "Joe", title: "5x6 bed + mattress", priceCents: 1_800_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[1], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-camera", sellerId: "demo", sellerName: "Tess", title: "Canon EOS M50", priceCents: 4_200_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[0], verified: true, createdAt: new Date().toISOString() },
-  { id: "demo-scooter", sellerId: "demo", sellerName: "Ben", title: "Electric scooter", priceCents: 2_100_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[5], verified: false, createdAt: new Date().toISOString() },
-  { id: "demo-bags", sellerId: "demo", sellerName: "Cathy", title: "Designer tote bag", priceCents: 600_000, status: "live", city: "Nairobi", imageUrl: DEMO_IMAGES[2], verified: false, createdAt: new Date().toISOString() },
+  demo("demo-iphone", "Amina", "iPhone 13 128GB", 4_500_000, DEMO_IMAGES[0], true, new Date(Date.now() + 864e5).toISOString()),
+  demo("demo-table", "Brian", "Oak dining table", 850_000, DEMO_IMAGES[1], false),
+  demo("demo-dress", "Wanjiku", "Think Twice dress", 80_000, DEMO_IMAGES[2], true),
+  demo("demo-tv", "Otieno", "Samsung 43\" Smart TV", 2_200_000, DEMO_IMAGES[3], false),
+  demo("demo-laptop", "Faith", "Dell Latitude laptop", 3_500_000, DEMO_IMAGES[4], true),
+  demo("demo-car", "Kevin", "Toyota Fielder 2014", 15_000_000, DEMO_IMAGES[5], true),
+  demo("demo-shoes", "Njeri", "Nike Air Force 1", 450_000, DEMO_IMAGES[0], false),
+  demo("demo-sofa", "Daniel", "3-seater sofa", 1_200_000, DEMO_IMAGES[1], false),
+  demo("demo-bike", "Grace", "Mountain bike", 950_000, DEMO_IMAGES[5], false),
+  demo("demo-fridge", "Sam", "Double-door fridge", 2_800_000, DEMO_IMAGES[3], true),
+  demo("demo-watch", "Lucy", "Casio watch", 250_000, DEMO_IMAGES[0], false),
+  demo("demo-speaker", "Ian", "JBL Bluetooth speaker", 380_000, DEMO_IMAGES[4], false),
+  demo("demo-jacket", "Mary", "Leather jacket M", 320_000, DEMO_IMAGES[2], false),
+  demo("demo-monitor", "Peter", "24\" Dell monitor", 750_000, DEMO_IMAGES[4], true),
+  demo("demo-ps5", "Chris", "PlayStation 5 Disc", 5_500_000, DEMO_IMAGES[0], true),
+  demo("demo-microwave", "Ann", "Microwave oven", 420_000, DEMO_IMAGES[3], false),
+  demo("demo-bed", "Joe", "5x6 bed + mattress", 1_800_000, DEMO_IMAGES[1], false),
+  demo("demo-camera", "Tess", "Canon EOS M50", 4_200_000, DEMO_IMAGES[0], true),
+  demo("demo-scooter", "Ben", "Electric scooter", 2_100_000, DEMO_IMAGES[5], false),
+  demo("demo-bags", "Cathy", "Designer tote bag", 600_000, DEMO_IMAGES[2], false),
 ];
+
+export function isBoosted(listing: Pick<MarketplaceListing, "boostedUntil">): boolean {
+  if (!listing.boostedUntil) return false;
+  return new Date(listing.boostedUntil).getTime() > Date.now();
+}
+
+export function buildListingShare(params: {
+  id: string;
+  title: string;
+  priceCents: number;
+}): { title: string; text: string; url: string } {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
+  const url = `${origin}/listing/${params.id}`;
+  return {
+    title: params.title,
+    text: `Check this on Savr — ${params.title} for ${formatKes(params.priceCents)}. Buy with M-Pesa escrow. Sell. Buy. Trust.`,
+    url,
+  };
+}
+
+export function buildTrustedSaleShare(params: {
+  title: string;
+  priceCents: number;
+  dealId: string;
+  dryRun?: boolean;
+}): { title: string; text: string; url: string } {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://savr-teal.vercel.app";
+  const url = `${origin}/deals/${params.dealId}`;
+  const dry = params.dryRun ? " (dry-run escrow)" : "";
+  return {
+    title: "Sold safely on Savr",
+    text: `Sold safely on Savr — ${params.title} for ${formatKes(params.priceCents)}. Money held in escrow until confirm.${dry} Sell. Buy. Trust.`,
+    url,
+  };
+}
+
+export function whatsAppShareUrl(payload: { text: string; url: string }): string {
+  return `https://wa.me/?text=${encodeURIComponent(`${payload.text}\n${payload.url}`)}`;
+}
 
 export function searchDemoListings(q: string): MarketplaceListing[] {
   const needle = q.trim().toLowerCase();

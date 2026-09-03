@@ -1,23 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { useAuth } from "@/lib/auth";
-import { formatKes, feeCentsFor, type MarketplaceListing } from "@/lib/marketplace";
+import {
+  buildListingShare,
+  formatKes,
+  feeCentsFor,
+  formatSellerRating,
+  isBoosted,
+  whatsAppShareUrl,
+  type MarketplaceListing,
+} from "@/lib/marketplace";
 import { loadListing, startDeal } from "@/lib/marketplace-actions";
 
-export default function ListingDetailPage() {
+function ListingInner() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = String(params.id ?? "");
+  const posted = searchParams.get("posted") === "1";
   const router = useRouter();
   const { user } = useAuth();
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isDemo = id.startsWith("demo-");
 
   useEffect(() => {
     if (!id) return;
@@ -29,6 +41,10 @@ export default function ListingDetailPage() {
 
   async function onBuy() {
     setError(null);
+    if (isDemo) {
+      setError("Sample listing — post yours to sell for real.");
+      return;
+    }
     if (!user) {
       router.push(`/login?next=${encodeURIComponent(`/listing/${id}`)}`);
       return;
@@ -68,6 +84,12 @@ export default function ListingDetailPage() {
   }
 
   const fee = feeCentsFor(listing.priceCents);
+  const share = buildListingShare({
+    id: listing.id,
+    title: listing.title,
+    priceCents: listing.priceCents,
+  });
+  const rating = formatSellerRating(listing);
 
   return (
     <PageFrame>
@@ -80,6 +102,19 @@ export default function ListingDetailPage() {
         </div>
       </div>
       <PageShell narrow>
+        {posted && !isDemo ? (
+          <div className="mb-4 rounded-2xl border border-savr-forest/25 bg-savr-forest/[0.08] px-4 py-3 text-sm text-savr-ink">
+            <p className="font-semibold text-savr-forest">You’re live</p>
+            <p className="mt-1 text-savr-mute">Share on WhatsApp so buyers can find it.</p>
+          </div>
+        ) : null}
+
+        {isDemo ? (
+          <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            Sample listing — post yours to sell with real escrow.
+          </div>
+        ) : null}
+
         <p className="font-display text-3xl font-extrabold tabular-nums tracking-tightish text-savr-forest">
           {formatKes(listing.priceCents)}
         </p>
@@ -90,6 +125,8 @@ export default function ListingDetailPage() {
           {listing.city}
           {listing.sellerName ? ` · ${listing.sellerName}` : ""}
           {listing.verified ? " · Verified" : ""}
+          {isBoosted(listing) ? " · Boosted" : ""}
+          {rating ? ` · ★ ${rating}` : ""}
         </p>
 
         <div className="mt-5 rounded-2xl border border-savr-forest/20 bg-savr-forest/[0.06] px-4 py-3 text-sm text-savr-ink">
@@ -99,18 +136,72 @@ export default function ListingDetailPage() {
 
         {error && <p className="mt-3 text-sm font-semibold text-amber-800">{error}</p>}
 
-        <button
-          type="button"
-          onClick={() => void onBuy()}
-          disabled={busy || listing.status !== "live"}
-          className="btn-primary mt-6 w-full disabled:opacity-60"
-        >
-          {busy ? "Starting…" : "Buy with M-Pesa (escrow)"}
-        </button>
+        {posted && !isDemo ? (
+          <a
+            href={whatsAppShareUrl(share)}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary mt-6 flex w-full items-center justify-center"
+          >
+            Share on WhatsApp
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void onBuy()}
+            disabled={busy || listing.status !== "live" || isDemo}
+            className="btn-primary mt-6 w-full disabled:opacity-60"
+          >
+            {isDemo ? "Sample — can’t buy" : busy ? "Starting…" : "Buy with M-Pesa (escrow)"}
+          </button>
+        )}
+
+        {!posted || isDemo ? (
+          <a
+            href={whatsAppShareUrl(share)}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost mt-3 flex w-full items-center justify-center"
+          >
+            Share on WhatsApp
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void onBuy()}
+            disabled={busy || listing.status !== "live"}
+            className="btn-ghost mt-3 w-full disabled:opacity-60"
+          >
+            {busy ? "Starting…" : "Buy with M-Pesa (escrow)"}
+          </button>
+        )}
+
+        {isDemo ? (
+          <Link href="/sell" className="btn-ghost mt-3 flex w-full items-center justify-center">
+            Sell something · 60 seconds
+          </Link>
+        ) : null}
+
         <Link href="/search" className="mt-3 block text-center text-sm font-semibold text-savr-mute">
           Back to search
         </Link>
       </PageShell>
     </PageFrame>
+  );
+}
+
+export default function ListingDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageFrame>
+          <PageShell>
+            <LoadingBlock rows={4} />
+          </PageShell>
+        </PageFrame>
+      }
+    >
+      <ListingInner />
+    </Suspense>
   );
 }

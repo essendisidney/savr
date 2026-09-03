@@ -8,12 +8,16 @@ import { ListingCard } from "@/components/ListingCard";
 import { LoadingBlock } from "@/components/LoadingBlock";
 import { useAuth } from "@/lib/auth";
 import {
+  BOOST_KES,
+  VERIFY_KES,
   dealStatusLabel,
   formatKes,
+  isBoosted,
   type MarketplaceDeal,
   type MarketplaceListing,
 } from "@/lib/marketplace";
 import {
+  boostListing,
   loadMyDeals,
   loadMyListings,
   loadVerificationStatus,
@@ -27,9 +31,16 @@ export default function AccountPage() {
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [deals, setDeals] = useState<MarketplaceDeal[]>([]);
   const [verify, setVerify] = useState<"none" | "pending" | "verified" | "rejected">("none");
+  const [idNote, setIdNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  async function refreshMine() {
+    const [mine, myDeals] = await Promise.all([loadMyListings(), loadMyDeals()]);
+    setListings(mine);
+    setDeals(myDeals);
+  }
 
   useEffect(() => {
     if (authLoading) return;
@@ -62,14 +73,34 @@ export default function AccountPage() {
 
   async function onVerify() {
     setBusy(true);
-    const res = await requestVerification();
+    const res = await requestVerification({ idNote });
     setBusy(false);
     if ("error" in res) {
       setStatus(res.error);
       return;
     }
     setVerify("pending");
-    setStatus("Verification requested — we’ll review your ID.");
+    setStatus(
+      res.dryRun
+        ? `Verification pending — KES ${VERIFY_KES} fee stub (dry-run, no charge). Ops will review.`
+        : `Verification pending — KES ${VERIFY_KES}. Ops will review your ID note.`,
+    );
+  }
+
+  async function onBoost(listingId: string) {
+    setBusy(true);
+    const res = await boostListing(listingId);
+    setBusy(false);
+    if ("error" in res) {
+      setStatus(res.error);
+      return;
+    }
+    setStatus(
+      res.dryRun
+        ? `Boosted for 7 days — KES ${BOOST_KES} stub (dry-run, no charge).`
+        : `Boosted for 7 days (KES ${BOOST_KES}).`,
+    );
+    await refreshMine();
   }
 
   if (loading || authLoading) {
@@ -119,6 +150,9 @@ export default function AccountPage() {
               onChange={(e) => profile && setProfile({ ...profile, phone: e.target.value })}
               placeholder="M-Pesa phone 07…"
             />
+            <p className="text-xs text-savr-mute">
+              Required to post listings and receive escrow payouts.
+            </p>
             <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onSaveProfile()}>
               Save profile
             </button>
@@ -126,7 +160,7 @@ export default function AccountPage() {
 
           <section className="card space-y-3 px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
-              Seller verification
+              Seller verification · KES {VERIFY_KES}
             </p>
             <p className="text-sm text-savr-ink">
               Status:{" "}
@@ -134,12 +168,24 @@ export default function AccountPage() {
                 {verify === "none" ? "Not verified" : verify}
               </span>
             </p>
-            {verify === "none" || verify === "rejected" ? (
-              <button type="button" className="btn-primary" disabled={busy} onClick={() => void onVerify()}>
-                Request ✅ badge
-              </button>
-            ) : null}
-            <p className="text-xs text-savr-mute">Optional. Builds buyer confidence. Fee later.</p>
+            {(verify === "none" || verify === "rejected") && (
+              <>
+                <textarea
+                  className="field min-h-[4.5rem]"
+                  value={idNote}
+                  onChange={(e) => setIdNote(e.target.value)}
+                  placeholder="ID placeholder — e.g. National ID last 4 digits / upload coming soon"
+                  maxLength={200}
+                />
+                <button type="button" className="btn-primary" disabled={busy} onClick={() => void onVerify()}>
+                  Request badge · KES {VERIFY_KES}
+                </button>
+              </>
+            )}
+            <p className="text-xs text-savr-mute">
+              Stub fee only while M-Pesa is dry-run. Badge stays pending until ops verifies — not
+              auto-trust.
+            </p>
           </section>
 
           {status && <p className="text-sm font-semibold text-savr-forest">{status}</p>}
@@ -152,11 +198,23 @@ export default function AccountPage() {
               </Link>
             </div>
             {listings.length ? (
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <ul className="mt-3 space-y-4">
                 {listings.map((l) => (
-                  <ListingCard key={l.id} listing={l} />
+                  <li key={l.id} className="space-y-2">
+                    <ListingCard listing={l} />
+                    {l.status === "live" || l.status === "reserved" ? (
+                      <button
+                        type="button"
+                        className="btn-ghost w-full text-sm"
+                        disabled={busy || isBoosted(l)}
+                        onClick={() => void onBoost(l.id)}
+                      >
+                        {isBoosted(l) ? "Boosted" : `Boost 7 days · KES ${BOOST_KES}`}
+                      </button>
+                    ) : null}
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
               <p className="mt-3 text-sm text-savr-mute">No listings yet.</p>
             )}

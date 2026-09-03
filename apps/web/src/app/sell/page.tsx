@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageFrame, PageShell } from "@/components/PageShell";
 import { PageHero } from "@/components/PageHero";
 import { useAuth } from "@/lib/auth";
+import { loadProfile } from "@/lib/actions";
 import { createListing } from "@/lib/marketplace-actions";
 import { getSupabase } from "@/lib/supabase";
+import { isValidKeMobile } from "@/lib/phone";
 
 export default function SellPage() {
   const router = useRouter();
@@ -18,6 +20,21 @@ export default function SellPage() {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasPhone, setHasPhone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setHasPhone(null);
+      return;
+    }
+    void loadProfile().then((p) => {
+      if ("error" in p) {
+        setHasPhone(false);
+        return;
+      }
+      setHasPhone(isValidKeMobile(p.phone));
+    });
+  }, [user]);
 
   function onPick(f: File | null) {
     setFile(f);
@@ -30,6 +47,10 @@ export default function SellPage() {
     setError(null);
     if (!user) {
       router.push("/login?next=/sell");
+      return;
+    }
+    if (hasPhone === false) {
+      setError("Add a valid M-Pesa phone on You → Profile before posting.");
       return;
     }
     if (!file) {
@@ -78,7 +99,7 @@ export default function SellPage() {
         setError(res.error);
         return;
       }
-      router.push(`/listing/${res.id}`);
+      router.push(`/listing/${res.id}?posted=1`);
     } catch (err) {
       setBusy(false);
       setError(err instanceof Error ? err.message : "Could not post");
@@ -102,6 +123,16 @@ export default function SellPage() {
           </div>
         ) : (
           <form onSubmit={onSubmit} className="space-y-5">
+            {hasPhone === false && (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                Add your M-Pesa phone on{" "}
+                <Link href="/account" className="font-semibold underline">
+                  You → Profile
+                </Link>{" "}
+                so buyers can release escrow to you.
+              </div>
+            )}
+
             <label className="block">
               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-savr-mute">
                 Photo
@@ -162,7 +193,7 @@ export default function SellPage() {
 
             {error && <p className="text-sm font-semibold text-amber-800">{error}</p>}
 
-            <button type="submit" className="btn-primary w-full" disabled={busy}>
+            <button type="submit" className="btn-primary w-full" disabled={busy || hasPhone === false}>
               {busy ? "Posting…" : "Post listing"}
             </button>
           </form>

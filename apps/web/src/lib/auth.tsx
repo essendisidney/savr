@@ -31,8 +31,8 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 function redirectTo(): string {
-  if (typeof window === "undefined") return "https://savr-teal.vercel.app/basket";
-  return `${window.location.origin}/basket`;
+  if (typeof window === "undefined") return "https://savr-teal.vercel.app/";
+  return `${window.location.origin}/`;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

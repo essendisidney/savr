@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import type { MarketplaceListing } from "@/lib/marketplace";
-import { formatKes } from "@/lib/marketplace";
+import { formatKes, formatSellerRating, isBoosted } from "@/lib/marketplace";
 
 export function ListingCard({ listing }: { listing: MarketplaceListing }) {
+  const boosted = isBoosted(listing);
+  const rating = formatSellerRating(listing);
   return (
-    <Link href={`/listing/${listing.id}`} className="group block overflow-hidden rounded-2xl border border-savr-ink/[0.08] bg-white shadow-[0_12px_32px_-28px_rgba(11,18,32,0.45)]">
+    <Link
+      href={`/listing/${listing.id}`}
+      className="group relative block overflow-hidden rounded-2xl border border-savr-ink/[0.08] bg-white shadow-[0_12px_32px_-28px_rgba(11,18,32,0.45)]"
+    >
+      {boosted ? (
+        <span className="absolute left-2 top-2 z-10 rounded-lg bg-savr-forest px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+          Boosted
+        </span>
+      ) : null}
       <div className="aspect-[4/3] overflow-hidden bg-savr-fog">
         {listing.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -28,7 +38,8 @@ export function ListingCard({ listing }: { listing: MarketplaceListing }) {
         </p>
         <p className="mt-1 text-[11px] text-savr-mute">
           {listing.city}
-          {listing.verified ? " · Verified seller" : ""}
+          {listing.verified ? " · Verified" : ""}
+          {rating ? ` · ★ ${rating}` : ""}
         </p>
       </div>
     </Link>

@@ -13,7 +13,8 @@ type Tab = "phone" | "email" | "password";
 const PHONE_RESEND_SEC = 60;
 
 function safeNext(raw: string | null): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/basket";
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
+  if (raw.startsWith("/basket") || raw.startsWith("/ask") || raw.startsWith("/prices")) return "/";
   return raw;
 }
 

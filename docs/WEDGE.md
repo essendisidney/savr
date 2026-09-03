@@ -76,4 +76,6 @@ Grocery compare, rides, and fuel are **out of wedge** — retired product surfac
 2. Schema + RLS + listing photos; demo listings so Home is never empty.  
 3. STK pay-in + escrow ledger + B2C release (**dry-run default**).  
 4. Seed + WhatsApp walkthrough; **live M-Pesa only after explicit go.**  
-5. Week-2 stubs only: boost (KES 50), verify badge (KES 100) — after core loop works.
+5. Week-2: cancel unpaid deals, WhatsApp trusted-sale share, seller phone gate, boost (KES 50) + verify (KES 100) stubs.  
+6. Wave-3: dispute → refund, 60m unpaid expire cron, already-rated + listing WA share, login defaults to Home.  
+7. Wave-4: seller avg stars, escrow timeline, post-list share moment, demo banner, PWA shell for marketplace — live M-Pesa only after explicit go.
